@@ -1,0 +1,12 @@
+[package]
+name = "merlang"
+version = "0.1.0"
+authors = ["catapillie"]
+description = "mer programming language"
+edition = "2021"
+
+[[bin]]
+name = "mer"
+path = "src/mer.rs"
+
+[dependencies]
