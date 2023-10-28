@@ -5,6 +5,7 @@ use colored::Colorize;
 
 mod cli;
 mod cmd;
+mod com;
 mod msg;
 
 fn main() {
@@ -55,7 +56,7 @@ fn run_compile(command: CompileCommand) {
                 }
             };
 
-            todo!();
+            com::compile(source);
         }
         CompileCommand::NoPath => {
             msg::error("no path provided");
