@@ -1,9 +1,10 @@
 use std::fmt::Display;
 
-use super::{asts::*, cursor::Cursor, ops::*, tokens::*, span::Span, pos::Pos};
+use super::{asts::*, cursor::Cursor, ops::*, pos::Pos, span::Span, tokens::*};
 
 #[derive(Debug)]
 pub enum ParserError {
+    IllegalCharacter(char),
     InvalidNumber(String),
     Unexpected(Token, TokenKind),
     ExpectedExpression(Token),
@@ -14,6 +15,7 @@ pub enum ParserError {
 impl Display for ParserError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            ParserError::IllegalCharacter(u) => write!(f, "illegal character {u:?}"),
             ParserError::InvalidNumber(repr) => {
                 write!(f, "invalid number literal '{repr}'")
             }
@@ -391,74 +393,77 @@ impl<'src> Parser<'src> {
 
     fn lex(&mut self) -> Token {
         loop {
-            let Some(c) = self.cursor.peek() else {
+            loop {
+                let Some(c) = self.cursor.peek() else {
+                    return Eof.wrap(Span::EOF);
+                };
+
+                if c.is_whitespace() && !Self::is_newline_character(c) {
+                    self.cursor.next();
+                    continue;
+                }
+
+                break;
+            }
+
+            if self.cursor.peek().is_none() {
                 return Eof.wrap(Span::EOF);
-            };
-
-            if c.is_whitespace() && !Self::is_newline_character(c) {
-                self.cursor.next();
-                continue;
             }
 
-            break;
-        }
+            let start_pos = self.cursor.pos();
 
-        if self.cursor.peek().is_none() {
-            return Eof.wrap(Span::EOF);
-        }
-
-        let start_pos = self.cursor.pos();
-
-        if self.try_consume_newlines() {
-            return Newline.wrap(Span::at(start_pos));
-        }
-
-        match_by_string!(self, "==" => Eq);
-        match_by_string!(self, "!=" => Neq);
-        match_by_string!(self, "<=" => Le);
-        match_by_string!(self, "<" => Lt);
-        match_by_string!(self, ">=" => Ge);
-        match_by_string!(self, ">" => Gt);
-        match_by_string!(self, "(" => LeftParen);
-        match_by_string!(self, ")" => RightParen);
-        match_by_string!(self, "{" => LeftBrace);
-        match_by_string!(self, "}" => RightBrace);
-        match_by_string!(self, "," => Comma);
-        match_by_string!(self, "=" => Equal);
-        match_by_string!(self, "+" => Plus);
-        match_by_string!(self, "-" => Minus);
-        match_by_string!(self, "*" => Star);
-        match_by_string!(self, "/" => Slash);
-        match_by_string!(self, "%" => Mod);
-        match_by_string!(self, "&" => Amper);
-        match_by_string!(self, "|" => Bar);
-        match_by_string!(self, "^" => Caret);
-
-        if let Some((num, span)) = self.try_consume_number() {
-            return Num(num).wrap(span);
-        }
-
-        if let Some((id, span)) = self.try_consume_identifier() {
-            return match id.as_str() {
-                "if" => IfKw.wrap(span),
-                "then" => ThenKw.wrap(span),
-                "func" => FuncKw.wrap(span),
-                "return" => ReturnKw.wrap(span),
-                "true" => TrueLit.wrap(span),
-                "false" => FalseLit.wrap(span),
-                "and" => AndKw.wrap(span),
-                "or" => OrKw.wrap(span),
-                "not" => NotKw.wrap(span),
-                _ => Ident(id).wrap(span),
-            };
-        }
-
-        match self.cursor.peek() {
-            Some(u) => {
-                self.cursor.next();
-                Ill(u).wrap(Span::new(start_pos, self.cursor.pos()))
+            if self.try_consume_newlines() {
+                return Newline.wrap(Span::at(start_pos));
             }
-            None => Eof.wrap(Span::EOF),
+
+            match_by_string!(self, "==" => Eq);
+            match_by_string!(self, "!=" => Neq);
+            match_by_string!(self, "<=" => Le);
+            match_by_string!(self, "<" => Lt);
+            match_by_string!(self, ">=" => Ge);
+            match_by_string!(self, ">" => Gt);
+            match_by_string!(self, "(" => LeftParen);
+            match_by_string!(self, ")" => RightParen);
+            match_by_string!(self, "{" => LeftBrace);
+            match_by_string!(self, "}" => RightBrace);
+            match_by_string!(self, "," => Comma);
+            match_by_string!(self, "=" => Equal);
+            match_by_string!(self, "+" => Plus);
+            match_by_string!(self, "-" => Minus);
+            match_by_string!(self, "*" => Star);
+            match_by_string!(self, "/" => Slash);
+            match_by_string!(self, "%" => Mod);
+            match_by_string!(self, "&" => Amper);
+            match_by_string!(self, "|" => Bar);
+            match_by_string!(self, "^" => Caret);
+
+            if let Some((num, span)) = self.try_consume_number() {
+                return Num(num).wrap(span);
+            }
+
+            if let Some((id, span)) = self.try_consume_identifier() {
+                return match id.as_str() {
+                    "if" => IfKw.wrap(span),
+                    "then" => ThenKw.wrap(span),
+                    "func" => FuncKw.wrap(span),
+                    "return" => ReturnKw.wrap(span),
+                    "true" => TrueLit.wrap(span),
+                    "false" => FalseLit.wrap(span),
+                    "and" => AndKw.wrap(span),
+                    "or" => OrKw.wrap(span),
+                    "not" => NotKw.wrap(span),
+                    _ => Ident(id).wrap(span),
+                };
+            }
+
+            match self.cursor.peek() {
+                Some(u) => {
+                    self.cursor.next();
+                    self.errors.push(ParserError::IllegalCharacter(u));
+                    continue;
+                }
+                None => return Eof.wrap(Span::EOF),
+            }
         }
     }
 }

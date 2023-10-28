@@ -12,8 +12,6 @@ pub trait TokenValue: Clone + Default + Display {
 gen_tokens! {
     Eof "end-of-file"
         self => ("end-of-file"),
-    Ill(char) "illegal character"
-        self => ("illegal character {:?}", self.0),
 
     Newline "newline"
         self => ("newline"),
