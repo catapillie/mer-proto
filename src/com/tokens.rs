@@ -1,5 +1,14 @@
 use std::fmt::Display;
 
+use super::span::Span;
+
+pub trait TokenValue: Clone + Default + Display {
+    fn wrap(self, span: Span) -> Token;
+    fn extract(token: &Token) -> Option<(Self, Span)>;
+    fn kind() -> TokenKind;
+    fn display() -> &'static str;
+}
+
 gen_tokens! {
     Eof "end-of-file"
         self => ("end-of-file"),
@@ -83,12 +92,6 @@ gen_tokens! {
         self => ("{}", self.0),
 }
 
-pub trait TokenValue: Clone + Default + Display {
-    fn extract(token: &Token) -> Option<Self>;
-    fn kind() -> TokenKind;
-    fn display() -> &'static str;
-}
-
 macro_rules! gen_tokens {
     (
       $(
@@ -99,15 +102,25 @@ macro_rules! gen_tokens {
         #[derive(Debug, Clone)]
         pub enum Token {
             $(
-                $name($name)
+                $name($name, Span)
             ),*
+        }
+
+        impl Token {
+            pub fn span(&self) -> Span {
+                match self {
+                    $(
+                        Self::$name(_, span) => *span
+                    ),*
+                }
+            }
         }
 
         impl Display for Token {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 match self {
                     $(
-                        Self::$name(value) => value.fmt(f),
+                        Self::$name(value, _) => value.fmt(f),
                     )*
                 }
             }
@@ -134,16 +147,14 @@ macro_rules! gen_tokens {
             #[derive(Debug, Default, Clone)]
             pub struct $name $( ( $(pub $type),* ) )?;
 
-            impl $name {
-                pub fn wrap(self) -> Token {
-                    Token::$name(self)
-                }
-            }
-
             impl TokenValue for $name {
-                fn extract(token: &Token) -> Option<Self> {
-                    if let Token::$name(value) = token {
-                        Some(value.clone())
+                fn wrap(self, span: Span) -> Token {
+                    Token::$name(self, span)
+                }
+
+                fn extract(token: &Token) -> Option<(Self, Span)> {
+                    if let Token::$name(value, span) = token {
+                        Some((value.clone(), span.clone()))
                     } else {
                         None
                     }

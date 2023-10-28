@@ -11,6 +11,7 @@ mod cursor;
 mod ops;
 mod parser;
 mod pos;
+mod span;
 mod tokens;
 
 pub fn compile(source: String) {

@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use super::{asts::*, cursor::Cursor, ops::*, tokens::*};
+use super::{asts::*, cursor::Cursor, ops::*, tokens::*, span::Span, pos::Pos};
 
 #[derive(Debug)]
 pub enum ParserError {
@@ -44,7 +44,7 @@ impl<'src> Parser<'src> {
     pub fn new(source: &'src str) -> Self {
         Self {
             cursor: Cursor::new(source),
-            lookahead: Token::Eof(Eof),
+            lookahead: Token::Eof(Eof, Span::at(Pos::default())),
             seen_tokens: Vec::new(),
             errors: Vec::new(),
         }
@@ -59,7 +59,7 @@ impl<'src> Parser<'src> {
 
     fn try_expect_token<T: TokenValue>(&mut self) -> Result<T, ParserError> {
         match T::extract(&self.lookahead) {
-            Some(token) => {
+            Some((token, _)) => {
                 self.consume_token();
                 Ok(token)
             }
@@ -73,7 +73,7 @@ impl<'src> Parser<'src> {
 
     fn match_token<T: TokenValue>(&mut self) -> Option<T> {
         match T::extract(&self.lookahead) {
-            Some(token) => {
+            Some((token, _)) => {
                 self.consume_token();
                 Some(token)
             }
@@ -99,7 +99,7 @@ impl<'src> Parser<'src> {
 
     // looks at the previous token in case the newlines were skipped
     fn expect_newline(&mut self) {
-        if let Some(Token::Newline(_)) = self.seen_tokens.last() {
+        if let Some(Token::Newline(_, _)) = self.seen_tokens.last() {
             return;
         }
         self.expect_token::<Newline>();
@@ -183,23 +183,23 @@ impl<'src> Parser<'src> {
 
     fn match_binary_operator(&mut self) -> Option<BinOp> {
         match self.lookahead {
-            Token::Equal(_) => Some(BinOp::Equal),
-            Token::Plus(_) => Some(BinOp::Plus),
-            Token::Minus(_) => Some(BinOp::Minus),
-            Token::Star(_) => Some(BinOp::Star),
-            Token::Slash(_) => Some(BinOp::Slash),
-            Token::Mod(_) => Some(BinOp::Mod),
-            Token::Amper(_) => Some(BinOp::Amper),
-            Token::Bar(_) => Some(BinOp::Bar),
-            Token::Caret(_) => Some(BinOp::Caret),
-            Token::Eq(_) => Some(BinOp::Eq),
-            Token::Neq(_) => Some(BinOp::Neq),
-            Token::LtEq(_) => Some(BinOp::LtEq),
-            Token::Lt(_) => Some(BinOp::Lt),
-            Token::GtEq(_) => Some(BinOp::GtEq),
-            Token::Gt(_) => Some(BinOp::Gt),
-            Token::AndKeyword(_) => Some(BinOp::And),
-            Token::OrKeyword(_) => Some(BinOp::Or),
+            Token::Equal(_, _) => Some(BinOp::Equal),
+            Token::Plus(_, _) => Some(BinOp::Plus),
+            Token::Minus(_, _) => Some(BinOp::Minus),
+            Token::Star(_, _) => Some(BinOp::Star),
+            Token::Slash(_, _) => Some(BinOp::Slash),
+            Token::Mod(_, _) => Some(BinOp::Mod),
+            Token::Amper(_, _) => Some(BinOp::Amper),
+            Token::Bar(_, _) => Some(BinOp::Bar),
+            Token::Caret(_, _) => Some(BinOp::Caret),
+            Token::Eq(_, _) => Some(BinOp::Eq),
+            Token::Neq(_, _) => Some(BinOp::Neq),
+            Token::LtEq(_, _) => Some(BinOp::LtEq),
+            Token::Lt(_, _) => Some(BinOp::Lt),
+            Token::GtEq(_, _) => Some(BinOp::GtEq),
+            Token::Gt(_, _) => Some(BinOp::Gt),
+            Token::AndKeyword(_, _) => Some(BinOp::And),
+            Token::OrKeyword(_, _) => Some(BinOp::Or),
             _ => None,
         }
     }
@@ -283,14 +283,16 @@ impl<'src> Parser<'src> {
         Err(ParserError::ExpectedExpression(self.lookahead.clone()))
     }
 
-    fn try_consume_string(&mut self, string: &str) -> bool {
+    fn try_consume_string(&mut self, string: &str) -> Option<Span> {
         let mut clone = self.cursor.clone();
+        let start_pos = self.cursor.pos();
 
         if clone.by_ref().take(string.len()).eq(string.chars()) {
+            let span = Span::new(start_pos, clone.pos());
             self.cursor = clone;
-            true
+            Some(span)
         } else {
-            false
+            None
         }
     }
 
@@ -306,7 +308,9 @@ impl<'src> Parser<'src> {
         c == '\n' || c == '\r'
     }
 
-    fn try_consume_identifier(&mut self) -> Option<String> {
+    fn try_consume_identifier(&mut self) -> Option<(String, Span)> {
+        let start_pos = self.cursor.pos();
+
         let Some(c) = self.cursor.peek() else {
             return None;
         };
@@ -327,11 +331,14 @@ impl<'src> Parser<'src> {
             self.cursor.next();
         }
 
-        Some(identifier)
+        let end_pos = self.cursor.pos();
+
+        Some((identifier, Span::new(start_pos, end_pos)))
     }
 
-    fn try_consume_number(&mut self) -> Option<f64> {
+    fn try_consume_number(&mut self) -> Option<(f64, Span)> {
         let mut number = String::new();
+        let start_pos = self.cursor.pos();
 
         while let Some(c) = self.cursor.peek() {
             if !c.is_ascii_digit() {
@@ -360,11 +367,14 @@ impl<'src> Parser<'src> {
             return None;
         }
 
+        let end_pos = self.cursor.pos();
+        let span = Span::new(start_pos, end_pos);
+
         Some(match number.parse() {
-            Ok(num) => num,
+            Ok(num) => (num, span),
             Err(_) => {
                 self.errors.push(ParserError::InvalidNumber(number));
-                f64::NAN
+                (f64::NAN, span)
             }
         })
     }
@@ -391,7 +401,7 @@ impl<'src> Parser<'src> {
     fn lex(&mut self) -> Token {
         loop {
             let Some(c) = self.cursor.peek() else {
-                return Eof.wrap();
+                return Eof.wrap(Span::EOF);
             };
 
             if c.is_whitespace() && !Self::is_newline_character(c) {
@@ -403,11 +413,13 @@ impl<'src> Parser<'src> {
         }
 
         if self.cursor.peek().is_none() {
-            return Eof.wrap();
+            return Eof.wrap(Span::EOF);
         }
 
+        let start_pos = self.cursor.pos();
+
         if self.try_consume_newlines() {
-            return Newline.wrap();
+            return Newline.wrap(Span::at(start_pos));
         }
 
         match_by_string!(self, "==" => Eq);
@@ -431,33 +443,33 @@ impl<'src> Parser<'src> {
         match_by_string!(self, "|" => Bar);
         match_by_string!(self, "^" => Caret);
 
-        if let Some(num) = self.try_consume_number() {
-            return Number(num).wrap();
+        if let Some((num, span)) = self.try_consume_number() {
+            return Number(num).wrap(span);
         }
 
-        if let Some(id) = self.try_consume_identifier() {
+        if let Some((id, span)) = self.try_consume_identifier() {
             return match id.as_str() {
-                "if" => IfKeyword.wrap(),
-                "then" => ThenKeyword.wrap(),
-                "func" => FuncKeyword.wrap(),
-                "return" => ReturnKeyword.wrap(),
-                "log" => LogKeyword.wrap(),
-                "true" => TrueLiteral.wrap(),
-                "false" => FalseLiteral.wrap(),
-                "time" => TimeLiteral.wrap(),
-                "and" => AndKeyword.wrap(),
-                "or" => OrKeyword.wrap(),
-                "not" => NotKeyword.wrap(),
-                _ => Identifier(id).wrap(),
+                "if" => IfKeyword.wrap(span),
+                "then" => ThenKeyword.wrap(span),
+                "func" => FuncKeyword.wrap(span),
+                "return" => ReturnKeyword.wrap(span),
+                "log" => LogKeyword.wrap(span),
+                "true" => TrueLiteral.wrap(span),
+                "false" => FalseLiteral.wrap(span),
+                "time" => TimeLiteral.wrap(span),
+                "and" => AndKeyword.wrap(span),
+                "or" => OrKeyword.wrap(span),
+                "not" => NotKeyword.wrap(span),
+                _ => Identifier(id).wrap(span),
             };
         }
 
         match self.cursor.peek() {
             Some(u) => {
                 self.cursor.next();
-                Illegal(u).wrap()
+                Illegal(u).wrap(Span::new(start_pos, self.cursor.pos()))
             }
-            None => Eof.wrap(),
+            None => Eof.wrap(Span::EOF),
         }
     }
 }
@@ -484,8 +496,8 @@ impl<T: Default> ParserResult for Result<T, ParserError> {
 
 macro_rules! match_by_string {
     ($self:ident, $string:literal => $token:ident) => {
-        if $self.try_consume_string($string) {
-            return $token.wrap();
+        if let Some(span) = $self.try_consume_string($string) {
+            return $token.wrap(span);
         }
     };
 }

@@ -8,7 +8,9 @@ pub struct Pos {
 }
 
 impl Pos {
-    pub fn new(index: usize, line: usize, column: usize) -> Self {
+    pub const MAX: Self = Self::new(usize::MAX, usize::MAX, usize::MAX);
+
+    pub const fn new(index: usize, line: usize, column: usize) -> Self {
         Self {
             index,
             line,
@@ -25,6 +27,10 @@ impl Default for Pos {
 
 impl Display for Pos {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}:{}", self.line + 1, self.column + 1)
+        if self == &Self::MAX {
+            write!(f, "eof")
+        } else {
+            write!(f, "{}:{}", self.line + 1, self.column + 1)
+        }
     }
 }
