@@ -106,16 +106,16 @@ impl<'src> Parser<'src> {
     }
 
     fn parse_statement(&mut self) -> Result<StmtAst, ParserError> {
-        if self.match_token::<FuncKeyword>().is_some() {
-            let name = self.expect_token::<Identifier>().0;
+        if self.match_token::<FuncKw>().is_some() {
+            let name = self.expect_token::<Ident>().0;
             let mut args = Vec::new();
 
             self.expect_token::<LeftParen>();
 
-            if let Some(first_arg) = self.match_token::<Identifier>() {
+            if let Some(first_arg) = self.match_token::<Ident>() {
                 args.push(first_arg.0);
                 while self.match_token::<Comma>().is_some() {
-                    let arg = self.expect_token::<Identifier>().0;
+                    let arg = self.expect_token::<Ident>().0;
                     args.push(arg);
                 }
             }
@@ -133,15 +133,15 @@ impl<'src> Parser<'src> {
             return Ok(StmtAst::FuncDef(name, args, Box::new(stmt)));
         }
 
-        if self.match_token::<IfKeyword>().is_some() {
+        if self.match_token::<IfKw>().is_some() {
             let expr = self.parse_expression().accept_error(self);
-            self.expect_token::<ThenKeyword>();
+            self.expect_token::<ThenKw>();
             self.skip_newlines();
             let stmt = self.parse_statement().accept_error(self);
             return Ok(StmtAst::IfThen(expr, Box::new(stmt)));
         }
 
-        if self.match_token::<ReturnKeyword>().is_some() {
+        if self.match_token::<ReturnKw>().is_some() {
             let expr = self.parse_expression().accept_error(self);
             return Ok(StmtAst::Return(expr));
         }
@@ -189,12 +189,12 @@ impl<'src> Parser<'src> {
             Token::Caret(_, _) => Some(BinOp::Caret),
             Token::Eq(_, _) => Some(BinOp::Eq),
             Token::Neq(_, _) => Some(BinOp::Neq),
-            Token::LtEq(_, _) => Some(BinOp::LtEq),
+            Token::Le(_, _) => Some(BinOp::Le),
             Token::Lt(_, _) => Some(BinOp::Lt),
-            Token::GtEq(_, _) => Some(BinOp::GtEq),
+            Token::Ge(_, _) => Some(BinOp::Ge),
             Token::Gt(_, _) => Some(BinOp::Gt),
-            Token::AndKeyword(_, _) => Some(BinOp::And),
-            Token::OrKeyword(_, _) => Some(BinOp::Or),
+            Token::AndKw(_, _) => Some(BinOp::And),
+            Token::OrKw(_, _) => Some(BinOp::Or),
             _ => None,
         }
     }
@@ -229,15 +229,15 @@ impl<'src> Parser<'src> {
     }
 
     fn parse_primary_expression(&mut self) -> Result<ExprAst, ParserError> {
-        if let Some(number) = self.match_token::<Number>() {
+        if let Some(number) = self.match_token::<Num>() {
             return Ok(ExprAst::Number(number.0));
         };
 
-        if self.match_token::<TrueLiteral>().is_some() {
+        if self.match_token::<TrueLit>().is_some() {
             return Ok(ExprAst::True);
         }
 
-        if self.match_token::<FalseLiteral>().is_some() {
+        if self.match_token::<FalseLit>().is_some() {
             return Ok(ExprAst::False);
         }
 
@@ -247,7 +247,7 @@ impl<'src> Parser<'src> {
             return Ok(expr);
         }
 
-        if let Some(id) = self.match_token::<Identifier>() {
+        if let Some(id) = self.match_token::<Ident>() {
             if self.match_token::<LeftParen>().is_none() {
                 return Ok(ExprAst::Variable(id.0));
             }
@@ -415,9 +415,9 @@ impl<'src> Parser<'src> {
 
         match_by_string!(self, "==" => Eq);
         match_by_string!(self, "!=" => Neq);
-        match_by_string!(self, "<=" => LtEq);
+        match_by_string!(self, "<=" => Le);
         match_by_string!(self, "<" => Lt);
-        match_by_string!(self, ">=" => GtEq);
+        match_by_string!(self, ">=" => Ge);
         match_by_string!(self, ">" => Gt);
         match_by_string!(self, "(" => LeftParen);
         match_by_string!(self, ")" => RightParen);
@@ -435,28 +435,28 @@ impl<'src> Parser<'src> {
         match_by_string!(self, "^" => Caret);
 
         if let Some((num, span)) = self.try_consume_number() {
-            return Number(num).wrap(span);
+            return Num(num).wrap(span);
         }
 
         if let Some((id, span)) = self.try_consume_identifier() {
             return match id.as_str() {
-                "if" => IfKeyword.wrap(span),
-                "then" => ThenKeyword.wrap(span),
-                "func" => FuncKeyword.wrap(span),
-                "return" => ReturnKeyword.wrap(span),
-                "true" => TrueLiteral.wrap(span),
-                "false" => FalseLiteral.wrap(span),
-                "and" => AndKeyword.wrap(span),
-                "or" => OrKeyword.wrap(span),
-                "not" => NotKeyword.wrap(span),
-                _ => Identifier(id).wrap(span),
+                "if" => IfKw.wrap(span),
+                "then" => ThenKw.wrap(span),
+                "func" => FuncKw.wrap(span),
+                "return" => ReturnKw.wrap(span),
+                "true" => TrueLit.wrap(span),
+                "false" => FalseLit.wrap(span),
+                "and" => AndKw.wrap(span),
+                "or" => OrKw.wrap(span),
+                "not" => NotKw.wrap(span),
+                _ => Ident(id).wrap(span),
             };
         }
 
         match self.cursor.peek() {
             Some(u) => {
                 self.cursor.next();
-                Illegal(u).wrap(Span::new(start_pos, self.cursor.pos()))
+                Ill(u).wrap(Span::new(start_pos, self.cursor.pos()))
             }
             None => Eof.wrap(Span::EOF),
         }

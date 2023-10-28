@@ -12,7 +12,7 @@ pub trait TokenValue: Clone + Default + Display {
 gen_tokens! {
     Eof "end-of-file"
         self => ("end-of-file"),
-    Illegal(char) "illegal character"
+    Ill(char) "illegal character"
         self => ("illegal character {:?}", self.0),
 
     Newline "newline"
@@ -52,38 +52,38 @@ gen_tokens! {
         self => ("=="),
     Neq "!="
         self => ("!="),
-    LtEq "<="
+    Le "<="
         self => ("<="),
     Lt "<"
         self => ("<"),
-    GtEq ">="
+    Ge ">="
         self => (">="),
     Gt ">"
         self => ("<"),
 
-    IfKeyword "'if' keyword"
+    IfKw "'if' keyword"
         self => ("'if' keyword"),
-    ThenKeyword "'then' keyword"
+    ThenKw "'then' keyword"
         self => ("'then' keyword"),
-    FuncKeyword "'func' keyword"
+    FuncKw "'func' keyword"
         self => ("'func' keyword"),
-    ReturnKeyword "'return' keyword"
+    ReturnKw "'return' keyword"
         self => ("'return' keyword"),
-    AndKeyword "'and' keyword"
+    AndKw "'and' keyword"
         self => ("'and' keyword"),
-    OrKeyword "'or' keyword"
+    OrKw "'or' keyword"
         self => ("'or' keyword"),
-    NotKeyword "'not' keyword"
+    NotKw "'not' keyword"
         self => ("'not' keyword"),
 
-    TrueLiteral "'true' literal"
+    TrueLit "'true' literal"
         self => ("'true' literal"),
-    FalseLiteral "'false' literal"
+    FalseLit "'false' literal"
         self => ("'false' literal"),
 
-    Identifier(String) "identifier"
+    Ident(String) "identifier"
         self => ("identifier '{}'", self.0),
-    Number(f64) "number"
+    Num(f64) "number"
         self => ("{}", self.0),
 }
 
