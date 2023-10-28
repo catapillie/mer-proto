@@ -20,10 +20,37 @@ pub fn help(msg: impl Into<String>) {
     println!("{} {}", "help".cyan(), msg.into());
 }
 
+pub fn show_com_man() {
+    println!("{}", "USAGE".bold().underline());
+    println!("    {} <{}>", "mer com".bold(), "path".bold());
+    println!("{}", "DESCRIPTION".bold().underline());
+    println!("    compiles a program to bytecode, given the path to the source code");
+    println!("{}", "ARGUMENTS".bold().underline());
+    println!("    {}    the path to file containing the source code", "path".bold());
+}
+
+pub fn show_version_man() {
+    println!("{}", "USAGE".bold().underline());
+    println!("    {} ", "mer version".bold());
+    println!("{}", "DESCRIPTION".bold().underline());
+    println!("    shows version then exits");
+}
+
+pub fn show_help_man() {
+    println!("{}", "USAGE".bold().underline());
+    println!("    {} [{}]", "mer help".bold(), "command".bold());
+    println!("{}", "DESCRIPTION".bold().underline());
+    println!("    displays general help, or if provided, help for a specified command");
+    println!("{}", "ARGUMENTS".bold().underline());
+    println!("    {}    optional subcommand to get help from", "command".bold());
+}
+
 pub fn show_man() {
     println!("{}", "USAGE".bold().underline());
     println!("    {} <{}>", "mer".bold(), "command".bold());
+    println!("    {} [{}]", "mer help".bold(), "command".bold());
     println!("{}", "COMMANDS".bold().underline());
-    println!("    {}    | show version then exit", "version".bold());
-    println!("    {}       | print this help message then exit", "help".bold());
+    println!("    {}        compile a program to bytecode", "com".bold());
+    println!("    {}    show version then exit", "version".bold());
+    println!("    {}       show help then exit", "help".bold());
 }
