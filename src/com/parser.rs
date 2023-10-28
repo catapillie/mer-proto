@@ -1,6 +1,6 @@
-use std::{fmt::Display, iter::Peekable, str::Chars};
+use std::fmt::Display;
 
-use super::{asts::*, ops::*, tokens::*};
+use super::{asts::*, cursor::Cursor, ops::*, tokens::*};
 
 #[derive(Debug)]
 pub enum ParserError {
@@ -33,17 +33,17 @@ impl Display for ParserError {
     }
 }
 
-pub struct Parser<'a> {
-    cursor: Peekable<Chars<'a>>,
+pub struct Parser<'src> {
+    cursor: Cursor<'src>,
     lookahead: Token,
     seen_tokens: Vec<Token>,
     errors: Vec<ParserError>,
 }
 
-impl<'a> Parser<'a> {
-    pub fn new(source: &'a str) -> Self {
+impl<'src> Parser<'src> {
+    pub fn new(source: &'src str) -> Self {
         Self {
-            cursor: source.chars().peekable(),
+            cursor: Cursor::new(source),
             lookahead: Token::Eof(Eof),
             seen_tokens: Vec::new(),
             errors: Vec::new(),
@@ -311,7 +311,7 @@ impl<'a> Parser<'a> {
             return None;
         };
 
-        if !Self::is_identifier_head(*c) {
+        if !Self::is_identifier_head(c) {
             return None;
         }
 
@@ -319,11 +319,11 @@ impl<'a> Parser<'a> {
         self.cursor.next();
 
         while let Some(c) = self.cursor.peek() {
-            if !Self::is_identifier_tail(*c) {
+            if !Self::is_identifier_tail(c) {
                 break;
             }
 
-            identifier.push(*c);
+            identifier.push(c);
             self.cursor.next();
         }
 
@@ -338,7 +338,7 @@ impl<'a> Parser<'a> {
                 break;
             }
 
-            number.push(*c);
+            number.push(c);
             self.cursor.next();
         }
 
@@ -352,7 +352,7 @@ impl<'a> Parser<'a> {
                 break;
             }
 
-            number.push(*c);
+            number.push(c);
             self.cursor.next();
         }
 
@@ -370,13 +370,13 @@ impl<'a> Parser<'a> {
     }
 
     fn try_consume_newlines(&mut self) -> bool {
-        if let Some(&c) = self.cursor.peek() {
+        if let Some(c) = self.cursor.peek() {
             if !Self::is_newline_character(c) {
                 return false;
             }
         }
 
-        while let Some(&c) = self.cursor.peek() {
+        while let Some(c) = self.cursor.peek() {
             if c.is_whitespace() {
                 self.cursor.next();
                 continue;
@@ -390,7 +390,7 @@ impl<'a> Parser<'a> {
 
     fn lex(&mut self) -> Token {
         loop {
-            let Some(&c) = self.cursor.peek() else {
+            let Some(c) = self.cursor.peek() else {
                 return Eof.wrap();
             };
 
@@ -453,7 +453,7 @@ impl<'a> Parser<'a> {
         }
 
         match self.cursor.peek() {
-            Some(&u) => {
+            Some(u) => {
                 self.cursor.next();
                 Illegal(u).wrap()
             }

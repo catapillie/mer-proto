@@ -7,8 +7,10 @@ use crate::msg;
 use self::parser::Parser;
 
 mod asts;
+mod cursor;
 mod ops;
 mod parser;
+mod pos;
 mod tokens;
 
 pub fn compile(source: String) {
