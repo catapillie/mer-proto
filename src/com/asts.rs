@@ -5,7 +5,6 @@ pub enum ExprAst {
     Missing,
     True,
     False,
-    Time,
     Number(f64),
     Variable(String),
     Binary(BinOp, Box<ExprAst>, Box<ExprAst>),
@@ -19,7 +18,6 @@ pub enum StmtAst {
     IfThen(ExprAst, Box<StmtAst>),
     Expr(ExprAst),
     Return(ExprAst),
-    Log(ExprAst),
     FuncDef(String, Vec<String>, Box<StmtAst>),
 }
 

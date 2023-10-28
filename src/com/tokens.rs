@@ -76,15 +76,10 @@ gen_tokens! {
     NotKeyword "'not' keyword"
         self => ("'not' keyword"),
 
-    TimeLiteral "'time' keyword"
-        self => ("'time' keyword"),
     TrueLiteral "'true' literal"
         self => ("'true' literal"),
     FalseLiteral "'false' literal"
         self => ("'false' literal"),
-
-    LogKeyword "'log' keyword"
-        self => ("'log' keyword"),
 
     Identifier(String) "identifier"
         self => ("identifier '{}'", self.0),

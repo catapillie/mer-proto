@@ -81,18 +81,6 @@ impl<'src> Parser<'src> {
         }
     }
 
-    pub fn parse(mut self) -> (StmtAst, Vec<ParserError>) {
-        self.consume_token(); // consume initial dummy eof token
-
-        self.skip_newlines();
-        let stmt = self.parse_statement().accept_error(&mut self);
-        self.skip_newlines();
-
-        self.expect_token::<Eof>();
-
-        (stmt, self.errors)
-    }
-
     fn skip_newlines(&mut self) {
         self.match_token::<Newline>();
     }
@@ -103,6 +91,18 @@ impl<'src> Parser<'src> {
             return;
         }
         self.expect_token::<Newline>();
+    }
+
+    pub fn parse(mut self) -> (StmtAst, Vec<ParserError>) {
+        self.consume_token(); // consume initial dummy eof token
+
+        self.skip_newlines();
+        let stmt = self.parse_statement().accept_error(&mut self);
+        self.skip_newlines();
+
+        self.expect_token::<Eof>();
+
+        (stmt, self.errors)
     }
 
     fn parse_statement(&mut self) -> Result<StmtAst, ParserError> {
@@ -144,11 +144,6 @@ impl<'src> Parser<'src> {
         if self.match_token::<ReturnKeyword>().is_some() {
             let expr = self.parse_expression().accept_error(self);
             return Ok(StmtAst::Return(expr));
-        }
-
-        if self.match_token::<LogKeyword>().is_some() {
-            let expr = self.parse_expression().accept_error(self);
-            return Ok(StmtAst::Log(expr));
         }
 
         if let Ok(block) = self.parse_block_statement() {
@@ -244,10 +239,6 @@ impl<'src> Parser<'src> {
 
         if self.match_token::<FalseLiteral>().is_some() {
             return Ok(ExprAst::False);
-        }
-
-        if self.match_token::<TimeLiteral>().is_some() {
-            return Ok(ExprAst::Time);
         }
 
         if self.match_token::<LeftParen>().is_some() {
@@ -453,10 +444,8 @@ impl<'src> Parser<'src> {
                 "then" => ThenKeyword.wrap(span),
                 "func" => FuncKeyword.wrap(span),
                 "return" => ReturnKeyword.wrap(span),
-                "log" => LogKeyword.wrap(span),
                 "true" => TrueLiteral.wrap(span),
                 "false" => FalseLiteral.wrap(span),
-                "time" => TimeLiteral.wrap(span),
                 "and" => AndKeyword.wrap(span),
                 "or" => OrKeyword.wrap(span),
                 "not" => NotKeyword.wrap(span),
