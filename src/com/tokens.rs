@@ -66,6 +66,10 @@ gen_tokens! {
         self => ("'then' keyword"),
     ElseKw "'else' keyword"
         self => ("'else' keyword"),
+    WhileKw "'whild' keyword"
+        self => ("'whild' keyword"),
+    DoKw "'do' keyword"
+        self => ("'do' keyword"),
     FuncKw "'func' keyword"
         self => ("'func' keyword"),
     ReturnKw "'return' keyword"

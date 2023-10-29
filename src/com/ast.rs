@@ -9,6 +9,9 @@ pub enum StmtAst {
     Then(Box<StmtAst>),
     IfThenElse(ExprAst, Box<StmtAst>, Box<StmtAst>),
     Else(Box<StmtAst>),
+    WhileDo(ExprAst, Box<StmtAst>),
+    DoWhile(Box<StmtAst>, ExprAst),
+    Do(Box<StmtAst>),
     Return,
     ReturnWith(ExprAst),
 }

@@ -104,7 +104,7 @@ impl<'src> Parser<'src> {
             }
 
             let stmt_if = self.parse_statement().unwrap_or(StmtAst::Empty);
-            
+
             self.skip_newlines();
             if self.try_match_token::<ElseKw>().is_some() {
                 self.skip_newlines();
@@ -129,6 +129,45 @@ impl<'src> Parser<'src> {
             self.skip_newlines();
             let stmt = self.parse_statement().unwrap_or(StmtAst::Empty);
             return Some(StmtAst::Else(Box::new(stmt)));
+        }
+
+        if self.try_match_token::<WhileKw>().is_some() {
+            self.skip_newlines();
+            let expr = match self.parse_expression() {
+                Some(expr) => expr,
+                None => {
+                    self.errors.push(ParseError::ExpectedExpression);
+                    ExprAst::Bad
+                }
+            };
+
+            self.skip_newlines();
+            self.match_token::<DoKw>();
+            self.skip_newlines();
+
+            let stmt_do = self.parse_statement().unwrap_or(StmtAst::Empty);
+            return Some(StmtAst::WhileDo(expr, Box::new(stmt_do)));
+        }
+
+        if self.try_match_token::<DoKw>().is_some() {
+            self.skip_newlines();
+            let stmt_do = self.parse_statement().unwrap_or(StmtAst::Empty);
+            self.skip_newlines();
+
+            if self.try_match_token::<WhileKw>().is_some() {
+                self.skip_newlines();
+                let expr = match self.parse_expression() {
+                    Some(expr) => expr,
+                    None => {
+                        self.errors.push(ParseError::ExpectedExpression);
+                        ExprAst::Bad
+                    }
+                };
+
+                return Some(StmtAst::DoWhile(Box::new(stmt_do), expr));
+            }
+
+            return Some(StmtAst::Do(Box::new(stmt_do)));
         }
 
         if self.try_match_token::<ReturnKw>().is_some() {
@@ -456,6 +495,8 @@ impl<'src> Parser<'src> {
                     "if" => IfKw.wrap(span),
                     "then" => ThenKw.wrap(span),
                     "else" => ElseKw.wrap(span),
+                    "while" => WhileKw.wrap(span),
+                    "do" => DoKw.wrap(span),
                     "func" => FuncKw.wrap(span),
                     "return" => ReturnKw.wrap(span),
                     "true" => TrueLit.wrap(span),
