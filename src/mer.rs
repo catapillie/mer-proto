@@ -46,7 +46,7 @@ fn run_compile(command: CompileCommand) {
         CompileCommand::Go(ref path) => {
             let source = match fs::read_to_string(path) {
                 Ok(source) => source,
-                Err(e) => {
+                Err(e) => { 
                     msg::error(format!(
                         "could not read file {}:\n      {}",
                         path.bold(),

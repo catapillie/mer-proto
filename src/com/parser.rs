@@ -1,45 +1,8 @@
-use std::fmt::Display;
-
-use super::{asts::*, cursor::Cursor, ops::*, pos::Pos, span::Span, tokens::*};
-
-#[derive(Debug)]
-pub enum ParserError {
-    IllegalCharacter(char),
-    InvalidNumber(String),
-    Unexpected(Token, TokenKind),
-    ExpectedExpression(Token),
-    ExpectedStatement(Token),
-    ExpectedBlockStatement(Token),
-}
-
-impl Display for ParserError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ParserError::IllegalCharacter(u) => write!(f, "illegal character {u:?}"),
-            ParserError::InvalidNumber(repr) => {
-                write!(f, "invalid number literal '{repr}'")
-            }
-            ParserError::Unexpected(found, wanted) => {
-                write!(f, "expected {wanted}, but found {found}")
-            }
-            ParserError::ExpectedExpression(found) => {
-                write!(f, "expected an expression, but found {found}")
-            }
-            ParserError::ExpectedStatement(found) => {
-                write!(f, "expected a statement, but found {found}")
-            }
-            ParserError::ExpectedBlockStatement(found) => {
-                write!(f, "expected a block statement, but found {found}")
-            }
-        }
-    }
-}
+use super::{cursor::Cursor, pos::Pos, span::Span, tokens::*};
 
 pub struct Parser<'src> {
     cursor: Cursor<'src>,
     lookahead: Token,
-    seen_tokens: Vec<Token>,
-    errors: Vec<ParserError>,
 }
 
 impl<'src> Parser<'src> {
@@ -47,233 +10,13 @@ impl<'src> Parser<'src> {
         Self {
             cursor: Cursor::new(source),
             lookahead: Token::Eof(Eof, Span::at(Pos::default())),
-            seen_tokens: Vec::new(),
-            errors: Vec::new(),
         }
     }
 
     fn consume_token(&mut self) -> Token {
         let next = self.lex();
         let seen = std::mem::replace(&mut self.lookahead, next);
-        self.seen_tokens.push(seen.clone());
         seen
-    }
-
-    fn try_expect_token<T: TokenValue>(&mut self) -> Result<T, ParserError> {
-        match T::extract(&self.lookahead) {
-            Some((token, _)) => {
-                self.consume_token();
-                Ok(token)
-            }
-            None => Err(ParserError::Unexpected(self.lookahead.clone(), T::kind())),
-        }
-    }
-
-    fn expect_token<T: TokenValue>(&mut self) -> T {
-        self.try_expect_token().accept_error(self)
-    }
-
-    fn match_token<T: TokenValue>(&mut self) -> Option<T> {
-        match T::extract(&self.lookahead) {
-            Some((token, _)) => {
-                self.consume_token();
-                Some(token)
-            }
-            None => None,
-        }
-    }
-
-    fn skip_newlines(&mut self) {
-        self.match_token::<Newline>();
-    }
-
-    // looks at the previous token in case the newlines were skipped
-    fn expect_newline(&mut self) {
-        if let Some(Token::Newline(_, _)) = self.seen_tokens.last() {
-            return;
-        }
-        self.expect_token::<Newline>();
-    }
-
-    pub fn parse(mut self) -> (StmtAst, Vec<ParserError>) {
-        self.consume_token(); // consume initial dummy eof token
-
-        self.skip_newlines();
-        let stmt = self.parse_statement().accept_error(&mut self);
-        self.skip_newlines();
-
-        self.expect_token::<Eof>();
-
-        (stmt, self.errors)
-    }
-
-    fn parse_statement(&mut self) -> Result<StmtAst, ParserError> {
-        if self.match_token::<FuncKw>().is_some() {
-            let name = self.expect_token::<Ident>().0;
-            let mut args = Vec::new();
-
-            self.expect_token::<LeftParen>();
-
-            if let Some(first_arg) = self.match_token::<Ident>() {
-                args.push(first_arg.0);
-                while self.match_token::<Comma>().is_some() {
-                    let arg = self.expect_token::<Ident>().0;
-                    args.push(arg);
-                }
-            }
-
-            self.expect_token::<RightParen>();
-            self.skip_newlines();
-
-            let stmt = if self.match_token::<Equal>().is_some() {
-                let expr = self.parse_expression().accept_error(self);
-                StmtAst::Return(expr)
-            } else {
-                self.parse_block_statement().accept_error(self)
-            };
-
-            return Ok(StmtAst::FuncDef(name, args, Box::new(stmt)));
-        }
-
-        if self.match_token::<IfKw>().is_some() {
-            let expr = self.parse_expression().accept_error(self);
-            self.expect_token::<ThenKw>();
-            self.skip_newlines();
-            let stmt = self.parse_statement().accept_error(self);
-            return Ok(StmtAst::IfThen(expr, Box::new(stmt)));
-        }
-
-        if self.match_token::<ReturnKw>().is_some() {
-            let expr = self.parse_expression().accept_error(self);
-            return Ok(StmtAst::Return(expr));
-        }
-
-        if let Ok(block) = self.parse_block_statement() {
-            return Ok(block);
-        }
-
-        if let Ok(expr) = self.parse_expression() {
-            return Ok(StmtAst::Expr(expr));
-        }
-
-        Err(ParserError::ExpectedStatement(self.lookahead.clone()))
-    }
-
-    fn parse_block_statement(&mut self) -> Result<StmtAst, ParserError> {
-        if self.match_token::<LeftBrace>().is_some() {
-            self.skip_newlines();
-
-            let mut stmts = Vec::new();
-            while let Ok(stmt) = self.parse_statement() {
-                stmts.push(stmt);
-                self.expect_newline();
-            }
-
-            self.expect_token::<RightBrace>();
-            self.skip_newlines();
-
-            Ok(StmtAst::Block(stmts))
-        } else {
-            Err(ParserError::ExpectedBlockStatement(self.lookahead.clone()))
-        }
-    }
-
-    fn match_binary_operator(&mut self) -> Option<BinOp> {
-        match self.lookahead {
-            Token::Equal(_, _) => Some(BinOp::Equal),
-            Token::Plus(_, _) => Some(BinOp::Plus),
-            Token::Minus(_, _) => Some(BinOp::Minus),
-            Token::Star(_, _) => Some(BinOp::Star),
-            Token::Slash(_, _) => Some(BinOp::Slash),
-            Token::Mod(_, _) => Some(BinOp::Mod),
-            Token::Amper(_, _) => Some(BinOp::Amper),
-            Token::Bar(_, _) => Some(BinOp::Bar),
-            Token::Caret(_, _) => Some(BinOp::Caret),
-            Token::Eq(_, _) => Some(BinOp::Eq),
-            Token::Neq(_, _) => Some(BinOp::Neq),
-            Token::Le(_, _) => Some(BinOp::Le),
-            Token::Lt(_, _) => Some(BinOp::Lt),
-            Token::Ge(_, _) => Some(BinOp::Ge),
-            Token::Gt(_, _) => Some(BinOp::Gt),
-            Token::AndKw(_, _) => Some(BinOp::And),
-            Token::OrKw(_, _) => Some(BinOp::Or),
-            _ => None,
-        }
-    }
-
-    fn parse_expression(&mut self) -> Result<ExprAst, ParserError> {
-        self.parse_operation_expression(0, Associativity::Left)
-    }
-
-    fn parse_operation_expression(
-        &mut self,
-        prec: u8,
-        assoc: Associativity,
-    ) -> Result<ExprAst, ParserError> {
-        let mut expr = self.parse_primary_expression()?;
-
-        while let Some(op) = self.match_binary_operator() {
-            let prec_ahead = op.precedence();
-            let assoc_ahead = op.associativity();
-
-            if prec_ahead > prec || (prec_ahead == prec && assoc.is_left()) {
-                self.consume_token();
-                let rhs = self
-                    .parse_operation_expression(prec_ahead + 1, assoc_ahead)
-                    .accept_error(self);
-                expr = ExprAst::Binary(op, Box::new(expr), Box::new(rhs));
-            } else {
-                break;
-            }
-        }
-
-        Ok(expr)
-    }
-
-    fn parse_primary_expression(&mut self) -> Result<ExprAst, ParserError> {
-        if let Some(number) = self.match_token::<Num>() {
-            return Ok(ExprAst::Number(number.0));
-        };
-
-        if self.match_token::<TrueLit>().is_some() {
-            return Ok(ExprAst::True);
-        }
-
-        if self.match_token::<FalseLit>().is_some() {
-            return Ok(ExprAst::False);
-        }
-
-        if self.match_token::<LeftParen>().is_some() {
-            let expr = self.parse_expression()?;
-            self.try_expect_token::<RightParen>()?;
-            return Ok(expr);
-        }
-
-        if let Some(id) = self.match_token::<Ident>() {
-            if self.match_token::<LeftParen>().is_none() {
-                return Ok(ExprAst::Variable(id.0));
-            }
-
-            let callee = id.0;
-            let mut args = Vec::new();
-            loop {
-                let expr = self.parse_expression();
-                let Ok(expr) = expr else {
-                    break;
-                };
-
-                args.push(expr);
-
-                if self.match_token::<Comma>().is_none() {
-                    break;
-                }
-            }
-
-            self.try_expect_token::<RightParen>()?;
-            return Ok(ExprAst::Call(callee, args));
-        }
-
-        Err(ParserError::ExpectedExpression(self.lookahead.clone()))
     }
 
     fn try_consume_string(&mut self, string: &str) -> Option<Span> {
@@ -365,10 +108,7 @@ impl<'src> Parser<'src> {
 
         Some(match number.parse() {
             Ok(num) => (num, span),
-            Err(_) => {
-                self.errors.push(ParserError::InvalidNumber(number));
-                (f64::NAN, span)
-            }
+            Err(_) => (f64::NAN, span),
         })
     }
 
@@ -459,30 +199,9 @@ impl<'src> Parser<'src> {
             match self.cursor.peek() {
                 Some(u) => {
                     self.cursor.next();
-                    self.errors.push(ParserError::IllegalCharacter(u));
                     continue;
                 }
                 None => return Eof.wrap(Span::EOF),
-            }
-        }
-    }
-}
-
-// so that we can gracefully accept an error after trying to parse something
-trait ParserResult {
-    type Inner;
-    fn accept_error(self, parser: &mut Parser) -> Self::Inner;
-}
-
-impl<T: Default> ParserResult for Result<T, ParserError> {
-    type Inner = T;
-
-    fn accept_error(self, parser: &mut Parser) -> Self::Inner {
-        match self {
-            Ok(inner) => inner,
-            Err(e) => {
-                parser.errors.push(e);
-                T::default()
             }
         }
     }
