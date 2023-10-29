@@ -82,13 +82,7 @@ impl<'src> Parser<'src> {
         }
 
         if self.try_match_token::<IfKw>().is_some() {
-            let expr = match self.parse_expression() {
-                Some(expr) => expr,
-                None => {
-                    self.errors.push(ParseError::ExpectedExpression);
-                    ExprAst::Bad
-                }
-            };
+            let expr = self.expect_expression();
 
             self.skip_newlines();
             self.match_token::<ThenKw>();
@@ -133,18 +127,10 @@ impl<'src> Parser<'src> {
 
         if self.try_match_token::<WhileKw>().is_some() {
             self.skip_newlines();
-            let expr = match self.parse_expression() {
-                Some(expr) => expr,
-                None => {
-                    self.errors.push(ParseError::ExpectedExpression);
-                    ExprAst::Bad
-                }
-            };
-
+            let expr = self.expect_expression();
             self.skip_newlines();
             self.match_token::<DoKw>();
             self.skip_newlines();
-
             let stmt_do = self.parse_statement().unwrap_or(StmtAst::Empty);
             return Some(StmtAst::WhileDo(expr, Box::new(stmt_do)));
         }
@@ -156,14 +142,7 @@ impl<'src> Parser<'src> {
 
             if self.try_match_token::<WhileKw>().is_some() {
                 self.skip_newlines();
-                let expr = match self.parse_expression() {
-                    Some(expr) => expr,
-                    None => {
-                        self.errors.push(ParseError::ExpectedExpression);
-                        ExprAst::Bad
-                    }
-                };
-
+                let expr = self.expect_expression();
                 return Some(StmtAst::DoWhile(Box::new(stmt_do), expr));
             }
 
@@ -228,6 +207,16 @@ impl<'src> Parser<'src> {
         )
     }
 
+    fn expect_expression(&mut self) -> ExprAst {
+        match self.parse_expression() {
+            Some(expr) => expr,
+            None => {
+                self.errors.push(ParseError::ExpectedExpression);
+                ExprAst::Bad
+            }
+        }
+    }
+
     pub fn parse_expression(&mut self) -> Option<ExprAst> {
         self.parse_primary_expression()
     }
@@ -251,13 +240,7 @@ impl<'src> Parser<'src> {
 
         if self.try_match_token::<LeftParen>().is_some() {
             self.skip_newlines();
-            let expr = match self.parse_expression() {
-                Some(expr) => expr,
-                None => {
-                    self.errors.push(ParseError::ExpectedExpression);
-                    ExprAst::Bad
-                }
-            };
+            let expr = self.expect_expression();
             self.skip_newlines();
             self.match_token::<RightParen>();
             return Some(expr);
