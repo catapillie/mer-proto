@@ -39,25 +39,25 @@ gen_tokens! {
         self => ("*"),
     Slash "/"
         self => ("/"),
-    Mod "%"
+    Percent "%"
         self => ("%"),
-    Amper "&"
+    Ampersand "&"
         self => ("&"),
     Bar "|"
         self => ("|"),
     Caret "^"
         self => ("^"),
-    Eq "=="
+    EqualEqual "=="
         self => ("=="),
-    Neq "!="
+    NotEqual "!="
         self => ("!="),
-    Le "<="
+    LessEqual "<="
         self => ("<="),
-    Lt "<"
+    LessThan "<"
         self => ("<"),
-    Ge ">="
+    GreaterEqual ">="
         self => (">="),
-    Gt ">"
+    GreaterThan ">"
         self => ("<"),
 
     IfKw "'if' keyword"
@@ -80,15 +80,14 @@ gen_tokens! {
         self => ("'or' keyword"),
     NotKw "'not' keyword"
         self => ("'not' keyword"),
-
-    TrueLit "'true' literal"
+    TrueKw "'true' literal"
         self => ("'true' literal"),
-    FalseLit "'false' literal"
+    FalseKw "'false' literal"
         self => ("'false' literal"),
 
-    Ident(String) "identifier"
+    Identifier(String) "identifier"
         self => ("identifier '{}'", self.0),
-    Num(f64) "number"
+    Number(f64) "number"
         self => ("{}", self.0),
 }
 

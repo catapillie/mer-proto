@@ -199,10 +199,10 @@ impl<'src> Parser<'src> {
     pub fn is_start_of_expression(&self) -> bool {
         matches!(
             self.look_ahead,
-            Token::Num(_, _)
-                | Token::Ident(_, _)
-                | Token::TrueLit(_, _)
-                | Token::FalseLit(_, _)
+            Token::Number(_, _)
+                | Token::Identifier(_, _)
+                | Token::TrueKw(_, _)
+                | Token::FalseKw(_, _)
                 | Token::LeftParen(_, _)
         )
     }
@@ -222,19 +222,19 @@ impl<'src> Parser<'src> {
     }
 
     fn parse_primary_expression(&mut self) -> Option<ExprAst> {
-        if let Some(num) = self.try_match_token::<Num>() {
+        if let Some(num) = self.try_match_token::<Number>() {
             return Some(ExprAst::Num(num.0));
         }
 
-        if let Some(id) = self.try_match_token::<Ident>() {
+        if let Some(id) = self.try_match_token::<Identifier>() {
             return Some(ExprAst::Ident(id.0));
         }
 
-        if self.try_match_token::<TrueLit>().is_some() {
+        if self.try_match_token::<TrueKw>().is_some() {
             return Some(ExprAst::Boolean(true));
         }
 
-        if self.try_match_token::<FalseLit>().is_some() {
+        if self.try_match_token::<FalseKw>().is_some() {
             return Some(ExprAst::Boolean(false));
         }
 
@@ -448,12 +448,12 @@ impl<'src> Parser<'src> {
                 return Newline.wrap(Span::at(start_pos));
             }
 
-            match_by_string!(self, "==" => Eq);
-            match_by_string!(self, "!=" => Neq);
-            match_by_string!(self, "<=" => Le);
-            match_by_string!(self, "<" => Lt);
-            match_by_string!(self, ">=" => Ge);
-            match_by_string!(self, ">" => Gt);
+            match_by_string!(self, "==" => EqualEqual);
+            match_by_string!(self, "!=" => NotEqual);
+            match_by_string!(self, "<=" => LessEqual);
+            match_by_string!(self, "<" => LessThan);
+            match_by_string!(self, ">=" => GreaterEqual);
+            match_by_string!(self, ">" => GreaterThan);
             match_by_string!(self, "(" => LeftParen);
             match_by_string!(self, ")" => RightParen);
             match_by_string!(self, "{" => LeftBrace);
@@ -464,13 +464,13 @@ impl<'src> Parser<'src> {
             match_by_string!(self, "-" => Minus);
             match_by_string!(self, "*" => Star);
             match_by_string!(self, "/" => Slash);
-            match_by_string!(self, "%" => Mod);
-            match_by_string!(self, "&" => Amper);
+            match_by_string!(self, "%" => Percent);
+            match_by_string!(self, "&" => Ampersand);
             match_by_string!(self, "|" => Bar);
             match_by_string!(self, "^" => Caret);
 
             if let Some((num, span)) = self.try_consume_number() {
-                return Num(num).wrap(span);
+                return Number(num).wrap(span);
             }
 
             if let Some((id, span)) = self.try_consume_identifier() {
@@ -482,12 +482,12 @@ impl<'src> Parser<'src> {
                     "do" => DoKw.wrap(span),
                     "func" => FuncKw.wrap(span),
                     "return" => ReturnKw.wrap(span),
-                    "true" => TrueLit.wrap(span),
-                    "false" => FalseLit.wrap(span),
+                    "true" => TrueKw.wrap(span),
+                    "false" => FalseKw.wrap(span),
                     "and" => AndKw.wrap(span),
                     "or" => OrKw.wrap(span),
                     "not" => NotKw.wrap(span),
-                    _ => Ident(id).wrap(span),
+                    _ => Identifier(id).wrap(span),
                 };
             }
 
