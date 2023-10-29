@@ -4,7 +4,8 @@ use super::span::Span;
 
 pub trait TokenValue: Clone + Default + Display {
     fn wrap(self, span: Span) -> Token;
-    fn extract(token: &Token) -> Option<(Self, Span)>;
+    fn is_inside(token: &Token) -> bool;
+    fn extract_from(token: &Token) -> Option<(Self, Span)>;
     fn kind() -> TokenKind;
     fn display() -> &'static str;
 }
@@ -63,6 +64,8 @@ gen_tokens! {
         self => ("'if' keyword"),
     ThenKw "'then' keyword"
         self => ("'then' keyword"),
+    ElseKw "'else' keyword"
+        self => ("'else' keyword"),
     FuncKw "'func' keyword"
         self => ("'func' keyword"),
     ReturnKw "'return' keyword"
@@ -145,7 +148,11 @@ macro_rules! gen_tokens {
                     Token::$name(self, span)
                 }
 
-                fn extract(token: &Token) -> Option<(Self, Span)> {
+                fn is_inside(token: &Token) -> bool {
+                    matches!(token, Token::$name(_, _))
+                }
+
+                fn extract_from(token: &Token) -> Option<(Self, Span)> {
                     if let Token::$name(value, span) = token {
                         Some((value.clone(), span.clone()))
                     } else {
