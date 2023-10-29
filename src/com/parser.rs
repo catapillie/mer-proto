@@ -1,5 +1,5 @@
 use super::{
-    ast::{ExprAst, ProgramAst, StmtAst},
+    ast::{Associativity, BinaryOperator, ExprAst, Precedence, ProgramAst, StmtAst, UnaryOperator},
     cursor::Cursor,
     errors::ParseError,
     span::Span,
@@ -207,6 +207,43 @@ impl<'src> Parser<'src> {
         )
     }
 
+    /*
+
+    */
+
+    #[rustfmt::skip]
+    fn is_binary_operator(&mut self) -> Option<(BinaryOperator, Precedence, Associativity)> {
+        match self.look_ahead {
+            Token::Star(_, _) => Some((BinaryOperator::Star, 90, Associativity::Left)),
+            Token::Slash(_, _) => Some((BinaryOperator::Slash, 90, Associativity::Left)),
+            Token::Percent(_, _) => Some((BinaryOperator::Percent, 90, Associativity::Left)),
+            Token::Plus(_, _) => Some((BinaryOperator::Plus, 80, Associativity::Left)),
+            Token::Minus(_, _) => Some((BinaryOperator::Minus, 80, Associativity::Left)),
+            Token::Ampersand(_, _) => Some((BinaryOperator::Ampersand, 70, Associativity::Left)),
+            Token::Caret(_, _) => Some((BinaryOperator::Caret, 60, Associativity::Left)),
+            Token::Bar(_, _) => Some((BinaryOperator::Bar, 50, Associativity::Left)),
+            Token::EqualEqual(_, _) => Some((BinaryOperator::EqualEqual, 40, Associativity::Left)),
+            Token::NotEqual(_, _) => Some((BinaryOperator::NotEqual, 40, Associativity::Left)),
+            Token::LessEqual(_, _) => Some((BinaryOperator::LessEqual, 40, Associativity::Left)),
+            Token::LessThan(_, _) => Some((BinaryOperator::LessThan, 40, Associativity::Left)),
+            Token::GreaterEqual(_, _) => Some((BinaryOperator::GreaterEqual, 40, Associativity::Left)),
+            Token::GreaterThan(_, _) => Some((BinaryOperator::GreaterThan, 40, Associativity::Left)),
+            Token::AndKw(_, _) => Some((BinaryOperator::And, 30, Associativity::Left)),
+            Token::OrKw(_, _) => Some((BinaryOperator::Or, 20, Associativity::Left)),
+            Token::Equal(_, _) => Some((BinaryOperator::Equal, 10, Associativity::Right)),
+            _ => None,
+        }
+    }
+
+    fn is_unary_operator(&mut self) -> Option<UnaryOperator> {
+        match self.look_ahead {
+            Token::Plus(_, _) => Some(UnaryOperator::Plus),
+            Token::Minus(_, _) => Some(UnaryOperator::Minus),
+            Token::NotKw(_, _) => Some(UnaryOperator::Not),
+            _ => None,
+        }
+    }
+
     fn expect_expression(&mut self) -> ExprAst {
         match self.parse_expression() {
             Some(expr) => expr,
@@ -218,16 +255,57 @@ impl<'src> Parser<'src> {
     }
 
     pub fn parse_expression(&mut self) -> Option<ExprAst> {
-        self.parse_primary_expression()
+        self.parse_operation_expression(Precedence::MIN)
+    }
+
+    pub fn parse_operation_expression(&mut self, prec: Precedence) -> Option<ExprAst> {
+        let mut expr = if let Some(op) = self.is_unary_operator() {
+            self.consume_token();
+            let inner = match self.parse_operation_expression(Precedence::MAX) {
+                Some(inner) => inner,
+                None => {
+                    self.errors.push(ParseError::ExpectedExpression);
+                    ExprAst::Bad
+                }
+            };
+            ExprAst::UnaryOp(op, Box::new(inner))
+        } else {
+            self.parse_primary_expression()?
+        };
+
+        loop {
+            let Some((op, prec_ahead, assoc_ahead)) = self.is_binary_operator() else {
+                break;
+            };
+
+            if prec_ahead < prec
+                || ((prec_ahead == prec) && matches!(assoc_ahead, Associativity::Left))
+            {
+                break;
+            }
+
+            self.consume_token();
+            let expr_right = match self.parse_operation_expression(prec_ahead) {
+                Some(inner) => inner,
+                None => {
+                    self.errors.push(ParseError::ExpectedExpression);
+                    ExprAst::Bad
+                }
+            };
+
+            expr = ExprAst::BinaryOp(op, Box::new(expr), Box::new(expr_right));
+        }
+
+        Some(expr)
     }
 
     fn parse_primary_expression(&mut self) -> Option<ExprAst> {
         if let Some(num) = self.try_match_token::<Number>() {
-            return Some(ExprAst::Num(num.0));
+            return Some(ExprAst::Number(num.0));
         }
 
         if let Some(id) = self.try_match_token::<Identifier>() {
-            return Some(ExprAst::Ident(id.0));
+            return Some(ExprAst::Identifier(id.0));
         }
 
         if self.try_match_token::<TrueKw>().is_some() {

@@ -19,7 +19,45 @@ pub enum StmtAst {
 #[derive(Debug)]
 pub enum ExprAst {
     Bad,
-    Num(f64),
-    Ident(String),
+    Number(f64),
+    Identifier(String),
     Boolean(bool),
+    BinaryOp(BinaryOperator, Box<ExprAst>, Box<ExprAst>),
+    UnaryOp(UnaryOperator, Box<ExprAst>),
+}
+
+#[derive(Debug)]
+pub enum UnaryOperator {
+    Plus,
+    Minus,
+    Not,
+}
+
+#[derive(Debug)]
+pub enum BinaryOperator {
+    Plus,
+    Minus,
+    Star,
+    Slash,
+    Percent,
+    EqualEqual,
+    NotEqual,
+    LessEqual,
+    LessThan,
+    GreaterEqual,
+    GreaterThan,
+    Ampersand,
+    Caret,
+    Bar,
+    And,
+    Or,
+    Equal,
+}
+
+pub type Precedence = u8;
+
+#[derive(Debug)]
+pub enum Associativity {
+    Left,
+    Right,
 }
