@@ -29,6 +29,15 @@ pub fn show_com_man() {
     println!("    {}    the path to file containing the source code", "path".bold());
 }
 
+pub fn show_run_man() {
+    println!("{}", "USAGE".bold().underline());
+    println!("    {} <{}>", "mer run".bold(), "path".bold());
+    println!("{}", "DESCRIPTION".bold().underline());
+    println!("    executes compiled bytecode on the virtual machine");
+    println!("{}", "ARGUMENTS".bold().underline());
+    println!("    {}    the path to file containing the compiled bytecode", "path".bold());
+}
+
 pub fn show_version_man() {
     println!("{}", "USAGE".bold().underline());
     println!("    {} ", "mer version".bold());
@@ -51,6 +60,7 @@ pub fn show_man() {
     println!("    {} [{}]", "mer help".bold(), "command".bold());
     println!("{}", "COMMANDS".bold().underline());
     println!("    {}        compile a program to bytecode", "com".bold());
+    println!("    {}        run a bytecode program on a virtual machine", "run".bold());
     println!("    {}    show version then exit", "version".bold());
     println!("    {}       show help then exit", "help".bold());
 }

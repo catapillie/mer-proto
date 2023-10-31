@@ -1,19 +1,22 @@
 use std::{fs, process};
 
-use cmd::{Command, CompileCommand};
+use cmd::{Command, CompileCommand, RunCommand};
 use colored::Colorize;
 
 mod cli;
 mod cmd;
+mod run;
 mod com;
 mod msg;
 
 fn main() {
     match cli::parse_command() {
         Command::Compile(command) => run_compile(command),
+        Command::Run(command) => run_run(command),
         Command::Version => msg::info(format!("mer {}", env!("CARGO_PKG_VERSION"))),
         Command::Help(Some(command)) => match command.as_str() {
             "com" => msg::show_com_man(),
+            "run" => msg::show_run_man(),
             "version" => msg::show_version_man(),
             "help" => msg::show_help_man(),
             _ => {
@@ -66,5 +69,33 @@ fn run_compile(command: CompileCommand) {
             ));
             process::exit(1);
         }
+    }
+}
+
+fn run_run(command: RunCommand) {
+    match command {
+        RunCommand::Go(ref path) => {
+            let program = match fs::read(path) {
+                Ok(program) => program,
+                Err(e) => {
+                    msg::error(format!(
+                        "could not read file {}:\n      {}",
+                        path.bold(),
+                        e.to_string().italic()
+                    ));
+                    process::exit(e.raw_os_error().unwrap_or(1));
+                },
+            };
+
+            run::run(program);
+        },
+        RunCommand::NoPath => {
+            msg::error("no path provided");
+            msg::help(format!(
+                "run {} for more help on running programs",
+                "mer help run".bold().underline()
+            ));
+            process::exit(1);
+        },
     }
 }
