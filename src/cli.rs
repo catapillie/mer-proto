@@ -1,6 +1,6 @@
 use pico_args::Arguments;
 
-use crate::cmd::{Command, CompileCommand, RunCommand};
+use crate::cmd::{Command, CompileCommand, RunCommand, DisassembleCommand};
 
 pub fn parse_command() -> Command {
     let mut args = Arguments::from_env();
@@ -9,6 +9,7 @@ pub fn parse_command() -> Command {
         Ok(Some(command)) => match command.as_str() {
             "com" => parse_compile_command(args),
             "run" => parse_run_command(args),
+            "dis" => parse_dis_command(args),
             "version" => Command::Version,
             "help" => parse_help_command(args),
             _ => Command::Unknown(command),
@@ -30,6 +31,14 @@ fn parse_run_command(mut args: Arguments) -> Command {
     match args.opt_free_from_str::<String>() {
         Ok(Some(path)) => Command::Run(RunCommand::Go(path)),
         Ok(None) => Command::Run(RunCommand::NoPath),
+        Err(_) => Command::Error,
+    }
+}
+
+fn parse_dis_command(mut args: Arguments) -> Command {
+    match args.opt_free_from_str::<String>() {
+        Ok(Some(path)) => Command::Disassemble(DisassembleCommand::Go(path)),
+        Ok(None) => Command::Disassemble(DisassembleCommand::NoPath),
         Err(_) => Command::Error,
     }
 }

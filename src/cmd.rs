@@ -2,6 +2,7 @@
 pub enum Command {
     Compile(CompileCommand),
     Run(RunCommand),
+    Disassemble(DisassembleCommand),
     Version,
     Help(Option<String>),
     Unknown(String),
@@ -16,6 +17,12 @@ pub enum CompileCommand {
 
 #[derive(Debug)]
 pub enum RunCommand {
+    Go(String),
+    NoPath,
+}
+
+#[derive(Debug)]
+pub enum DisassembleCommand {
     Go(String),
     NoPath,
 }

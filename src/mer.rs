@@ -1,6 +1,6 @@
 use std::{fs, process};
 
-use cmd::{Command, CompileCommand, RunCommand};
+use cmd::{Command, CompileCommand, RunCommand, DisassembleCommand};
 use colored::Colorize;
 
 mod cli;
@@ -13,10 +13,12 @@ fn main() {
     match cli::parse_command() {
         Command::Compile(command) => run_compile(command),
         Command::Run(command) => run_run(command),
+        Command::Disassemble(command) => run_disassemble(command),
         Command::Version => msg::info(format!("mer {}", env!("CARGO_PKG_VERSION"))),
         Command::Help(Some(command)) => match command.as_str() {
             "com" => msg::show_com_man(),
             "run" => msg::show_run_man(),
+            "dis" => msg::show_dis_man(),
             "version" => msg::show_version_man(),
             "help" => msg::show_help_man(),
             _ => {
@@ -93,6 +95,34 @@ fn run_run(command: RunCommand) {
             msg::error("no path provided");
             msg::help(format!(
                 "run {} for more help on running programs",
+                "mer help run".bold().underline()
+            ));
+            process::exit(1);
+        },
+    }
+}
+
+fn run_disassemble(command: DisassembleCommand) {
+    match command {
+        DisassembleCommand::Go(ref path) => {
+            let program = match fs::read(path) {
+                Ok(program) => program,
+                Err(e) => {
+                    msg::error(format!(
+                        "could not read file {}:\n      {}",
+                        path.bold(),
+                        e.to_string().italic()
+                    ));
+                    process::exit(e.raw_os_error().unwrap_or(1));
+                },
+            };
+
+            run::disassemble(program);
+        },
+        DisassembleCommand::NoPath => {
+            msg::error("no path provided");
+            msg::help(format!(
+                "run {} for more help on disassembling programs",
                 "mer help run".bold().underline()
             ));
             process::exit(1);
