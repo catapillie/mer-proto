@@ -4,9 +4,21 @@ use crate::msg;
 
 use super::opcode::Opcode;
 
+#[derive(Debug)]
 pub enum Value {
+    Unit,
     Num(f64),
     Bool(bool),
+}
+
+impl Value {
+    fn type_name(&self) -> &str {
+        match self {
+            Value::Unit => "unit",
+            Value::Num(_) => "number",
+            Value::Bool(_) => "boolean",
+        }
+    }
 }
 
 pub struct VM {
@@ -36,21 +48,226 @@ impl VM {
                 Opcode::ld_num_const => self.ld_num_const(),
                 Opcode::ld_true_const => self.ld_true_const(),
                 Opcode::ld_false_const => self.ld_false_const(),
-                Opcode::op_add => todo!(),
-                Opcode::op_sub => todo!(),
-                Opcode::op_mul => todo!(),
-                Opcode::op_div => todo!(),
-                Opcode::op_mod => todo!(),
-                Opcode::op_eq => todo!(),
-                Opcode::op_ne => todo!(),
-                Opcode::op_le => todo!(),
-                Opcode::op_lt => todo!(),
-                Opcode::op_ge => todo!(),
-                Opcode::op_gt => todo!(),
-                Opcode::op_amp => todo!(),
-                Opcode::op_bar => todo!(),
-                Opcode::op_car => todo!(),
+                Opcode::op_add => self.op_add(),
+                Opcode::op_sub => self.op_sub(),
+                Opcode::op_mul => self.op_mul(),
+                Opcode::op_div => self.op_div(),
+                Opcode::op_mod => self.op_mod(),
+                Opcode::op_eq => self.op_eq(),
+                Opcode::op_ne => self.op_ne(),
+                Opcode::op_le => self.op_le(),
+                Opcode::op_lt => self.op_lt(),
+                Opcode::op_ge => self.op_ge(),
+                Opcode::op_gt => self.op_gt(),
+                Opcode::op_amp => self.op_amp(),
+                Opcode::op_bar => self.op_bar(),
+                Opcode::op_car => self.op_car(),
+                Opcode::op_plus => self.op_plus(),
+                Opcode::op_minus => self.op_minus(),
+                Opcode::op_not => self.op_not(),
                 Opcode::halt => return,
+            }
+        }
+    }
+
+    
+    fn op_add(&mut self) {
+        let right = self.pop();
+        let left = self.pop();
+        match (&left, &right) {
+            (Value::Num(a), Value::Num(b)) => self.push(Value::Num(a + b)),
+            _ => {
+                msg::error(format!("invalid operation: {} + {}", left.type_name(), right.type_name()));
+                process::exit(1);
+            }
+        }
+    }
+    
+    fn op_sub(&mut self) {
+        let right = self.pop();
+        let left = self.pop();
+        match (&left, &right) {
+            (Value::Num(a), Value::Num(b)) => self.push(Value::Num(a - b)),
+            _ => {
+                msg::error(format!("invalid operation: {} - {}", left.type_name(), right.type_name()));
+                process::exit(1);
+            }
+        }
+    }
+    
+    fn op_mul(&mut self) {
+        let right = self.pop();
+        let left = self.pop();
+        match (&left, &right) {
+            (Value::Num(a), Value::Num(b)) => self.push(Value::Num(a * b)),
+            _ => {
+                msg::error(format!("invalid operation: {} * {}", left.type_name(), right.type_name()));
+                process::exit(1);
+            }
+        }
+    }
+    
+    fn op_div(&mut self) {
+        let right = self.pop();
+        let left = self.pop();
+        match (&left, &right) {
+            (Value::Num(a), Value::Num(b)) => self.push(Value::Num(a / b)),
+            _ => {
+                msg::error(format!("invalid operation: {} / {}", left.type_name(), right.type_name()));
+                process::exit(1);
+            }
+        }
+    }
+    
+    fn op_mod(&mut self) {
+        let right = self.pop();
+        let left = self.pop();
+        match (&left, &right) {
+            (Value::Num(a), Value::Num(b)) => self.push(Value::Num(a % b)),
+            _ => {
+                msg::error(format!("invalid operation: {} % {}", left.type_name(), right.type_name()));
+                process::exit(1);
+            }
+        }
+    }
+    
+    fn op_eq(&mut self) {
+        let right = self.pop();
+        let left = self.pop();
+        match (&left, &right) {
+            (Value::Num(a), Value::Num(b)) => self.push(Value::Bool(a == b)),
+            _ => {
+                msg::error(format!("invalid operation: {} == {}", left.type_name(), right.type_name()));
+                process::exit(1);
+            }
+        }
+    }
+    
+    fn op_ne(&mut self) {
+        let right = self.pop();
+        let left = self.pop();
+        match (&left, &right) {
+            (Value::Num(a), Value::Num(b)) => self.push(Value::Bool(a != b)),
+            _ => {
+                msg::error(format!("invalid operation: {} != {}", left.type_name(), right.type_name()));
+                process::exit(1);
+            }
+        }
+    }
+    
+    fn op_le(&mut self) {
+        let right = self.pop();
+        let left = self.pop();
+        match (&left, &right) {
+            (Value::Num(a), Value::Num(b)) => self.push(Value::Bool(a <= b)),
+            _ => {
+                msg::error(format!("invalid operation: {} <= {}", left.type_name(), right.type_name()));
+                process::exit(1);
+            }
+        }
+    }
+    
+    fn op_lt(&mut self) {
+        let right = self.pop();
+        let left = self.pop();
+        match (&left, &right) {
+            (Value::Num(a), Value::Num(b)) => self.push(Value::Bool(a < b)),
+            _ => {
+                msg::error(format!("invalid operation: {} < {}", left.type_name(), right.type_name()));
+                process::exit(1);
+            }
+        }
+    }
+    
+    fn op_ge(&mut self) {
+        let right = self.pop();
+        let left = self.pop();
+        match (&left, &right) {
+            (Value::Num(a), Value::Num(b)) => self.push(Value::Bool(a >= b)),
+            _ => {
+                msg::error(format!("invalid operation: {} >= {}", left.type_name(), right.type_name()));
+                process::exit(1);
+            }
+        }
+    }
+    
+    fn op_gt(&mut self) {
+        let right = self.pop();
+        let left = self.pop();
+        match (&left, &right) {
+            (Value::Num(a), Value::Num(b)) => self.push(Value::Bool(a > b)),
+            _ => {
+                msg::error(format!("invalid operation: {} > {}", left.type_name(), right.type_name()));
+                process::exit(1);
+            }
+        }
+    }
+    
+    fn op_amp(&mut self) {
+        let right = self.pop();
+        let left = self.pop();
+        match (&left, &right) {
+            (Value::Bool(a), Value::Bool(b)) => self.push(Value::Bool(a & b)),
+            _ => {
+                msg::error(format!("invalid operation: {} & {}", left.type_name(), right.type_name()));
+                process::exit(1);
+            }
+        }
+    }
+    
+    fn op_bar(&mut self) {
+        let right = self.pop();
+        let left = self.pop();
+        match (&left, &right) {
+            (Value::Bool(a), Value::Bool(b)) => self.push(Value::Bool(a | b)),
+            _ => {
+                msg::error(format!("invalid operation: {} | {}", left.type_name(), right.type_name()));
+                process::exit(1);
+            }
+        }
+    }
+    
+    fn op_car(&mut self) {
+        let right = self.pop();
+        let left = self.pop();
+        match (&left, &right) {
+            (Value::Bool(a), Value::Bool(b)) => self.push(Value::Bool(a ^ b)),
+            _ => {
+                msg::error(format!("invalid operation: {} ^ {}", left.type_name(), right.type_name()));
+                process::exit(1);
+            }
+        }
+    }
+    
+    fn op_plus(&mut self) {
+        let val = self.pop();
+        match &val {
+            Value::Num(a) => self.push(Value::Num(*a)),
+            _ => {
+                msg::error(format!("invalid operation: + {}", val.type_name()));
+                process::exit(1);
+            }
+        }
+    }
+    
+    fn op_minus(&mut self) {
+        let val = self.pop();
+        match &val {
+            Value::Num(a) => self.push(Value::Num(-*a)),
+            _ => {
+                msg::error(format!("invalid operation: - {}", val.type_name()));
+                process::exit(1);
+            }
+        }
+    }
+    
+    fn op_not(&mut self) {
+        let val = self.pop();
+        match &val {
+            Value::Bool(a) => self.push(Value::Bool(!*a)),
+            _ => {
+                msg::error(format!("invalid operation: not {}", val.type_name()));
+                process::exit(1);
             }
         }
     }
@@ -70,7 +287,8 @@ impl VM {
 
 
     fn push(&mut self, value: Value) {
-        self.stack.push(value)
+        self.stack.push(value);
+        println!("{:?}", self.stack);
     }
 
     fn pop(&mut self) -> Value {

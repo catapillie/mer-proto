@@ -20,6 +20,10 @@ opcodes! {
     016 op_bar,
     017 op_car,
 
+    018 op_plus,
+    019 op_minus,
+    020 op_not,
+
     255 halt,
 }
 

@@ -4,7 +4,7 @@ use crate::run::opcode::Opcode;
 
 use self::vm::VM;
 
-mod opcode;
+pub mod opcode;
 mod vm;
 
 pub fn run(program: Vec<u8>) {
@@ -32,7 +32,7 @@ pub fn disassemble(program: Vec<u8>) {
                 let value = f64::from_be_bytes(bytes);
                 ip += 8;
                 println!(
-                    "{offset:0width$} | {byte:02x} {:>16} {:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x} ({value:+.10e})",
+                    "{offset:0width$} | {byte:02x} {:>16} {value:+.10e} ({:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x})",
                     format!("{opcode:?}").bold(),
                     bytes[0], bytes[1], bytes[2], bytes[3],
                     bytes[4], bytes[5], bytes[6], bytes[7],
