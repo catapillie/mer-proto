@@ -1,7 +1,7 @@
 opcodes! {
     000 nop,
 
-    001 ld_num_const,
+    001 ld_num_const, // f64
     002 ld_true_const,
     003 ld_false_const,
 
@@ -23,6 +23,14 @@ opcodes! {
     018 op_plus,
     019 op_minus,
     020 op_not,
+
+    021 init_loc, // u8
+    022 ld_loc, // u8
+    023 st_loc, // u8
+
+    030 pop,
+
+    100 dbg,
 
     255 halt,
 }

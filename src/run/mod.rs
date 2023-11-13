@@ -39,6 +39,15 @@ pub fn disassemble(program: Vec<u8>) {
                     width = 8
                 );
             }
+            Opcode::init_loc | Opcode::ld_loc | Opcode::st_loc => {
+                let count = u8::from_be(program[ip]);
+                ip += 1;
+                println!(
+                    "{offset:0width$} | {byte:02x} {:>16} {count}",
+                    format!("{opcode:?}").bold(),
+                    width = 8
+                );
+            }
             _ => {
                 println!(
                     "{offset:0width$} | {byte:02x} {:>16}",
