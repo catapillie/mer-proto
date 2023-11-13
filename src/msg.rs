@@ -26,7 +26,10 @@ pub fn show_com_man() {
     println!("{}", "DESCRIPTION".bold().underline());
     println!("    compiles a program to bytecode, given the path to the source code");
     println!("{}", "ARGUMENTS".bold().underline());
-    println!("    {}    the path to file containing the source code", "path".bold());
+    println!(
+        "    {}    the path to file containing the source code",
+        "path".bold()
+    );
 }
 
 pub fn show_run_man() {
@@ -35,7 +38,10 @@ pub fn show_run_man() {
     println!("{}", "DESCRIPTION".bold().underline());
     println!("    executes compiled bytecode on the virtual machine");
     println!("{}", "ARGUMENTS".bold().underline());
-    println!("    {}    the path to file containing the compiled bytecode", "path".bold());
+    println!(
+        "    {}    the path to file containing the compiled bytecode",
+        "path".bold()
+    );
 }
 
 pub fn show_dis_man() {
@@ -44,7 +50,10 @@ pub fn show_dis_man() {
     println!("{}", "DESCRIPTION".bold().underline());
     println!("    disassembles a bytecode program");
     println!("{}", "ARGUMENTS".bold().underline());
-    println!("    {}    the path to file containing the compiled bytecode", "path".bold());
+    println!(
+        "    {}    the path to file containing the compiled bytecode",
+        "path".bold()
+    );
 }
 
 pub fn show_version_man() {
@@ -60,7 +69,10 @@ pub fn show_help_man() {
     println!("{}", "DESCRIPTION".bold().underline());
     println!("    displays general help, or if provided, help for a specified command");
     println!("{}", "ARGUMENTS".bold().underline());
-    println!("    {}    optional subcommand to get help from", "command".bold());
+    println!(
+        "    {}    optional subcommand to get help from",
+        "command".bold()
+    );
 }
 
 pub fn show_man() {
@@ -69,7 +81,10 @@ pub fn show_man() {
     println!("    {} [{}]", "mer help".bold(), "command".bold());
     println!("{}", "COMMANDS".bold().underline());
     println!("    {}        compile a program to bytecode", "com".bold());
-    println!("    {}        run a bytecode program on a virtual machine", "run".bold());
+    println!(
+        "    {}        run a bytecode program on a virtual machine",
+        "run".bold()
+    );
     println!("    {}        disassemble a bytecode program", "dis".bold());
     println!("    {}    show version then exit", "version".bold());
     println!("    {}       show help then exit", "help".bold());

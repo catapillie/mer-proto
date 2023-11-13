@@ -3,6 +3,7 @@ use crate::{com::codegen::Codegen, msg};
 use colored::Colorize;
 use std::{
     fs,
+    io::Write,
     process::{self},
 };
 
@@ -19,8 +20,6 @@ pub fn compile(source: String) {
     let parser = Parser::init(source.as_str());
     let (ast, errors) = parser.parse_program();
 
-    println!("{ast:#?}");
-
     if !errors.is_empty() {
         msg::error(
             format!("parsing finished with {} error(s)", errors.len())
@@ -35,33 +34,26 @@ pub fn compile(source: String) {
 
     msg::ok("parsing finished successfully");
 
+    let result = Codegen::new().gen(&ast);
+
     const PATH: &str = "a.out";
 
-    let result = {
-        let mut file = fs::OpenOptions::new()
-            .write(true)
-            .create(true)
-            .truncate(true)
-            .open(PATH)
-            .unwrap_or_else(|e| {
-                msg::error(format!(
-                    "could not write to file file {}:\n      {}",
-                    PATH.bold(),
-                    e.to_string().italic()
-                ));
-                process::exit(e.raw_os_error().unwrap_or(1));
-            });
-
-        let mut codegen = Codegen::new(&mut file);
-        codegen.gen(&ast)
-    };
-
     match result {
-        Ok(_) => {
-            msg::ok(format!(
-                "compilation to {} finished successfully",
-                PATH.bold()
-            ));
+        Ok(bytes) => {
+            match fs::write(PATH, bytes) {
+                Ok(_) => msg::ok(format!(
+                    "compilation to {} finished successfully",
+                    PATH.bold()
+                )),
+                Err(e) => {
+                    msg::error(format!(
+                        "compilation succeeded then failed when writing to {}:\n      {}",
+                        PATH,
+                        e.to_string().italic()
+                    ));
+                    process::exit(e.raw_os_error().unwrap_or(1));
+                }
+            };
         }
         _ => {
             msg::error("compilation finished abnormally");

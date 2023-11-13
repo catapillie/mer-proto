@@ -35,23 +35,26 @@ impl LocalsInfo {
     }
 }
 
-pub struct Codegen<'a> {
-    file: &'a mut File,
+pub struct Codegen {
+    code: Vec<u8>,
 }
 
-impl<'a> Codegen<'a> {
-    pub fn new(file: &'a mut File) -> Self {
-        Self { file }
+impl Codegen {
+    pub fn new() -> Self {
+        Self { code: Vec::new() }
     }
 
-    pub fn gen(&mut self, ast: &ProgramAst) -> Result<(), io::Error> {
+    pub fn gen(mut self, ast: &ProgramAst) -> Result<Vec<u8>, io::Error> {
         let locals = Self::count_locals(ast);
-        self.file
-            .write_all(&[Opcode::init_loc as u8, locals.count().to_be_bytes()[0]])?;
+
+        self.code.push(Opcode::init_loc as u8);
+        self.code.push(locals.count().to_be());
 
         self.gen_stmt_list(ast, &locals, 0)?;
-        self.file.write_all(&[Opcode::halt as u8])?;
-        Ok(())
+
+        self.code.push(Opcode::halt as u8);
+
+        Ok(self.code)
     }
 
     fn count_locals(stmts: &Vec<StmtAst>) -> LocalsInfo {
@@ -79,23 +82,33 @@ impl<'a> Codegen<'a> {
         }
     }
 
-    fn gen_stmt_list(&mut self, stmts: &Vec<StmtAst>, locals: &LocalsInfo, depth: u8) -> Result<(), io::Error> {
+    fn gen_stmt_list(
+        &mut self,
+        stmts: &Vec<StmtAst>,
+        locals: &LocalsInfo,
+        depth: u8,
+    ) -> Result<(), io::Error> {
         for stmt in stmts {
             self.gen_stmt(stmt, locals, depth)?;
         }
         Ok(())
     }
 
-    fn gen_stmt(&mut self, stmt: &StmtAst, locals: &LocalsInfo, depth: u8) -> Result<(), io::Error> {
+    fn gen_stmt(
+        &mut self,
+        stmt: &StmtAst,
+        locals: &LocalsInfo,
+        depth: u8,
+    ) -> Result<(), io::Error> {
         match stmt {
             StmtAst::Empty => Ok(()),
             StmtAst::Expr(expr) => {
                 let is_assignemt = self.gen_expr(expr, locals, depth)?;
                 if !is_assignemt {
-                    self.file.write_all(&[Opcode::pop as u8])?;
+                    self.code.push(Opcode::pop as u8);
                 }
                 Ok(())
-            },
+            }
             StmtAst::Block(stmts) => self.gen_block(stmts, locals, depth),
             StmtAst::IfThen(_, _) => todo!(),
             StmtAst::Then(_) => todo!(),
@@ -109,30 +122,41 @@ impl<'a> Codegen<'a> {
         }
     }
 
-    fn gen_block(&mut self, stmts: &Vec<StmtAst>, locals: &LocalsInfo, depth: u8) -> Result<(), io::Error> {
+    fn gen_block(
+        &mut self,
+        stmts: &Vec<StmtAst>,
+        locals: &LocalsInfo,
+        depth: u8,
+    ) -> Result<(), io::Error> {
         self.gen_stmt_list(stmts, locals, depth + 1)
     }
 
     // Ok(true) -> assignment was codegen'd
-    fn gen_expr(&mut self, expr: &ExprAst, locals: &LocalsInfo, depth: u8) -> Result<bool, io::Error> {
+    fn gen_expr(
+        &mut self,
+        expr: &ExprAst,
+        locals: &LocalsInfo,
+        depth: u8,
+    ) -> Result<bool, io::Error> {
         match expr {
             ExprAst::Number(num) => {
-                self.file.write_all(&[Opcode::ld_num_const as u8])?;
-                self.file.write_all(&num.to_be_bytes())?;
+                self.code.push(Opcode::ld_num_const as u8);
+                self.code.extend_from_slice(&num.to_be_bytes());
                 Ok(false)
             }
             ExprAst::Identifier(id) => {
                 let loc = locals.get_local_index(id, depth).expect("unknown variable");
-                self.file.write_all(&[Opcode::ld_loc as u8, loc])?;
+                self.code.push(Opcode::ld_loc as u8);
+                self.code.push(loc);
                 Ok(false)
-            },
+            }
             ExprAst::Boolean(b) => {
                 let op = if *b {
                     Opcode::ld_true_const
                 } else {
                     Opcode::ld_false_const
                 } as u8;
-                self.file.write_all(&[op])?;
+                self.code.push(op);
                 Ok(false)
             }
             ExprAst::BinaryOp(BinaryOperator::Equal, assignee, value) => {
@@ -141,13 +165,14 @@ impl<'a> Codegen<'a> {
                 };
                 self.gen_expr(value, locals, depth)?;
                 let loc = locals.get_local_index(id, depth).unwrap();
-                self.file.write_all(&[Opcode::st_loc as u8, loc])?;
+                self.code.push(Opcode::st_loc as u8);
+                self.code.push(loc);
                 Ok(true) // assignment
             }
             ExprAst::BinaryOp(op, left, right) => {
                 self.gen_expr(left, locals, depth)?;
                 self.gen_expr(right, locals, depth)?;
-                self.file.write_all(&[match op {
+                self.code.push(match op {
                     BinaryOperator::Plus => Opcode::op_add,
                     BinaryOperator::Minus => Opcode::op_sub,
                     BinaryOperator::Star => Opcode::op_mul,
@@ -165,16 +190,16 @@ impl<'a> Codegen<'a> {
                     BinaryOperator::And => todo!(),
                     BinaryOperator::Or => todo!(),
                     BinaryOperator::Equal => unreachable!(),
-                } as u8])?;
+                } as u8);
                 Ok(false)
             }
             ExprAst::UnaryOp(op, expr) => {
                 self.gen_expr(expr, locals, depth)?;
-                self.file.write_all(&[match op {
+                self.code.push(match op {
                     UnaryOperator::Plus => Opcode::op_plus,
                     UnaryOperator::Minus => Opcode::op_minus,
                     UnaryOperator::Not => Opcode::op_not,
-                } as u8])?;
+                } as u8);
                 Ok(false)
             }
             ExprAst::Bad => unreachable!(),

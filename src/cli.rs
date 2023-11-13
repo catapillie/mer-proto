@@ -1,6 +1,6 @@
 use pico_args::Arguments;
 
-use crate::cmd::{Command, CompileCommand, RunCommand, DisassembleCommand};
+use crate::cmd::{Command, CompileCommand, DisassembleCommand, RunCommand};
 
 pub fn parse_command() -> Command {
     let mut args = Arguments::from_env();
