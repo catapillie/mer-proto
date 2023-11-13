@@ -30,6 +30,9 @@ opcodes! {
 
     030 pop,
 
+    050 jmp, // u32
+    051 jmp_if, // u32
+
     100 dbg,
 
     255 halt,

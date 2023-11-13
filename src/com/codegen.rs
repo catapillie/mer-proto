@@ -1,12 +1,14 @@
 use std::{
     collections::HashMap,
-    fs::File,
-    io::{self, Write},
+    io::{self},
 };
 
 use crate::run::opcode::Opcode;
 
-use super::ast::{BinaryOperator, ExprAst, ProgramAst, StmtAst, UnaryOperator};
+use super::{
+    ast::{BinaryOperator, ExprAst, ProgramAst, StmtAst, UnaryOperator},
+    cursor,
+};
 
 #[derive(Default)]
 struct LocalsInfo {
@@ -50,7 +52,7 @@ impl Codegen {
         self.code.push(Opcode::init_loc as u8);
         self.code.push(locals.count().to_be());
 
-        self.gen_stmt_list(ast, &locals, 0)?;
+        self.gen_stmt_list(ast, &locals, 0, 0)?;
 
         self.code.push(Opcode::halt as u8);
 
@@ -87,9 +89,10 @@ impl Codegen {
         stmts: &Vec<StmtAst>,
         locals: &LocalsInfo,
         depth: u8,
+        cursor_offset: u32,
     ) -> Result<(), io::Error> {
         for stmt in stmts {
-            self.gen_stmt(stmt, locals, depth)?;
+            self.gen_stmt(stmt, locals, depth, cursor_offset)?;
         }
         Ok(())
     }
@@ -99,26 +102,72 @@ impl Codegen {
         stmt: &StmtAst,
         locals: &LocalsInfo,
         depth: u8,
+        cursor_offset: u32,
     ) -> Result<(), io::Error> {
         match stmt {
             StmtAst::Empty => Ok(()),
             StmtAst::Expr(expr) => {
                 let is_assignemt = self.gen_expr(expr, locals, depth)?;
                 if !is_assignemt {
-                    self.code.push(Opcode::pop as u8);
+                    self.code.push(Opcode::dbg as u8);
                 }
                 Ok(())
             }
-            StmtAst::Block(stmts) => self.gen_block(stmts, locals, depth),
-            StmtAst::IfThen(_, _) => todo!(),
-            StmtAst::Then(_) => todo!(),
-            StmtAst::IfThenElse(_, _, _) => todo!(),
-            StmtAst::Else(_) => unreachable!(),
+            StmtAst::Block(stmts) => self.gen_block(stmts, locals, depth, cursor_offset),
+
+            StmtAst::IfThen(guard, body) => {
+                self.gen_expr(guard, locals, depth)?;
+                self.code.push(Opcode::op_not as u8);
+                self.code.push(Opcode::jmp_if as u8);
+                let cursor_from = self.code.len();
+                self.gen_stmt(body.as_ref(), locals, depth, cursor_offset + 4)?;
+                let cursor_to = cursor_offset + 4 + self.code.len() as u32;
+                let bytes = cursor_to.to_be_bytes();
+                self.code.insert(cursor_from, bytes[3]);
+                self.code.insert(cursor_from, bytes[2]);
+                self.code.insert(cursor_from, bytes[1]);
+                self.code.insert(cursor_from, bytes[0]);
+                Ok(())
+            }
+            StmtAst::IfThenElse(guard, body_if, body_else) => {
+                self.gen_expr(guard, locals, depth)?;
+                self.code.push(Opcode::op_not as u8);
+
+                self.code.push(Opcode::jmp_if as u8);
+                let cursor_guard_end = self.code.len();
+
+                self.gen_stmt(body_if, locals, depth, cursor_offset + 8)?;
+
+                self.code.push(Opcode::jmp as u8);
+                let cursor_body_if_end = self.code.len();
+
+                self.gen_stmt(body_else, locals, depth, cursor_offset + 8)?;
+
+                let cursor_body_else_end = self.code.len();
+
+                let bytes = (cursor_offset + 8 + cursor_body_else_end as u32).to_be_bytes();
+                self.code.insert(cursor_body_if_end, bytes[3]);
+                self.code.insert(cursor_body_if_end, bytes[2]);
+                self.code.insert(cursor_body_if_end, bytes[1]);
+                self.code.insert(cursor_body_if_end, bytes[0]);
+
+                let bytes = (cursor_offset + 8 + cursor_body_if_end as u32).to_be_bytes();
+                self.code.insert(cursor_guard_end, bytes[3]);
+                self.code.insert(cursor_guard_end, bytes[2]);
+                self.code.insert(cursor_guard_end, bytes[1]);
+                self.code.insert(cursor_guard_end, bytes[0]);
+
+                Ok(())
+            }
+
             StmtAst::WhileDo(_, _) => todo!(),
             StmtAst::DoWhile(_, _) => todo!(),
-            StmtAst::Do(_) => unreachable!(),
             StmtAst::Return => todo!(),
             StmtAst::ReturnWith(_) => todo!(),
+
+            StmtAst::Then(_) => unreachable!(),
+            StmtAst::Else(_) => unreachable!(),
+            StmtAst::Do(_) => unreachable!(),
         }
     }
 
@@ -127,8 +176,9 @@ impl Codegen {
         stmts: &Vec<StmtAst>,
         locals: &LocalsInfo,
         depth: u8,
+        cursor_offset: u32,
     ) -> Result<(), io::Error> {
-        self.gen_stmt_list(stmts, locals, depth + 1)
+        self.gen_stmt_list(stmts, locals, depth + 1, cursor_offset)
     }
 
     // Ok(true) -> assignment was codegen'd

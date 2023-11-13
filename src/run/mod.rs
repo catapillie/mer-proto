@@ -48,6 +48,15 @@ pub fn disassemble(program: Vec<u8>) {
                     width = 8
                 );
             }
+            Opcode::jmp | Opcode::jmp_if => {
+                let to = u32::from_be_bytes(program[ip..ip + 4].try_into().unwrap());
+                ip += 4;
+                println!(
+                    "{offset:0width$} | {byte:02x} {:>16} -> {to:0width$}",
+                    format!("{opcode:?}").bold(),
+                    width = 8
+                );
+            }
             _ => {
                 println!(
                     "{offset:0width$} | {byte:02x} {:>16}",

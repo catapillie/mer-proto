@@ -1,4 +1,7 @@
-use std::{fmt::Display, process};
+use std::{
+    fmt::Display,
+    process::{self},
+};
 
 use crate::msg;
 
@@ -57,8 +60,8 @@ impl VM {
 
     pub fn run(&mut self) {
         while !self.has_reached_end() {
-            let opcopde = self.next_opcode();
-            match opcopde {
+            let opcode = self.next_opcode();
+            match opcode {
                 Opcode::nop => continue,
                 Opcode::ld_num_const => self.ld_num_const(),
                 Opcode::ld_true_const => self.ld_true_const(),
@@ -86,6 +89,8 @@ impl VM {
                 Opcode::pop => {
                     self.pop();
                 }
+                Opcode::jmp => self.jmp(),
+                Opcode::jmp_if => self.jmp_if(),
                 Opcode::dbg => {
                     println!("{}", self.pop());
                 }
@@ -100,10 +105,27 @@ impl VM {
         }
     }
 
+    fn jmp(&mut self) {
+        self.ip = self.read_u32() as usize;
+    }
+
+    fn jmp_if(&mut self) {
+        let to = self.read_u32();
+        let guard = self.pop();
+        match guard {
+            Value::Bool(true) => self.ip = to as usize,
+            Value::Bool(false) => (),
+            _ => {
+                msg::error(format!("invalid jump condition: {}", guard.type_name()));
+                process::exit(1);
+            }
+        }
+    }
+
     fn init_loc(&mut self) {
         let stack_len = self.stack.len();
         self.loc_offsets.push(stack_len);
-        let count = self.read_byte().to_be();
+        let count = self.read_u8().to_be();
         for _ in 0..count {
             self.push(Value::Uninitialized);
         }
@@ -117,13 +139,13 @@ impl VM {
     }
 
     fn ld_loc(&mut self) {
-        let index = self.read_byte().to_be() as usize;
+        let index = self.read_u8().to_be() as usize;
         let offset = *self.loc_offsets.last().unwrap();
         self.push(self.stack[offset + index].clone());
     }
 
     fn st_loc(&mut self) {
-        let index = self.read_byte().to_be() as usize;
+        let index = self.read_u8().to_be() as usize;
         let offset = *self.loc_offsets.last().unwrap();
         self.stack[offset + index] = self.pop();
     }
@@ -386,7 +408,7 @@ impl VM {
     }
 
     fn ld_num_const(&mut self) {
-        let num = self.read_number();
+        let num = self.read_f64();
         self.push(Value::Num(num))
     }
 
@@ -413,7 +435,7 @@ impl VM {
     }
 
     fn next_opcode(&mut self) -> Opcode {
-        match Opcode::try_from(self.read_byte()) {
+        match Opcode::try_from(self.read_u8()) {
             Ok(opcode) => opcode,
             Err(_) => {
                 msg::error("encountered illegal opcode");
@@ -422,22 +444,31 @@ impl VM {
         }
     }
 
-    fn read_byte(&mut self) -> u8 {
+    fn read_u8(&mut self) -> u8 {
         let byte = self.program[self.ip];
         self.ip += 1;
         byte
     }
 
-    fn read_number(&mut self) -> f64 {
+    fn read_u32(&mut self) -> u32 {
+        u32::from_be_bytes([
+            self.read_u8(),
+            self.read_u8(),
+            self.read_u8(),
+            self.read_u8(),
+        ])
+    }
+
+    fn read_f64(&mut self) -> f64 {
         f64::from_be_bytes([
-            self.read_byte(),
-            self.read_byte(),
-            self.read_byte(),
-            self.read_byte(),
-            self.read_byte(),
-            self.read_byte(),
-            self.read_byte(),
-            self.read_byte(),
+            self.read_u8(),
+            self.read_u8(),
+            self.read_u8(),
+            self.read_u8(),
+            self.read_u8(),
+            self.read_u8(),
+            self.read_u8(),
+            self.read_u8(),
         ])
     }
 }
