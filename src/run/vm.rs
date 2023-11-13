@@ -1,4 +1,4 @@
-use std::{process, fmt::Display};
+use std::{fmt::Display, process};
 
 use crate::msg;
 

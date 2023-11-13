@@ -96,7 +96,7 @@ impl<'a> Codegen<'a> {
                 }
                 Ok(())
             },
-            StmtAst::Block(_) => todo!(),
+            StmtAst::Block(stmts) => self.gen_block(stmts, locals, depth),
             StmtAst::IfThen(_, _) => todo!(),
             StmtAst::Then(_) => todo!(),
             StmtAst::IfThenElse(_, _, _) => todo!(),
@@ -107,6 +107,10 @@ impl<'a> Codegen<'a> {
             StmtAst::Return => todo!(),
             StmtAst::ReturnWith(_) => todo!(),
         }
+    }
+
+    fn gen_block(&mut self, stmts: &Vec<StmtAst>, locals: &LocalsInfo, depth: u8) -> Result<(), io::Error> {
+        self.gen_stmt_list(stmts, locals, depth + 1)
     }
 
     // Ok(true) -> assignment was codegen'd
