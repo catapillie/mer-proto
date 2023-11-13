@@ -123,7 +123,7 @@ fn run_disassemble(command: DisassembleCommand) {
             msg::error("no path provided");
             msg::help(format!(
                 "run {} for more help on disassembling programs",
-                "mer help run".bold().underline()
+                "mer help dis".bold().underline()
             ));
             process::exit(1);
         }
