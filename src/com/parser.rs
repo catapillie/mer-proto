@@ -31,7 +31,7 @@ impl<'src> Parser<'src> {
         loop {
             while let Some(stmt) = self.parse_statement() {
                 stmts.push(stmt);
-                if self.match_token_or_eof::<Newline>().is_none() {
+                if !self.expect_newlines_or_eof() {
                     self.recover_to_next_statement();
                 }
             }
@@ -71,7 +71,7 @@ impl<'src> Parser<'src> {
     }
 
     pub fn parse_statement(&mut self) -> Option<StmtAst> {
-        self.try_match_token::<Newline>();
+        self.skip_newlines();
 
         if let Some(expr) = self.parse_expression() {
             return Some(StmtAst::Expr(expr));
@@ -171,7 +171,7 @@ impl<'src> Parser<'src> {
                 if self.peek_token::<RightBrace>() {
                     break;
                 }
-                if self.match_token_or_eof::<Newline>().is_none() {
+                if !self.expect_newlines_or_eof() {
                     self.recover_to_next_statement();
                 }
             }
@@ -325,6 +325,11 @@ impl<'src> Parser<'src> {
         }
 
         None
+    }
+
+    fn expect_newlines_or_eof(&mut self) -> bool {
+        matches!(self.last_token, Token::Newline(_, _))
+            || self.match_token_or_eof::<Newline>().is_some()
     }
 
     fn skip_newlines(&mut self) {
