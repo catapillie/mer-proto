@@ -5,10 +5,7 @@ use std::{
 
 use crate::run::opcode::Opcode;
 
-use super::{
-    ast::{BinaryOperator, ExprAst, ProgramAst, StmtAst, UnaryOperator},
-    cursor,
-};
+use super::ast::{BinaryOperator, ExprAst, ProgramAst, StmtAst, UnaryOperator};
 
 #[derive(Default)]
 struct LocalsInfo {
@@ -67,20 +64,32 @@ impl Codegen {
 
     fn count_locals_at(locals: &mut LocalsInfo, stmts: &Vec<StmtAst>, depth: u8) {
         for stmt in stmts {
-            match stmt {
-                StmtAst::Expr(ExprAst::BinaryOp(BinaryOperator::Equal, assignee, _)) => {
-                    let ExprAst::Identifier(ref id) = **assignee else {
-                        continue;
-                    };
+            Self::count_locals_in_stmt(locals, stmt, depth);
+        }
+    }
 
-                    let n = locals.indices.len() as u8;
-                    locals.indices.entry((id.clone(), depth)).or_insert(n);
-                }
-                StmtAst::Block(stmts) => {
-                    Self::count_locals_at(locals, stmts, depth + 1);
-                }
-                _ => {}
+    // must issue recursive calls for statements that contain nested statements
+    fn count_locals_in_stmt(locals: &mut LocalsInfo, stmt: &StmtAst, depth: u8) {
+        match stmt {
+            StmtAst::Expr(ExprAst::BinaryOp(BinaryOperator::Equal, assignee, _)) => {
+                let ExprAst::Identifier(ref id) = **assignee else {
+                    return;
+                };
+
+                let n = locals.indices.len() as u8;
+                locals.indices.entry((id.clone(), depth)).or_insert(n);
             }
+            StmtAst::Block(stmts) => {
+                Self::count_locals_at(locals, stmts, depth + 1);
+            }
+            StmtAst::IfThen(_, stmt) => Self::count_locals_in_stmt(locals, stmt, depth),
+            StmtAst::IfThenElse(_, stmt_if, stmt_else) => {
+                Self::count_locals_in_stmt(locals, stmt_if, depth);
+                Self::count_locals_in_stmt(locals, stmt_else, depth);
+            },
+            StmtAst::WhileDo(_, stmt) => Self::count_locals_in_stmt(locals, stmt, depth),
+            StmtAst::DoWhile(stmt, _) => Self::count_locals_in_stmt(locals, stmt, depth),
+            _ => {}
         }
     }
 
@@ -184,7 +193,7 @@ impl Codegen {
                 self.code.insert(cursor_guard_end, bytes[0]);
 
                 Ok(())
-            },
+            }
 
             StmtAst::DoWhile(_, _) => todo!(),
             StmtAst::Return => todo!(),
