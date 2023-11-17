@@ -200,7 +200,19 @@ impl Codegen {
                 Ok(())
             }
 
-            StmtAst::DoWhile(_, _) => todo!(),
+            StmtAst::DoWhile(stmt, guard) => {
+                let cursor_stmt_start = self.code.len();
+                self.gen_stmt(stmt, locals, depth, cursor_offset)?;
+
+                self.gen_expr(guard, locals, depth)?;
+                self.code.push(Opcode::jmp_if as u8);
+
+                let bytes = (cursor_offset + cursor_stmt_start as u32).to_be_bytes();
+                self.code.extend_from_slice(&bytes);
+
+                Ok(())
+            },
+            
             StmtAst::Return => todo!(),
             StmtAst::ReturnWith(_) => todo!(),
 
