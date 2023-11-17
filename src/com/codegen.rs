@@ -263,7 +263,7 @@ impl Codegen {
         expr: &ExprAst,
         locals: &LocalsInfo,
         depth: u8,
-    ) -> Result<(bool), io::Error> {
+    ) -> Result<bool, io::Error> {
         match expr {
             ExprAst::Number(num) => {
                 self.code.push(Opcode::ld_num_const as u8);
