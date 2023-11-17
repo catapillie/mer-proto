@@ -41,7 +41,8 @@ pub struct VM {
     program: Vec<u8>,
     ip: usize,
     stack: Vec<Value>,
-    loc_offsets: Vec<usize>,
+    frames: Vec<(Option<usize>, usize)>,
+    done: bool,
 }
 
 impl VM {
@@ -50,7 +51,8 @@ impl VM {
             program,
             ip: 0,
             stack: Vec::new(),
-            loc_offsets: Vec::new(),
+            frames: Vec::new(),
+            done: false,
         }
     }
 
@@ -58,8 +60,37 @@ impl VM {
         self.ip >= self.program.len()
     }
 
+    fn create_frame(&mut self, back: Option<usize>, local_count: usize) {
+        self.frames.push((back, local_count));
+    }
+
+    fn destroy_frame(&mut self) {
+        let (back, offset) = self.frames.pop().unwrap();
+        while self.stack.len() > offset {
+            self.pop();
+        }
+
+        let Some(ip) = back else {
+            self.halt();
+            return;
+        };
+
+        self.ip = ip;
+    }
+
     pub fn run(&mut self) {
-        while !self.has_reached_end() {
+        let first = self.next_opcode();
+        let entry_point = self.read_u32();
+
+        if !matches!(first, Opcode::entry_point) {
+            msg::error("no entry point defined");
+            process::exit(1);
+        }
+
+        self.ip = entry_point as usize;
+        self.create_frame(None, 0);
+
+        while !self.done && !self.has_reached_end() {
             let opcode = self.next_opcode();
             match opcode {
                 Opcode::nop => continue,
@@ -86,23 +117,31 @@ impl VM {
                 Opcode::init_loc => self.init_loc(),
                 Opcode::ld_loc => self.ld_loc(),
                 Opcode::st_loc => self.st_loc(),
-                Opcode::pop => {
-                    self.pop();
-                }
+
+                Opcode::pop => _ = self.pop(),
+
                 Opcode::jmp => self.jmp(),
                 Opcode::jmp_if => self.jmp_if(),
+
+                Opcode::ret => self.destroy_frame(),
+
                 Opcode::dbg => {
                     println!("{}", self.pop());
                 }
-                Opcode::halt => {
-                    self.clear_loc();
-                    if !self.stack.is_empty() {
-                        msg::warn("stack remained non-empty after halt opcode");
-                    }
-                    return;
-                }
+
+                Opcode::entry_point => unreachable!(),
+                Opcode::marker => unreachable!(),
+
+                Opcode::halt => unreachable!(),
             }
         }
+    }
+
+    fn halt(&mut self) {
+        if !self.stack.is_empty() {
+            msg::warn("stack remained non-empty after halt opcode");
+        }
+        self.done = true;
     }
 
     fn jmp(&mut self) {
@@ -124,29 +163,22 @@ impl VM {
 
     fn init_loc(&mut self) {
         let stack_len = self.stack.len();
-        self.loc_offsets.push(stack_len);
+        self.frames.last_mut().unwrap().1 = stack_len;
         let count = self.read_u8().to_be();
         for _ in 0..count {
             self.push(Value::Uninitialized);
         }
     }
 
-    fn clear_loc(&mut self) {
-        let offset = *self.loc_offsets.last().unwrap();
-        while self.stack.len() > offset {
-            self.pop();
-        }
-    }
-
     fn ld_loc(&mut self) {
         let index = self.read_u8().to_be() as usize;
-        let offset = *self.loc_offsets.last().unwrap();
+        let offset = self.frames.last().unwrap().1;
         self.push(self.stack[offset + index].clone());
     }
 
     fn st_loc(&mut self) {
         let index = self.read_u8().to_be() as usize;
-        let offset = *self.loc_offsets.last().unwrap();
+        let offset = self.frames.last().unwrap().1;
         self.stack[offset + index] = self.pop();
     }
 

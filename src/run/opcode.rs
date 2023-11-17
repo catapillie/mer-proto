@@ -33,7 +33,12 @@ opcodes! {
     050 jmp, // u32
     051 jmp_if, // u32
 
+    060 ret,
+
     100 dbg,
+
+    200 entry_point, // u32
+    201 marker, // n: u16, [n]u8
 
     255 halt,
 }

@@ -46,14 +46,34 @@ impl Codegen {
     pub fn gen(mut self, ast: &ProgramAst) -> Result<Vec<u8>, io::Error> {
         let locals = Self::count_locals(ast);
 
+        self.code.push(Opcode::entry_point as u8);
+        let cursor_entry_point = self.code.len();
+
+        self.gen_marker("@main");
+
+        let bytes = (4 + self.code.len() as u32).to_be_bytes();
+        self.code.insert(cursor_entry_point, bytes[3]);
+        self.code.insert(cursor_entry_point, bytes[2]);
+        self.code.insert(cursor_entry_point, bytes[1]);
+        self.code.insert(cursor_entry_point, bytes[0]);
+
         self.code.push(Opcode::init_loc as u8);
         self.code.push(locals.count().to_be());
 
         self.gen_stmt_list(ast, &locals, 0, 0)?;
 
-        self.code.push(Opcode::halt as u8);
+        self.code.push(Opcode::ret as u8);
 
         Ok(self.code)
+    }
+
+    fn gen_marker(&mut self, name: &str) {
+        let bytes = name.as_bytes();
+        let len: u16 = bytes.len().try_into().unwrap();
+
+        self.code.push(Opcode::marker as u8);
+        self.code.extend_from_slice(&len.to_be_bytes());
+        self.code.extend_from_slice(bytes);
     }
 
     fn count_locals(stmts: &Vec<StmtAst>) -> LocalsInfo {
