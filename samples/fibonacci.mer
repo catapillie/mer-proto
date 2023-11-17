@@ -1,13 +1,13 @@
-a = 0
-b = 1
+var a = 0
+var b = 1
 
-i = 20
+var i = 20
 
 while i > 0 do
 {
     a
 
-    c = a + b
+    var c = a + b
     a = b
     b = c
 

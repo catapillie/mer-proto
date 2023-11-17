@@ -70,6 +70,8 @@ gen_tokens! {
         self => ("'whild' keyword"),
     DoKw "'do' keyword"
         self => ("'do' keyword"),
+    VarKw "'var' keyword"
+        self => ("'var' keyword"),
     FuncKw "'func' keyword"
         self => ("'func' keyword"),
     ReturnKw "'return' keyword"

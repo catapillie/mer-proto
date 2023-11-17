@@ -71,15 +71,10 @@ impl Codegen {
     // must issue recursive calls for statements that contain nested statements
     fn count_locals_in_stmt(locals: &mut LocalsInfo, stmt: &StmtAst, depth: u8) {
         match stmt {
-            StmtAst::Expr(ExprAst::BinaryOp(BinaryOperator::Equal, assignee, _)) => {
-                let ExprAst::Identifier(ref id) = **assignee else {
+            StmtAst::VarDef(id, _) => {
+                let Some(id) = id else {
                     return;
                 };
-
-                // local was already declared
-                if locals.get_local_index(id, depth).is_some() {
-                    return;
-                }
 
                 let n = locals.indices.len() as u8;
                 locals.indices.entry((id.clone(), depth)).or_insert(n);
@@ -91,7 +86,7 @@ impl Codegen {
             StmtAst::IfThenElse(_, stmt_if, stmt_else) => {
                 Self::count_locals_in_stmt(locals, stmt_if, depth);
                 Self::count_locals_in_stmt(locals, stmt_else, depth);
-            },
+            }
             StmtAst::WhileDo(_, stmt) => Self::count_locals_in_stmt(locals, stmt, depth),
             StmtAst::DoWhile(stmt, _) => Self::count_locals_in_stmt(locals, stmt, depth),
             _ => {}
@@ -120,6 +115,15 @@ impl Codegen {
     ) -> Result<(), io::Error> {
         match stmt {
             StmtAst::Empty => Ok(()),
+
+            StmtAst::VarDef(Some(id), expr) => {
+                self.gen_expr(expr, locals, depth)?;
+                let loc = locals.get_local_index(id, depth).unwrap();
+                self.code.push(Opcode::st_loc as u8);
+                self.code.push(loc);
+                Ok(())
+            }
+
             StmtAst::Expr(expr) => {
                 let is_assignemt = self.gen_expr(expr, locals, depth)?;
                 if !is_assignemt {
@@ -211,8 +215,10 @@ impl Codegen {
                 self.code.extend_from_slice(&bytes);
 
                 Ok(())
-            },
-            
+            }
+
+            StmtAst::VarDef(None, _) => unreachable!(),
+
             StmtAst::Return => todo!(),
             StmtAst::ReturnWith(_) => todo!(),
 
@@ -232,13 +238,12 @@ impl Codegen {
         self.gen_stmt_list(stmts, locals, depth + 1, cursor_offset)
     }
 
-    // Ok(true) -> assignment was codegen'd
     fn gen_expr(
         &mut self,
         expr: &ExprAst,
         locals: &LocalsInfo,
         depth: u8,
-    ) -> Result<bool, io::Error> {
+    ) -> Result<(bool), io::Error> {
         match expr {
             ExprAst::Number(num) => {
                 self.code.push(Opcode::ld_num_const as u8);

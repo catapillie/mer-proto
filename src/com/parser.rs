@@ -73,6 +73,13 @@ impl<'src> Parser<'src> {
     pub fn parse_statement(&mut self) -> Option<StmtAst> {
         self.skip_newlines();
 
+        if self.try_match_token::<VarKw>().is_some() {
+            let id = self.match_token::<Identifier>().map(|tok| tok.0);
+            self.match_token::<Equal>();
+            let expr = self.expect_expression();
+            return Some(StmtAst::VarDef(id, expr));
+        }
+
         if let Some(expr) = self.parse_expression() {
             return Some(StmtAst::Expr(expr));
         }
@@ -563,6 +570,7 @@ impl<'src> Parser<'src> {
                     "else" => ElseKw.wrap(span),
                     "while" => WhileKw.wrap(span),
                     "do" => DoKw.wrap(span),
+                    "var" => VarKw.wrap(span),
                     "func" => FuncKw.wrap(span),
                     "return" => ReturnKw.wrap(span),
                     "true" => TrueKw.wrap(span),

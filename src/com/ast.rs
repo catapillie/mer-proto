@@ -3,6 +3,7 @@ pub type ProgramAst = Vec<StmtAst>;
 #[derive(Debug)]
 pub enum StmtAst {
     Empty,
+    VarDef(Option<String>, ExprAst),
     Expr(ExprAst),
     Block(Vec<StmtAst>),
     IfThen(ExprAst, Box<StmtAst>),
