@@ -76,6 +76,11 @@ impl Codegen {
                     return;
                 };
 
+                // local was already declared
+                if locals.get_local_index(id, depth).is_some() {
+                    return;
+                }
+
                 let n = locals.indices.len() as u8;
                 locals.indices.entry((id.clone(), depth)).or_insert(n);
             }
