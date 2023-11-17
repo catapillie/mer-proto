@@ -162,8 +162,6 @@ impl VM {
     }
 
     fn init_loc(&mut self) {
-        let stack_len = self.stack.len();
-        self.frames.last_mut().unwrap().1 = stack_len;
         let count = self.read_u8().to_be();
         for _ in 0..count {
             self.push(Value::Uninitialized);
