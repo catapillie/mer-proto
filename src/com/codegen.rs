@@ -46,17 +46,10 @@ impl Codegen {
     pub fn gen(mut self, ast: &ProgramAst) -> Result<Vec<u8>, io::Error> {
         let locals = Self::count_locals(ast);
 
-        // entry-point ...
         let cursor_entry_point = self.gen_entry_point_placeholder();
-        self.gen_marker("@main");
-
         self.replace_u32(cursor_entry_point, self.code.len() as u32);
-
-        self.code.push(Opcode::init_loc as u8);
-        self.code.push(locals.count().to_be());
-
+        self.gen_function_header("@main", 0, locals.count());
         self.gen_stmt_list(ast, &locals, 0);
-
         self.code.push(Opcode::ret as u8);
 
         Ok(self.code)
@@ -99,21 +92,28 @@ impl Codegen {
         }
     }
 
-    fn gen_marker(&mut self, name: &str) {
-        let bytes = name.as_bytes();
-        let len: u16 = bytes.len().try_into().unwrap();
-
-        self.code.push(Opcode::marker as u8);
-        self.code.extend_from_slice(&len.to_be_bytes());
-        self.code.extend_from_slice(bytes);
-    }
-
     fn gen_entry_point_placeholder(&mut self) -> usize {
         let cursor = self.code.len() + 1;
         let code = [Opcode::entry_point as u8, 0, 0, 0, 0];
         self.code.extend_from_slice(&code);
         cursor
     }
+
+    fn gen_function_header(&mut self, name: &str, param_count: u8, local_count: u8) {
+        let bytes = name.as_bytes();
+        let len: u16 = bytes.len().try_into().unwrap();
+
+        self.code.push(Opcode::function as u8);
+        self.code.extend_from_slice(&len.to_be_bytes());
+        self.code.extend_from_slice(bytes);
+        self.code.push(param_count.to_be());
+        self.code.push(local_count.to_be());
+    }
+
+    // fn gen_call(&mut self, fp: u32) {
+    //     self.code.push(Opcode::call as u8);
+    //     self.push_u32(fp);
+    // }
 
     fn gen_jmp_placeholder(&mut self) -> usize {
         let cursor = self.code.len() + 1;

@@ -10,7 +10,6 @@ use super::opcode::Opcode;
 #[derive(Debug, Clone)]
 pub enum Value {
     Uninitialized,
-    Unit,
     Num(f64),
     Bool(bool),
 }
@@ -19,7 +18,6 @@ impl Value {
     fn type_name(&self) -> &str {
         match self {
             Value::Uninitialized => "uninitialized",
-            Value::Unit => "unit",
             Value::Num(_) => "number",
             Value::Bool(_) => "boolean",
         }
@@ -29,19 +27,24 @@ impl Value {
 impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Value::Uninitialized => write!(f, "??"),
-            Value::Unit => write!(f, "()"),
+            Value::Uninitialized => unreachable!(),
             Value::Num(num) => write!(f, "{num}"),
             Value::Bool(b) => write!(f, "{b}"),
         }
     }
 }
 
+struct Frame {
+    back: Option<usize>,
+    local_count: u8,
+    local_offset: usize,
+}
+
 pub struct VM {
     program: Vec<u8>,
     ip: usize,
     stack: Vec<Value>,
-    frames: Vec<(Option<usize>, usize)>,
+    frames: Vec<Frame>,
     done: bool,
 }
 
@@ -60,17 +63,22 @@ impl VM {
         self.ip >= self.program.len()
     }
 
-    fn create_frame(&mut self, back: Option<usize>, local_count: usize) {
-        self.frames.push((back, local_count));
+    fn create_frame(&mut self, back: Option<usize>, param_count: u8, local_count: u8) {
+        let local_offset = self.stack.len() - param_count as usize;
+        self.frames.push(Frame {
+            back,
+            local_count,
+            local_offset,
+        });
     }
 
     fn destroy_frame(&mut self) {
-        let (back, offset) = self.frames.pop().unwrap();
-        while self.stack.len() > offset {
+        let frame = self.frames.pop().unwrap();
+        for _ in 0..frame.local_count {
             self.pop();
         }
 
-        let Some(ip) = back else {
+        let Some(ip) = frame.back else {
             self.halt();
             return;
         };
@@ -80,15 +88,14 @@ impl VM {
 
     pub fn run(&mut self) {
         let first = self.next_opcode();
-        let entry_point = self.read_u32();
+        let entry_point = self.read_u32() as usize;
 
         if !matches!(first, Opcode::entry_point) {
             msg::error("no entry point defined");
             process::exit(1);
         }
 
-        self.ip = entry_point as usize;
-        self.create_frame(None, 0);
+        self.call_fn(entry_point, None);
 
         while !self.done && !self.has_reached_end() {
             let opcode = self.next_opcode();
@@ -114,7 +121,6 @@ impl VM {
                 Opcode::op_plus => self.op_plus(),
                 Opcode::op_minus => self.op_minus(),
                 Opcode::op_not => self.op_not(),
-                Opcode::init_loc => self.init_loc(),
                 Opcode::ld_loc => self.ld_loc(),
                 Opcode::st_loc => self.st_loc(),
 
@@ -129,19 +135,55 @@ impl VM {
                     println!("{}", self.pop());
                 }
 
-                Opcode::entry_point => unreachable!(),
-                Opcode::marker => unreachable!(),
+                Opcode::call => {
+                    let fp = self.read_u32() as usize;
+                    let back = self.ip;
+                    self.call_fn(fp, Some(back));
+                }
 
+                Opcode::function => unreachable!(),
+                Opcode::entry_point => unreachable!(),
                 Opcode::halt => unreachable!(),
             }
         }
     }
 
     fn halt(&mut self) {
+        while !self.stack.is_empty() {
+            self.destroy_frame();
+        }
         if !self.stack.is_empty() {
             msg::warn("stack remained non-empty after halt opcode");
         }
         self.done = true;
+    }
+
+    fn call_fn(&mut self, fp: usize, back: Option<usize>) {
+        self.ip = fp;
+        let (param_count, local_count) = self.read_function();
+        self.create_frame(back, param_count, local_count);
+
+        // push non-parameter locals
+        for _ in 0..(local_count - param_count) {
+            self.push(Value::Uninitialized);
+        }
+    }
+
+    fn read_function(&mut self) -> (u8, u8) {
+        if !matches!(self.next_opcode(), Opcode::function) {
+            msg::error("jumped to invalid function");
+            process::exit(1);
+        }
+
+        let n = self.read_u16() as usize;
+        let bytes = &self.program[self.ip..self.ip + n];
+        self.ip += n;
+
+        let _name = String::from_utf8(bytes.to_vec()).unwrap();
+        let param_count = self.read_u8();
+        let local_count = self.read_u8();
+
+        (param_count, local_count)
     }
 
     fn jmp(&mut self) {
@@ -161,22 +203,15 @@ impl VM {
         }
     }
 
-    fn init_loc(&mut self) {
-        let count = self.read_u8().to_be();
-        for _ in 0..count {
-            self.push(Value::Uninitialized);
-        }
-    }
-
     fn ld_loc(&mut self) {
         let index = self.read_u8().to_be() as usize;
-        let offset = self.frames.last().unwrap().1;
+        let offset = self.frames.last().unwrap().local_offset;
         self.push(self.stack[offset + index].clone());
     }
 
     fn st_loc(&mut self) {
         let index = self.read_u8().to_be() as usize;
-        let offset = self.frames.last().unwrap().1;
+        let offset = self.frames.last().unwrap().local_offset;
         self.stack[offset + index] = self.pop();
     }
 
@@ -478,6 +513,10 @@ impl VM {
         let byte = self.program[self.ip];
         self.ip += 1;
         byte
+    }
+
+    fn read_u16(&mut self) -> u16 {
+        u16::from_be_bytes([self.read_u8(), self.read_u8()])
     }
 
     fn read_u32(&mut self) -> u32 {

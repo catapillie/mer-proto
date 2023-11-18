@@ -39,7 +39,7 @@ pub fn disassemble(program: Vec<u8>) {
                     width = 8
                 );
             }
-            Opcode::init_loc | Opcode::ld_loc | Opcode::st_loc => {
+            Opcode::ld_loc | Opcode::st_loc => {
                 let count = u8::from_be(program[ip]);
                 ip += 1;
                 println!(
@@ -57,27 +57,34 @@ pub fn disassemble(program: Vec<u8>) {
                     width = 8
                 );
             }
-            Opcode::marker => {
-                let n = u16::from_be_bytes(program[ip..ip + 2].try_into().unwrap()) as usize;
-                ip += 2;
-
-                let bytes = &program[ip..ip + n];
-                ip += n;
-
-                let name = String::from_utf8(bytes.to_vec()).unwrap();
-
-                println!(
-                    "{offset:0width$} | :: {:<16}",
-                    name.bold(),
-                    width = 8
-                );
-            }
             Opcode::entry_point => {
                 let to = u32::from_be_bytes(program[ip..ip + 4].try_into().unwrap());
                 ip += 4;
                 println!(
                     "{offset:0width$} | !! {} -> {to:0width$}",
                     "entry-point".bold(),
+                    width = 8
+                 );
+             }
+            Opcode::function => {
+                let n = u16::from_be_bytes(program[ip..ip + 2].try_into().unwrap()) as usize;
+                ip += 2;
+
+                let bytes = &program[ip..ip + n];
+                let name = String::from_utf8(bytes.to_vec()).unwrap();
+                ip += n;
+
+                let param_count = program[ip];
+                ip += 1;
+
+                let local_count = program[ip];
+                ip += 1;
+
+                println!(
+                    "{offset:0width$} | :: {} ({} params, {} locals)",
+                    name.bold(),
+                    param_count.to_string().bold(),
+                    local_count.to_string().bold(),
                     width = 8
                 );
             }

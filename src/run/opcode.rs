@@ -24,7 +24,6 @@ opcodes! {
     019 op_minus,
     020 op_not,
 
-    021 init_loc, // u8
     022 ld_loc, // u8
     023 st_loc, // u8
 
@@ -37,8 +36,10 @@ opcodes! {
 
     100 dbg,
 
-    200 entry_point, // u32
-    201 marker, // n: u16, [n]u8
+    200 function, // n: u16, name: [n]u8, param_count: u8, local_count: u8
+    201 call, // fp: u32
+
+    210 entry_point, // ip: u32
 
     255 halt,
 }
