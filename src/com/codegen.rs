@@ -50,7 +50,6 @@ impl Codegen {
         let entry = self.code.len() as u32;
         self.replace_u32(cursor_entry_point, entry);
         self.gen_function_header("@main", 0, locals.count());
-        self.gen_call(entry);
         self.gen_stmt_list(ast, &locals, 0);
         self.code.push(Opcode::ret as u8);
 
