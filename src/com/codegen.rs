@@ -104,10 +104,10 @@ impl Codegen {
         let len: u16 = bytes.len().try_into().unwrap();
 
         self.code.push(Opcode::function as u8);
-        self.code.extend_from_slice(&len.to_be_bytes());
+        self.code.extend_from_slice(&len.to_le_bytes());
         self.code.extend_from_slice(bytes);
-        self.code.push(param_count.to_be());
-        self.code.push(local_count.to_be());
+        self.code.push(param_count);
+        self.code.push(local_count);
     }
 
     // fn gen_call(&mut self, fp: u32) {
@@ -131,7 +131,7 @@ impl Codegen {
 
     #[allow(clippy::identity_op)]
     fn replace_u32(&mut self, cursor: usize, val: u32) {
-        let bytes = val.to_be_bytes();
+        let bytes = val.to_le_bytes();
         self.code[cursor + 0] = bytes[0];
         self.code[cursor + 1] = bytes[1];
         self.code[cursor + 2] = bytes[2];
@@ -139,7 +139,7 @@ impl Codegen {
     }
 
     fn push_u32(&mut self, val: u32) {
-        self.code.extend_from_slice(&val.to_be_bytes());
+        self.code.extend_from_slice(&val.to_le_bytes());
     }
 
     fn gen_stmt_list(&mut self, stmts: &Vec<StmtAst>, locals: &LocalsInfo, depth: u8) {
@@ -255,7 +255,7 @@ impl Codegen {
         match expr {
             ExprAst::Number(num) => {
                 self.code.push(Opcode::ld_num_const as u8);
-                self.code.extend_from_slice(&num.to_be_bytes());
+                self.code.extend_from_slice(&num.to_le_bytes());
                 false
             }
             ExprAst::Identifier(id) => {

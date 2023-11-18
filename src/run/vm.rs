@@ -204,13 +204,13 @@ impl VM {
     }
 
     fn ld_loc(&mut self) {
-        let index = self.read_u8().to_be() as usize;
+        let index = self.read_u8() as usize;
         let offset = self.frames.last().unwrap().local_offset;
         self.push(self.stack[offset + index].clone());
     }
 
     fn st_loc(&mut self) {
-        let index = self.read_u8().to_be() as usize;
+        let index = self.read_u8() as usize;
         let offset = self.frames.last().unwrap().local_offset;
         self.stack[offset + index] = self.pop();
     }
@@ -516,11 +516,11 @@ impl VM {
     }
 
     fn read_u16(&mut self) -> u16 {
-        u16::from_be_bytes([self.read_u8(), self.read_u8()])
+        u16::from_le_bytes([self.read_u8(), self.read_u8()])
     }
 
     fn read_u32(&mut self) -> u32 {
-        u32::from_be_bytes([
+        u32::from_le_bytes([
             self.read_u8(),
             self.read_u8(),
             self.read_u8(),
@@ -529,7 +529,7 @@ impl VM {
     }
 
     fn read_f64(&mut self) -> f64 {
-        f64::from_be_bytes([
+        f64::from_le_bytes([
             self.read_u8(),
             self.read_u8(),
             self.read_u8(),

@@ -29,7 +29,7 @@ pub fn disassemble(program: Vec<u8>) {
         match opcode {
             Opcode::ld_num_const => {
                 let bytes: [u8; 8] = program[ip..ip + 8].try_into().unwrap();
-                let value = f64::from_be_bytes(bytes);
+                let value = f64::from_le_bytes(bytes);
                 ip += 8;
                 println!(
                     "{offset:0width$} | {byte:02x} {:>16} {value:+.10e} ({:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x})",
@@ -40,7 +40,7 @@ pub fn disassemble(program: Vec<u8>) {
                 );
             }
             Opcode::ld_loc | Opcode::st_loc => {
-                let count = u8::from_be(program[ip]);
+                let count = program[ip];
                 ip += 1;
                 println!(
                     "{offset:0width$} | {byte:02x} {:>16} {count}",
@@ -49,7 +49,7 @@ pub fn disassemble(program: Vec<u8>) {
                 );
             }
             Opcode::jmp | Opcode::jmp_if => {
-                let to = u32::from_be_bytes(program[ip..ip + 4].try_into().unwrap());
+                let to = u32::from_le_bytes(program[ip..ip + 4].try_into().unwrap());
                 ip += 4;
                 println!(
                     "{offset:0width$} | {byte:02x} {:>16} -> {to:0width$}",
@@ -58,7 +58,7 @@ pub fn disassemble(program: Vec<u8>) {
                 );
             }
             Opcode::entry_point => {
-                let to = u32::from_be_bytes(program[ip..ip + 4].try_into().unwrap());
+                let to = u32::from_le_bytes(program[ip..ip + 4].try_into().unwrap());
                 ip += 4;
                 println!(
                     "{offset:0width$} | !! {} -> {to:0width$}",
@@ -67,7 +67,7 @@ pub fn disassemble(program: Vec<u8>) {
                  );
              }
             Opcode::function => {
-                let n = u16::from_be_bytes(program[ip..ip + 2].try_into().unwrap()) as usize;
+                let n = u16::from_le_bytes(program[ip..ip + 2].try_into().unwrap()) as usize;
                 ip += 2;
 
                 let bytes = &program[ip..ip + n];
