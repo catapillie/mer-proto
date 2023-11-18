@@ -46,9 +46,11 @@ impl Codegen {
     pub fn gen(mut self, ast: &ProgramAst) -> Result<Vec<u8>, io::Error> {
         let locals = Self::count_locals(ast);
 
-        let cursor_entry_point = self.gen_entry_point_placeholder();
-        self.replace_u32(cursor_entry_point, self.code.len() as u32);
+        let cursor_entry_point: usize = self.gen_entry_point_placeholder();
+        let entry = self.code.len() as u32;
+        self.replace_u32(cursor_entry_point, entry);
         self.gen_function_header("@main", 0, locals.count());
+        self.gen_call(entry);
         self.gen_stmt_list(ast, &locals, 0);
         self.code.push(Opcode::ret as u8);
 
@@ -110,10 +112,10 @@ impl Codegen {
         self.code.push(local_count);
     }
 
-    // fn gen_call(&mut self, fp: u32) {
-    //     self.code.push(Opcode::call as u8);
-    //     self.push_u32(fp);
-    // }
+    fn gen_call(&mut self, fp: u32) {
+        self.code.push(Opcode::call as u8);
+        self.push_u32(fp);
+    }
 
     fn gen_jmp_placeholder(&mut self) -> usize {
         let cursor = self.code.len() + 1;

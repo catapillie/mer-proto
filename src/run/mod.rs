@@ -87,6 +87,23 @@ pub fn disassemble(program: Vec<u8>) {
                     local_count.to_string().bold(),
                     width = 8
                 );
+            },
+            Opcode::call => {
+                let fp = u32::from_le_bytes(program[ip..ip + 4].try_into().unwrap());
+
+                let mut ip_alt = 1 + fp as usize;
+                let n = u16::from_le_bytes(program[ip_alt..ip_alt + 2].try_into().unwrap()) as usize;
+                ip_alt += 2;
+
+                let bytes = &program[ip_alt..ip_alt + n];
+                let name = String::from_utf8(bytes.to_vec()).unwrap();
+
+                println!(
+                    "{offset:0width$} | {byte:02x} {:>16} -> {} ({fp:0width$})",
+                    format!("{opcode:?}").bold(),
+                    name.bold(),
+                    width = 8
+                );
             }
             _ => {
                 println!(
