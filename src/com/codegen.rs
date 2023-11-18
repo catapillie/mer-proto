@@ -60,20 +60,11 @@ impl Codegen {
         self.code.push(Opcode::init_loc as u8);
         self.code.push(locals.count().to_be());
 
-        self.gen_stmt_list(ast, &locals, 0, 0)?;
+        self.gen_stmt_list(ast, &locals, 0);
 
         self.code.push(Opcode::ret as u8);
 
         Ok(self.code)
-    }
-
-    fn gen_marker(&mut self, name: &str) {
-        let bytes = name.as_bytes();
-        let len: u16 = bytes.len().try_into().unwrap();
-
-        self.code.push(Opcode::marker as u8);
-        self.code.extend_from_slice(&len.to_be_bytes());
-        self.code.extend_from_slice(bytes);
     }
 
     fn count_locals(stmts: &Vec<StmtAst>) -> LocalsInfo {
@@ -113,128 +104,134 @@ impl Codegen {
         }
     }
 
-    fn gen_stmt_list(
-        &mut self,
-        stmts: &Vec<StmtAst>,
-        locals: &LocalsInfo,
-        depth: u8,
-        cursor_offset: u32,
-    ) -> Result<(), io::Error> {
-        for stmt in stmts {
-            self.gen_stmt(stmt, locals, depth, cursor_offset)?;
-        }
-        Ok(())
+    fn gen_marker(&mut self, name: &str) {
+        let bytes = name.as_bytes();
+        let len: u16 = bytes.len().try_into().unwrap();
+
+        self.code.push(Opcode::marker as u8);
+        self.code.extend_from_slice(&len.to_be_bytes());
+        self.code.extend_from_slice(bytes);
     }
 
-    fn gen_stmt(
-        &mut self,
-        stmt: &StmtAst,
-        locals: &LocalsInfo,
-        depth: u8,
-        cursor_offset: u32,
-    ) -> Result<(), io::Error> {
+    fn gen_jmp_placeholder(&mut self) -> usize {
+        let cursor = self.code.len() + 1;
+        let code = [Opcode::jmp as u8, 0, 0, 0, 0];
+        self.code.extend_from_slice(&code);
+        cursor
+    }
+
+    fn gen_jmp_if_placeholder(&mut self) -> usize {
+        let cursor = self.code.len() + 1;
+        let code = [Opcode::jmp_if as u8, 0, 0, 0, 0];
+        self.code.extend_from_slice(&code);
+        cursor
+    }
+
+    #[allow(clippy::identity_op)]
+    fn replace_u32(&mut self, cursor: usize, val: u32) {
+        let bytes = val.to_be_bytes();
+        self.code[cursor + 0] = bytes[0];
+        self.code[cursor + 1] = bytes[1];
+        self.code[cursor + 2] = bytes[2];
+        self.code[cursor + 3] = bytes[3];
+    }
+
+    fn push_u32(&mut self, val: u32) {
+        self.code.extend_from_slice(&val.to_be_bytes());
+    }
+
+    fn gen_stmt_list(&mut self, stmts: &Vec<StmtAst>, locals: &LocalsInfo, depth: u8) {
+        for stmt in stmts {
+            self.gen_stmt(stmt, locals, depth);
+        }
+    }
+
+    fn gen_st_loc(&mut self, loc: u8) {
+        self.code.extend_from_slice(&[Opcode::st_loc as u8, loc]);
+    }
+
+    fn gen_ld_loc(&mut self, loc: u8) {
+        self.code.extend_from_slice(&[Opcode::ld_loc as u8, loc]);
+    }
+
+    fn gen_stmt(&mut self, stmt: &StmtAst, locals: &LocalsInfo, depth: u8) {
         match stmt {
-            StmtAst::Empty => Ok(()),
+            StmtAst::Empty => {}
 
             StmtAst::VarDef(Some(id), expr) => {
-                self.gen_expr(expr, locals, depth)?;
-                let loc = locals.get_local_index(id, depth).unwrap();
-                self.code.push(Opcode::st_loc as u8);
-                self.code.push(loc);
-                Ok(())
+                self.gen_expr(expr, locals, depth);
+                self.gen_st_loc(locals.get_local_index(id, depth).unwrap());
             }
 
             StmtAst::Expr(expr) => {
-                let is_assignemt = self.gen_expr(expr, locals, depth)?;
+                let is_assignemt = self.gen_expr(expr, locals, depth);
                 if !is_assignemt {
                     self.code.push(Opcode::dbg as u8);
                 }
-                Ok(())
             }
-            StmtAst::Block(stmts) => self.gen_block(stmts, locals, depth, cursor_offset),
+
+            StmtAst::Block(stmts) => self.gen_block(stmts, locals, depth),
 
             StmtAst::IfThen(guard, body) => {
-                self.gen_expr(guard, locals, depth)?;
+                // if ...
+                self.gen_expr(guard, locals, depth);
                 self.code.push(Opcode::op_not as u8);
-                self.code.push(Opcode::jmp_if as u8);
-                let cursor_from = self.code.len();
-                self.gen_stmt(body.as_ref(), locals, depth, cursor_offset + 4)?;
-                let cursor_to = cursor_offset + 4 + self.code.len() as u32;
-                let bytes = cursor_to.to_be_bytes();
-                self.code.insert(cursor_from, bytes[3]);
-                self.code.insert(cursor_from, bytes[2]);
-                self.code.insert(cursor_from, bytes[1]);
-                self.code.insert(cursor_from, bytes[0]);
-                Ok(())
+                let cursor_from = self.gen_jmp_if_placeholder();
+
+                // then ...
+                self.gen_stmt(body.as_ref(), locals, depth);
+
+                // write saved jump address
+                let cursor_to = self.code.len() as u32;
+                self.replace_u32(cursor_from, cursor_to);
             }
+            
             StmtAst::IfThenElse(guard, body_if, body_else) => {
-                self.gen_expr(guard, locals, depth)?;
+                // if ... then
+                self.gen_expr(guard, locals, depth);
                 self.code.push(Opcode::op_not as u8);
+                let cursor_guard_end = self.gen_jmp_if_placeholder();
 
-                self.code.push(Opcode::jmp_if as u8);
-                let cursor_guard_end = self.code.len();
+                // then ... 
+                self.gen_stmt(body_if, locals, depth);
+                let cursor_body_if_end = self.gen_jmp_placeholder();
 
-                self.gen_stmt(body_if, locals, depth, cursor_offset + 8)?;
-
-                self.code.push(Opcode::jmp as u8);
-                let cursor_body_if_end = self.code.len();
-
-                self.gen_stmt(body_else, locals, depth, cursor_offset + 8)?;
-
+                // else ...
+                let cursor_body_else_start = self.code.len();
+                self.gen_stmt(body_else, locals, depth);
                 let cursor_body_else_end = self.code.len();
 
-                let bytes = (cursor_offset + 8 + cursor_body_else_end as u32).to_be_bytes();
-                self.code.insert(cursor_body_if_end, bytes[3]);
-                self.code.insert(cursor_body_if_end, bytes[2]);
-                self.code.insert(cursor_body_if_end, bytes[1]);
-                self.code.insert(cursor_body_if_end, bytes[0]);
-
-                let bytes = (cursor_offset + 8 + cursor_body_if_end as u32).to_be_bytes();
-                self.code.insert(cursor_guard_end, bytes[3]);
-                self.code.insert(cursor_guard_end, bytes[2]);
-                self.code.insert(cursor_guard_end, bytes[1]);
-                self.code.insert(cursor_guard_end, bytes[0]);
-
-                Ok(())
+                // write saved jump adresses
+                self.replace_u32(cursor_body_if_end, cursor_body_else_end as u32);
+                self.replace_u32(cursor_guard_end, cursor_body_else_start as u32);
             }
 
             StmtAst::WhileDo(guard, stmt) => {
+                // while ...
                 let cursor_guard_start = self.code.len();
-                self.gen_expr(guard, locals, depth)?;
+                self.gen_expr(guard, locals, depth);
                 self.code.push(Opcode::op_not as u8);
-                self.code.push(Opcode::jmp_if as u8);
-                let cursor_guard_end = self.code.len();
+                let cursor_guard_end = self.gen_jmp_if_placeholder();
 
-                self.gen_stmt(stmt, locals, depth, cursor_offset + 4)?;
+                // do ...
+                self.gen_stmt(stmt, locals, depth);
                 self.code.push(Opcode::jmp as u8);
-                let bytes = (cursor_offset + cursor_guard_start as u32).to_be_bytes();
-                self.code.push(bytes[0]);
-                self.code.push(bytes[1]);
-                self.code.push(bytes[2]);
-                self.code.push(bytes[3]);
+                self.push_u32(cursor_guard_start as u32);
 
+                // write saved jump address
                 let cursor_body_end = self.code.len();
-
-                let bytes = (cursor_offset + 4 + cursor_body_end as u32).to_be_bytes();
-                self.code.insert(cursor_guard_end, bytes[3]);
-                self.code.insert(cursor_guard_end, bytes[2]);
-                self.code.insert(cursor_guard_end, bytes[1]);
-                self.code.insert(cursor_guard_end, bytes[0]);
-
-                Ok(())
+                self.replace_u32(cursor_guard_end, cursor_body_end as u32);
             }
 
             StmtAst::DoWhile(stmt, guard) => {
+                // do ...
                 let cursor_stmt_start = self.code.len();
-                self.gen_stmt(stmt, locals, depth, cursor_offset)?;
+                self.gen_stmt(stmt, locals, depth);
 
-                self.gen_expr(guard, locals, depth)?;
+                // while ...
+                self.gen_expr(guard, locals, depth);
                 self.code.push(Opcode::jmp_if as u8);
-
-                let bytes = (cursor_offset + cursor_stmt_start as u32).to_be_bytes();
-                self.code.extend_from_slice(&bytes);
-
-                Ok(())
+                self.push_u32(cursor_stmt_start as u32);
             }
 
             StmtAst::VarDef(None, _) => unreachable!(),
@@ -248,57 +245,43 @@ impl Codegen {
         }
     }
 
-    fn gen_block(
-        &mut self,
-        stmts: &Vec<StmtAst>,
-        locals: &LocalsInfo,
-        depth: u8,
-        cursor_offset: u32,
-    ) -> Result<(), io::Error> {
-        self.gen_stmt_list(stmts, locals, depth + 1, cursor_offset)
+    fn gen_block(&mut self, stmts: &Vec<StmtAst>, locals: &LocalsInfo, depth: u8) {
+        self.gen_stmt_list(stmts, locals, depth + 1)
     }
 
-    fn gen_expr(
-        &mut self,
-        expr: &ExprAst,
-        locals: &LocalsInfo,
-        depth: u8,
-    ) -> Result<bool, io::Error> {
+    fn gen_expr(&mut self, expr: &ExprAst, locals: &LocalsInfo, depth: u8) -> bool {
         match expr {
             ExprAst::Number(num) => {
                 self.code.push(Opcode::ld_num_const as u8);
                 self.code.extend_from_slice(&num.to_be_bytes());
-                Ok(false)
+                false
             }
             ExprAst::Identifier(id) => {
-                let loc = locals.get_local_index(id, depth).expect("unknown variable");
-                self.code.push(Opcode::ld_loc as u8);
-                self.code.push(loc);
-                Ok(false)
+                self.gen_ld_loc(locals.get_local_index(id, depth).expect("unknown variable"));
+                false
             }
-            ExprAst::Boolean(b) => {
-                let op = if *b {
+            ExprAst::Boolean(value) => {
+                self.code.push(if *value {
                     Opcode::ld_true_const
                 } else {
                     Opcode::ld_false_const
-                } as u8;
-                self.code.push(op);
-                Ok(false)
+                } as u8);
+                false
             }
             ExprAst::BinaryOp(BinaryOperator::Equal, assignee, value) => {
                 let ExprAst::Identifier(ref id) = **assignee else {
-                    panic!();
+                    panic!("assignee must be identifier");
                 };
-                self.gen_expr(value, locals, depth)?;
-                let loc = locals.get_local_index(id, depth).unwrap();
-                self.code.push(Opcode::st_loc as u8);
-                self.code.push(loc);
-                Ok(true) // assignment
+
+                self.gen_expr(value, locals, depth);
+                self.gen_st_loc(locals.get_local_index(id, depth).unwrap());
+                true // signal an assignment
             }
             ExprAst::BinaryOp(op, left, right) => {
-                self.gen_expr(left, locals, depth)?;
-                self.gen_expr(right, locals, depth)?;
-                self.code.push(match op {
+                self.gen_expr(left, locals, depth);
+                self.gen_expr(right, locals, depth);
+
+                let opcode = match op {
                     BinaryOperator::Plus => Opcode::op_add,
                     BinaryOperator::Minus => Opcode::op_sub,
                     BinaryOperator::Star => Opcode::op_mul,
@@ -316,18 +299,25 @@ impl Codegen {
                     BinaryOperator::And => todo!(),
                     BinaryOperator::Or => todo!(),
                     BinaryOperator::Equal => unreachable!(),
-                } as u8);
-                Ok(false)
+                } as u8;
+                self.code.push(opcode);
+
+                false
             }
+            
             ExprAst::UnaryOp(op, expr) => {
-                self.gen_expr(expr, locals, depth)?;
-                self.code.push(match op {
+                self.gen_expr(expr, locals, depth);
+
+                let opcode = match op {
                     UnaryOperator::Plus => Opcode::op_plus,
                     UnaryOperator::Minus => Opcode::op_minus,
                     UnaryOperator::Not => Opcode::op_not,
-                } as u8);
-                Ok(false)
+                } as u8;
+                self.code.push(opcode);
+
+                false
             }
+
             ExprAst::Bad => unreachable!(),
         }
     }
