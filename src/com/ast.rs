@@ -31,8 +31,8 @@ pub enum ExprAst {
 
 #[derive(Debug)]
 pub enum UnaryOperator {
-    Plus,
-    Minus,
+    Pos,
+    Neg,
     Not,
 }
 

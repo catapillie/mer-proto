@@ -365,13 +365,12 @@ impl Codegen {
             ExprAst::UnaryOp(op, expr) => {
                 self.gen_expr(expr, locals, functions, depth);
 
-                let opcode = match op {
-                    UnaryOperator::Plus => opcode::op_plus,
-                    UnaryOperator::Minus => opcode::op_minus,
-                    UnaryOperator::Not => opcode::op_not,
-                };
-                self.code.push(opcode);
-
+                match op {
+                    UnaryOperator::Pos => {} // does nothing
+                    UnaryOperator::Neg => self.code.push(opcode::op_neg),
+                    UnaryOperator::Not => self.code.push(opcode::op_not),
+                }
+                
                 false
             }
 

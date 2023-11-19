@@ -274,8 +274,8 @@ impl<'src> Parser<'src> {
 
     fn is_unary_operator(&mut self) -> Option<UnaryOperator> {
         match self.look_ahead {
-            Token::Plus(_, _) => Some(UnaryOperator::Plus),
-            Token::Minus(_, _) => Some(UnaryOperator::Minus),
+            Token::Plus(_, _) => Some(UnaryOperator::Pos),
+            Token::Minus(_, _) => Some(UnaryOperator::Neg),
             Token::NotKw(_, _) => Some(UnaryOperator::Not),
             _ => None,
         }

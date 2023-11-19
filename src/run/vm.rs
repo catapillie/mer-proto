@@ -121,8 +121,7 @@ impl VM {
                 opcode::op_amp => self.op_amp(),
                 opcode::op_bar => self.op_bar(),
                 opcode::op_car => self.op_car(),
-                opcode::op_plus => self.op_plus(),
-                opcode::op_minus => self.op_minus(),
+                opcode::op_neg => self.op_neg(),
                 opcode::op_not => self.op_not(),
                 opcode::ld_loc => self.ld_loc(),
                 opcode::st_loc => self.st_loc(),
@@ -305,7 +304,7 @@ impl VM {
     }
 
     unary_op! {
-        self op_minus "-"
+        self op_neg "-"
         Value::Num(f) => Value::Num(-*f)
     }
 

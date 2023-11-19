@@ -22,8 +22,7 @@ opcodes! {
     016 op_bar,
     017 op_car,
 
-    018 op_plus,
-    019 op_minus,
+    019 op_neg,
     020 op_not,
 
     022 ld_loc, // u8
