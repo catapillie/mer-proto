@@ -299,11 +299,6 @@ impl VM {
     }
 
     unary_op! {
-        self op_plus "+"
-        Value::Num(f) => Value::Num(*f)
-    }
-
-    unary_op! {
         self op_neg "-"
         Value::Num(f) => Value::Num(-*f)
     }
