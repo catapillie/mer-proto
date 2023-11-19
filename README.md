@@ -1,3 +1,3 @@
-# `mer` programming language
+# `mer` programming language (prototype)
 
-...in early development.
+...in early development. i'm just playing around
