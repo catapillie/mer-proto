@@ -90,6 +90,7 @@ pub fn disassemble(program: Vec<u8>) {
             },
             Opcode::call => {
                 let fp = u32::from_le_bytes(program[ip..ip + 4].try_into().unwrap());
+                ip += 4;
 
                 let mut ip_alt = 1 + fp as usize;
                 let n = u16::from_le_bytes(program[ip_alt..ip_alt + 2].try_into().unwrap()) as usize;

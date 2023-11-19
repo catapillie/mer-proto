@@ -156,6 +156,35 @@ impl<'src> Parser<'src> {
             return Some(StmtAst::Do(Box::new(stmt_do)));
         }
 
+        if self.try_match_token::<FuncKw>().is_some() {
+            let name = self.match_token::<Identifier>().map(|id| id.0);
+            let mut params = Vec::new();
+
+            self.match_token::<LeftParen>();
+            loop {
+                let Some(id) = self.try_match_token::<Identifier>() else {
+                    break;
+                };
+
+                params.push(id.0);
+
+                if self.try_match_token::<Comma>().is_none() {
+                    break;
+                }
+            }
+            self.match_token::<RightParen>();
+
+            let stmt = match self.parse_block_statement() {
+                Some(stmt) => StmtAst::Block(stmt),
+                None => {
+                    self.errors.push(ParseError::ExpectedStatement);
+                    StmtAst::Empty
+                }
+            };
+
+            return Some(StmtAst::Func(name, params, Box::new(stmt)));
+        }
+
         if self.try_match_token::<ReturnKw>().is_some() {
             if let Some(expr) = self.parse_expression() {
                 return Some(StmtAst::ReturnWith(expr));
@@ -312,7 +341,25 @@ impl<'src> Parser<'src> {
         }
 
         if let Some(id) = self.try_match_token::<Identifier>() {
-            return Some(ExprAst::Identifier(id.0));
+            if self.try_match_token::<LeftParen>().is_none() {
+                return Some(ExprAst::Identifier(id.0));
+            }
+
+            let mut params = Vec::new();
+            loop {
+                let Some(expr) = self.parse_expression() else {
+                    break;
+                };
+
+                params.push(expr);
+
+                if self.try_match_token::<Comma>().is_none() {
+                    break;
+                }
+            }
+            self.match_token::<RightParen>();
+
+            return Some(ExprAst::Call(id.0, params));
         }
 
         if self.try_match_token::<TrueKw>().is_some() {

@@ -13,6 +13,7 @@ pub enum StmtAst {
     WhileDo(ExprAst, Box<StmtAst>),
     DoWhile(Box<StmtAst>, ExprAst),
     Do(Box<StmtAst>),
+    Func(Option<String>, Vec<String>, Box<StmtAst>),
     Return,
     ReturnWith(ExprAst),
 }
@@ -25,6 +26,7 @@ pub enum ExprAst {
     Boolean(bool),
     BinaryOp(BinaryOperator, Box<ExprAst>, Box<ExprAst>),
     UnaryOp(UnaryOperator, Box<ExprAst>),
+    Call(String, Vec<ExprAst>),
 }
 
 #[derive(Debug)]
