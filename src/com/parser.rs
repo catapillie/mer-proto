@@ -174,6 +174,7 @@ impl<'src> Parser<'src> {
             }
             self.match_token::<RightParen>();
 
+            self.skip_newlines();
             let stmt = match self.parse_block_statement() {
                 Some(stmt) => StmtAst::Block(stmt),
                 None => {
