@@ -276,8 +276,11 @@ impl Codegen {
 
             StmtAst::VarDef(None, _) => unreachable!(),
 
-            StmtAst::Return => todo!(),
-            StmtAst::ReturnWith(_) => todo!(),
+            StmtAst::Return => self.code.push(Opcode::ret as u8),
+            StmtAst::ReturnWith(expr) => {
+                self.gen_expr(expr, locals, functions, depth);
+                self.code.push(Opcode::ret_val as u8);
+            },
 
             StmtAst::Func(_, _, _) => (),
 
@@ -382,7 +385,7 @@ impl Codegen {
                 }
                 self.gen_call(fp);
 
-                true // no return value (yet)
+                false
             }
 
             ExprAst::Bad => unreachable!(),

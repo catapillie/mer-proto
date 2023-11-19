@@ -33,6 +33,7 @@ opcodes! {
     051 jmp_if, // u32
 
     060 ret,
+    061 ret_val,
 
     100 dbg,
 

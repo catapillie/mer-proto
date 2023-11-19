@@ -10,6 +10,7 @@ use super::opcode::Opcode;
 #[derive(Debug, Clone)]
 pub enum Value {
     Uninitialized,
+    Unit,
     Num(f64),
     Bool(bool),
 }
@@ -18,6 +19,7 @@ impl Value {
     fn type_name(&self) -> &str {
         match self {
             Value::Uninitialized => "uninitialized",
+            Value::Unit => "unit",
             Value::Num(_) => "number",
             Value::Bool(_) => "boolean",
         }
@@ -28,6 +30,7 @@ impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Value::Uninitialized => unreachable!(),
+            Value::Unit => write!(f, "()"),
             Value::Num(num) => write!(f, "{num}"),
             Value::Bool(b) => write!(f, "{b}"),
         }
@@ -129,7 +132,15 @@ impl VM {
                 Opcode::jmp => self.jmp(),
                 Opcode::jmp_if => self.jmp_if(),
 
-                Opcode::ret => self.destroy_frame(),
+                Opcode::ret => {
+                    self.destroy_frame();
+                    self.push(Value::Unit);
+                },
+                Opcode::ret_val => {
+                    let val = self.pop();
+                    self.destroy_frame();
+                    self.push(val);
+                },
 
                 Opcode::dbg => {
                     println!("{}", self.pop());
@@ -149,7 +160,7 @@ impl VM {
     }
 
     fn halt(&mut self) {
-        while !self.stack.is_empty() {
+        while !self.frames.is_empty() {
             self.destroy_frame();
         }
         if !self.stack.is_empty() {
