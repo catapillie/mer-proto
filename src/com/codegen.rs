@@ -3,7 +3,7 @@ use std::{
     io::{self},
 };
 
-use crate::run::opcode::Opcode;
+use crate::run::opcode::{self, Opcode};
 
 use super::ast::{BinaryOperator, ExprAst, ProgramAst, StmtAst, UnaryOperator};
 
@@ -35,7 +35,7 @@ impl LocalsInfo {
 }
 
 pub struct Codegen {
-    code: Vec<u8>,
+    code: Vec<Opcode>,
 }
 
 impl Codegen {
@@ -53,7 +53,7 @@ impl Codegen {
         self.replace_u32(cursor_entry_point, self.code.len() as u32);
         self.gen_function_header("@main", 0, locals.count());
         self.gen_stmt_list(ast, &locals, &functions, 0);
-        self.code.push(Opcode::ret as u8);
+        self.code.push(opcode::ret);
 
         Ok(self.code)
     }
@@ -76,7 +76,7 @@ impl Codegen {
 
             self.gen_function_header(name.as_str(), params.len() as u8, locals.count());
             self.gen_stmt(body, &locals, &functions, 0);
-            self.code.push(Opcode::ret as u8);
+            self.code.push(opcode::ret);
         }
         functions
     }
@@ -120,7 +120,7 @@ impl Codegen {
 
     fn gen_entry_point_placeholder(&mut self) -> usize {
         let cursor = self.code.len() + 1;
-        let code = [Opcode::entry_point as u8, 0, 0, 0, 0];
+        let code = [opcode::entry_point, 0, 0, 0, 0];
         self.code.extend_from_slice(&code);
         cursor
     }
@@ -129,7 +129,7 @@ impl Codegen {
         let bytes = name.as_bytes();
         let len: u16 = bytes.len().try_into().unwrap();
 
-        self.code.push(Opcode::function as u8);
+        self.code.push(opcode::function);
         self.code.extend_from_slice(&len.to_le_bytes());
         self.code.extend_from_slice(bytes);
         self.code.push(param_count);
@@ -137,20 +137,20 @@ impl Codegen {
     }
 
     fn gen_call(&mut self, fp: u32) {
-        self.code.push(Opcode::call as u8);
+        self.code.push(opcode::call);
         self.push_u32(fp);
     }
 
     fn gen_jmp_placeholder(&mut self) -> usize {
         let cursor = self.code.len() + 1;
-        let code = [Opcode::jmp as u8, 0, 0, 0, 0];
+        let code = [opcode::jmp, 0, 0, 0, 0];
         self.code.extend_from_slice(&code);
         cursor
     }
 
     fn gen_jmp_if_placeholder(&mut self) -> usize {
         let cursor = self.code.len() + 1;
-        let code = [Opcode::jmp_if as u8, 0, 0, 0, 0];
+        let code = [opcode::jmp_if, 0, 0, 0, 0];
         self.code.extend_from_slice(&code);
         cursor
     }
@@ -181,11 +181,11 @@ impl Codegen {
     }
 
     fn gen_st_loc(&mut self, loc: u8) {
-        self.code.extend_from_slice(&[Opcode::st_loc as u8, loc]);
+        self.code.extend_from_slice(&[opcode::st_loc, loc]);
     }
 
     fn gen_ld_loc(&mut self, loc: u8) {
-        self.code.extend_from_slice(&[Opcode::ld_loc as u8, loc]);
+        self.code.extend_from_slice(&[opcode::ld_loc, loc]);
     }
 
     fn gen_stmt(
@@ -206,7 +206,7 @@ impl Codegen {
             StmtAst::Expr(expr) => {
                 let is_assignemt = self.gen_expr(expr, locals, functions, depth);
                 if !is_assignemt {
-                    self.code.push(Opcode::dbg as u8);
+                    self.code.push(opcode::dbg);
                 }
             }
 
@@ -215,7 +215,7 @@ impl Codegen {
             StmtAst::IfThen(guard, body) => {
                 // if ...
                 self.gen_expr(guard, locals, functions, depth);
-                self.code.push(Opcode::op_not as u8);
+                self.code.push(opcode::op_not);
                 let cursor_from = self.gen_jmp_if_placeholder();
 
                 // then ...
@@ -229,7 +229,7 @@ impl Codegen {
             StmtAst::IfThenElse(guard, body_if, body_else) => {
                 // if ... then
                 self.gen_expr(guard, locals, functions, depth);
-                self.code.push(Opcode::op_not as u8);
+                self.code.push(opcode::op_not);
                 let cursor_guard_end = self.gen_jmp_if_placeholder();
 
                 // then ...
@@ -250,12 +250,12 @@ impl Codegen {
                 // while ...
                 let cursor_guard_start = self.code.len();
                 self.gen_expr(guard, locals, functions, depth);
-                self.code.push(Opcode::op_not as u8);
+                self.code.push(opcode::op_not);
                 let cursor_guard_end = self.gen_jmp_if_placeholder();
 
                 // do ...
                 self.gen_stmt(stmt, locals, functions, depth);
-                self.code.push(Opcode::jmp as u8);
+                self.code.push(opcode::jmp);
                 self.push_u32(cursor_guard_start as u32);
 
                 // write saved jump address
@@ -270,17 +270,17 @@ impl Codegen {
 
                 // while ...
                 self.gen_expr(guard, locals, functions, depth);
-                self.code.push(Opcode::jmp_if as u8);
+                self.code.push(opcode::jmp_if);
                 self.push_u32(cursor_stmt_start as u32);
             }
 
             StmtAst::VarDef(None, _) => unreachable!(),
 
-            StmtAst::Return => self.code.push(Opcode::ret as u8),
+            StmtAst::Return => self.code.push(opcode::ret),
             StmtAst::ReturnWith(expr) => {
                 self.gen_expr(expr, locals, functions, depth);
-                self.code.push(Opcode::ret_val as u8);
-            },
+                self.code.push(opcode::ret_val);
+            }
 
             StmtAst::Func(_, _, _) => (),
 
@@ -309,7 +309,7 @@ impl Codegen {
     ) -> bool {
         match expr {
             ExprAst::Number(num) => {
-                self.code.push(Opcode::ld_num_const as u8);
+                self.code.push(opcode::ld_num_const);
                 self.code.extend_from_slice(&num.to_le_bytes());
                 false
             }
@@ -319,10 +319,10 @@ impl Codegen {
             }
             ExprAst::Boolean(value) => {
                 self.code.push(if *value {
-                    Opcode::ld_true_const
+                    opcode::ld_true_const
                 } else {
-                    Opcode::ld_false_const
-                } as u8);
+                    opcode::ld_false_const
+                });
                 false
             }
             ExprAst::BinaryOp(BinaryOperator::Equal, assignee, value) => {
@@ -339,24 +339,24 @@ impl Codegen {
                 self.gen_expr(right, locals, functions, depth);
 
                 let opcode = match op {
-                    BinaryOperator::Plus => Opcode::op_add,
-                    BinaryOperator::Minus => Opcode::op_sub,
-                    BinaryOperator::Star => Opcode::op_mul,
-                    BinaryOperator::Slash => Opcode::op_div,
-                    BinaryOperator::Percent => Opcode::op_mod,
-                    BinaryOperator::EqualEqual => Opcode::op_eq,
-                    BinaryOperator::NotEqual => Opcode::op_ne,
-                    BinaryOperator::LessEqual => Opcode::op_le,
-                    BinaryOperator::LessThan => Opcode::op_lt,
-                    BinaryOperator::GreaterEqual => Opcode::op_ge,
-                    BinaryOperator::GreaterThan => Opcode::op_gt,
-                    BinaryOperator::Ampersand => Opcode::op_amp,
-                    BinaryOperator::Caret => Opcode::op_car,
-                    BinaryOperator::Bar => Opcode::op_bar,
+                    BinaryOperator::Plus => opcode::op_add,
+                    BinaryOperator::Minus => opcode::op_sub,
+                    BinaryOperator::Star => opcode::op_mul,
+                    BinaryOperator::Slash => opcode::op_div,
+                    BinaryOperator::Percent => opcode::op_mod,
+                    BinaryOperator::EqualEqual => opcode::op_eq,
+                    BinaryOperator::NotEqual => opcode::op_ne,
+                    BinaryOperator::LessEqual => opcode::op_le,
+                    BinaryOperator::LessThan => opcode::op_lt,
+                    BinaryOperator::GreaterEqual => opcode::op_ge,
+                    BinaryOperator::GreaterThan => opcode::op_gt,
+                    BinaryOperator::Ampersand => opcode::op_amp,
+                    BinaryOperator::Caret => opcode::op_car,
+                    BinaryOperator::Bar => opcode::op_bar,
                     BinaryOperator::And => todo!(),
                     BinaryOperator::Or => todo!(),
                     BinaryOperator::Equal => unreachable!(),
-                } as u8;
+                };
                 self.code.push(opcode);
 
                 false
@@ -366,10 +366,10 @@ impl Codegen {
                 self.gen_expr(expr, locals, functions, depth);
 
                 let opcode = match op {
-                    UnaryOperator::Plus => Opcode::op_plus,
-                    UnaryOperator::Minus => Opcode::op_minus,
-                    UnaryOperator::Not => Opcode::op_not,
-                } as u8;
+                    UnaryOperator::Plus => opcode::op_plus,
+                    UnaryOperator::Minus => opcode::op_minus,
+                    UnaryOperator::Not => opcode::op_not,
+                };
                 self.code.push(opcode);
 
                 false

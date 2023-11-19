@@ -1,3 +1,5 @@
+pub type Opcode = u8;
+
 opcodes! {
     000 nop,
 
@@ -49,26 +51,18 @@ macro_rules! opcodes {
     (
         $($byte:literal $name:ident),* $(,)?
     ) => {
-        #[repr(u8)]
-        #[allow(non_camel_case_types)]
-        #[derive(Debug)]
-        pub enum Opcode {
-            $(
-                #[allow(clippy::zero_prefixed_literal)]
-                $name = $byte
-            ),*
-        }
+        $(
+            #[allow(non_upper_case_globals)]
+            #[allow(clippy::zero_prefixed_literal)]
+            pub const $name: u8 = $byte;
+        )*
 
-        impl TryFrom<u8> for Opcode {
-            type Error = ();
-
-            fn try_from(value: u8) -> Result<Self, Self::Error> {
-                match value {
-                    $(
-                        $byte => Ok(Self::$name),
-                    )*
-                    _ => Err(()),
-                }
+        pub fn name(opcode: u8) -> Option<&'static str> {
+            match opcode {
+                $(
+                    $byte => Some(stringify!($name)),
+                )*
+                _ => None
             }
         }
     };

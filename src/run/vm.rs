@@ -5,7 +5,7 @@ use std::{
 
 use crate::msg;
 
-use super::opcode::Opcode;
+use super::opcode::{self, Opcode};
 
 #[derive(Debug, Clone)]
 pub enum Value {
@@ -93,7 +93,7 @@ impl VM {
         let first = self.next_opcode();
         let entry_point = self.read_u32() as usize;
 
-        if !matches!(first, Opcode::entry_point) {
+        if !matches!(first, opcode::entry_point) {
             msg::error("no entry point defined");
             process::exit(1);
         }
@@ -103,58 +103,59 @@ impl VM {
         while !self.done && !self.has_reached_end() {
             let opcode = self.next_opcode();
             match opcode {
-                Opcode::nop => continue,
-                Opcode::ld_num_const => self.ld_num_const(),
-                Opcode::ld_true_const => self.ld_true_const(),
-                Opcode::ld_false_const => self.ld_false_const(),
-                Opcode::op_add => self.op_add(),
-                Opcode::op_sub => self.op_sub(),
-                Opcode::op_mul => self.op_mul(),
-                Opcode::op_div => self.op_div(),
-                Opcode::op_mod => self.op_mod(),
-                Opcode::op_eq => self.op_eq(),
-                Opcode::op_ne => self.op_ne(),
-                Opcode::op_le => self.op_le(),
-                Opcode::op_lt => self.op_lt(),
-                Opcode::op_ge => self.op_ge(),
-                Opcode::op_gt => self.op_gt(),
-                Opcode::op_amp => self.op_amp(),
-                Opcode::op_bar => self.op_bar(),
-                Opcode::op_car => self.op_car(),
-                Opcode::op_plus => self.op_plus(),
-                Opcode::op_minus => self.op_minus(),
-                Opcode::op_not => self.op_not(),
-                Opcode::ld_loc => self.ld_loc(),
-                Opcode::st_loc => self.st_loc(),
+                opcode::nop => continue,
+                opcode::ld_num_const => self.ld_num_const(),
+                opcode::ld_true_const => self.ld_true_const(),
+                opcode::ld_false_const => self.ld_false_const(),
+                opcode::op_add => self.op_add(),
+                opcode::op_sub => self.op_sub(),
+                opcode::op_mul => self.op_mul(),
+                opcode::op_div => self.op_div(),
+                opcode::op_mod => self.op_mod(),
+                opcode::op_eq => self.op_eq(),
+                opcode::op_ne => self.op_ne(),
+                opcode::op_le => self.op_le(),
+                opcode::op_lt => self.op_lt(),
+                opcode::op_ge => self.op_ge(),
+                opcode::op_gt => self.op_gt(),
+                opcode::op_amp => self.op_amp(),
+                opcode::op_bar => self.op_bar(),
+                opcode::op_car => self.op_car(),
+                opcode::op_plus => self.op_plus(),
+                opcode::op_minus => self.op_minus(),
+                opcode::op_not => self.op_not(),
+                opcode::ld_loc => self.ld_loc(),
+                opcode::st_loc => self.st_loc(),
 
-                Opcode::pop => _ = self.pop(),
+                opcode::pop => _ = self.pop(),
 
-                Opcode::jmp => self.jmp(),
-                Opcode::jmp_if => self.jmp_if(),
+                opcode::jmp => self.jmp(),
+                opcode::jmp_if => self.jmp_if(),
 
-                Opcode::ret => {
+                opcode::ret => {
                     self.destroy_frame();
                     self.push(Value::Unit);
                 },
-                Opcode::ret_val => {
+                opcode::ret_val => {
                     let val = self.pop();
                     self.destroy_frame();
                     self.push(val);
                 },
 
-                Opcode::dbg => {
+                opcode::dbg => {
                     println!("{}", self.pop());
                 }
 
-                Opcode::call => {
+                opcode::call => {
                     let fp = self.read_u32() as usize;
                     let back = self.ip;
                     self.call_fn(fp, Some(back));
                 }
-
-                Opcode::function => unreachable!(),
-                Opcode::entry_point => unreachable!(),
-                Opcode::halt => unreachable!(),
+                
+                _ => {
+                    msg::error("encountered illegal opcode");
+                    process::exit(1);
+                }
             }
         }
     }
@@ -181,16 +182,16 @@ impl VM {
     }
 
     fn read_function(&mut self) -> (u8, u8) {
-        if !matches!(self.next_opcode(), Opcode::function) {
+        if !matches!(self.next_opcode(), opcode::function) {
             msg::error("jumped to invalid function");
             process::exit(1);
         }
 
         let n = self.read_u16() as usize;
-        let bytes = &self.program[self.ip..self.ip + n];
+        // let bytes = &self.program[self.ip..self.ip + n];
         self.ip += n;
 
-        let _name = String::from_utf8(bytes.to_vec()).unwrap();
+        // let _name = String::from_utf8(bytes.to_vec()).unwrap();
         let param_count = self.read_u8();
         let local_count = self.read_u8();
 
@@ -511,13 +512,7 @@ impl VM {
     }
 
     fn next_opcode(&mut self) -> Opcode {
-        match Opcode::try_from(self.read_u8()) {
-            Ok(opcode) => opcode,
-            Err(_) => {
-                msg::error("encountered illegal opcode");
-                process::exit(1);
-            }
-        }
+        self.read_u8()
     }
 
     fn read_u8(&mut self) -> u8 {
