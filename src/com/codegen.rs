@@ -334,6 +334,14 @@ impl Codegen {
                 self.gen_st_loc(locals.get_local_index(id, depth).unwrap());
                 true // signal an assignment
             }
+            ExprAst::BinaryOp(BinaryOperator::And, left, right) => {
+                self.gen_short_circuit_and(left, right, locals, functions, depth);
+                false
+            }
+            ExprAst::BinaryOp(BinaryOperator::Or, left, right) => {
+                self.gen_short_circuit_or(left, right, locals, functions, depth);
+                false
+            }
             ExprAst::BinaryOp(op, left, right) => {
                 self.gen_expr(left, locals, functions, depth);
                 self.gen_expr(right, locals, functions, depth);
@@ -353,8 +361,8 @@ impl Codegen {
                     BinaryOperator::Ampersand => opcode::op_amp,
                     BinaryOperator::Caret => opcode::op_car,
                     BinaryOperator::Bar => opcode::op_bar,
-                    BinaryOperator::And => todo!(),
-                    BinaryOperator::Or => todo!(),
+                    BinaryOperator::And => unreachable!(),
+                    BinaryOperator::Or => unreachable!(),
                     BinaryOperator::Equal => unreachable!(),
                 };
                 self.code.push(opcode);
@@ -389,5 +397,44 @@ impl Codegen {
 
             ExprAst::Bad => unreachable!(),
         }
+    }
+
+    fn gen_short_circuit_and(
+        &mut self,
+        left: &ExprAst,
+        right: &ExprAst,
+        locals: &LocalsInfo,
+        functions: &HashMap<(String, u8), u32>,
+        depth: u8,
+    ) {
+        self.gen_expr(left, locals, functions, depth);
+        self.code.push(opcode::dup);
+        self.code.push(opcode::op_not);
+        let cursor_a = self.gen_jmp_if_placeholder();
+
+        self.gen_expr(right, locals, functions, depth);
+        self.code.push(opcode::op_amp);
+        let cursor_b = self.code.len();
+
+        self.replace_u32(cursor_a, cursor_b as u32);
+    }
+
+    fn gen_short_circuit_or(
+        &mut self,
+        left: &ExprAst,
+        right: &ExprAst,
+        locals: &LocalsInfo,
+        functions: &HashMap<(String, u8), u32>,
+        depth: u8,
+    ) {
+        self.gen_expr(left, locals, functions, depth);
+        self.code.push(opcode::dup);
+        let cursor_a = self.gen_jmp_if_placeholder();
+
+        self.gen_expr(right, locals, functions, depth);
+        self.code.push(opcode::op_bar);
+        let cursor_b = self.code.len();
+
+        self.replace_u32(cursor_a, cursor_b as u32);
     }
 }

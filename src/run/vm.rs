@@ -127,6 +127,7 @@ impl VM {
                 opcode::st_loc => self.st_loc(),
 
                 opcode::pop => _ = self.pop(),
+                opcode::dup => self.dup(),
 
                 opcode::jmp => self.jmp(),
                 opcode::jmp_if => self.jmp_if(),
@@ -332,6 +333,16 @@ impl VM {
                 msg::error("stack underflow");
                 process::exit(1);
             }
+        }
+    }
+
+    fn dup(&mut self) {
+        match self.stack.last() {
+            Some(last) => self.push(last.clone()),
+            None => {
+                msg::error("stack underflow");
+                process::exit(1);
+            },
         }
     }
 

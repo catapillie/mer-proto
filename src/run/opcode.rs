@@ -25,6 +25,7 @@ opcodes! {
     0x40 ld_loc, // u8
     0x41 st_loc, // u8
     0x42 pop,
+    0x43 dup,
     0x50 jmp, // u32
     0x51 jmp_if, // u32
     0x60 ret,
