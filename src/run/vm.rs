@@ -118,9 +118,9 @@ impl VM {
                 opcode::op_lt => self.op_lt(),
                 opcode::op_ge => self.op_ge(),
                 opcode::op_gt => self.op_gt(),
-                opcode::op_amp => self.op_amp(),
-                opcode::op_bar => self.op_bar(),
-                opcode::op_car => self.op_car(),
+                opcode::or_and => self.op_and(),
+                opcode::or_or => self.op_or(),
+                opcode::op_xor => self.op_xor(),
                 opcode::op_neg => self.op_neg(),
                 opcode::op_not => self.op_not(),
                 opcode::ld_loc => self.ld_loc(),
@@ -285,17 +285,17 @@ impl VM {
     }
 
     binary_op! {
-        self op_amp "&"
+        self op_and "&"
         Value::Bool(a), Value::Bool(b) => Value::Bool(a & b)
     }
 
     binary_op! {
-        self op_bar "|"
+        self op_or "|"
         Value::Bool(a), Value::Bool(b) => Value::Bool(a | b)
     }
 
     binary_op! {
-        self op_car "^"
+        self op_xor "^"
         Value::Bool(a), Value::Bool(b) => Value::Bool(a ^ b)
     }
 

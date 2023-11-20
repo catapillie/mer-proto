@@ -358,9 +358,9 @@ impl Codegen {
                     BinaryOperator::LessThan => opcode::op_lt,
                     BinaryOperator::GreaterEqual => opcode::op_ge,
                     BinaryOperator::GreaterThan => opcode::op_gt,
-                    BinaryOperator::Ampersand => opcode::op_amp,
-                    BinaryOperator::Caret => opcode::op_car,
-                    BinaryOperator::Bar => opcode::op_bar,
+                    BinaryOperator::Ampersand => opcode::or_and,
+                    BinaryOperator::Caret => opcode::op_xor,
+                    BinaryOperator::Bar => opcode::or_or,
                     BinaryOperator::And => unreachable!(),
                     BinaryOperator::Or => unreachable!(),
                     BinaryOperator::Equal => unreachable!(),
@@ -413,7 +413,7 @@ impl Codegen {
         let cursor_a = self.gen_jmp_if_placeholder();
 
         self.gen_expr(right, locals, functions, depth);
-        self.code.push(opcode::op_amp);
+        self.code.push(opcode::or_and);
         let cursor_b = self.code.len();
 
         self.replace_u32(cursor_a, cursor_b as u32);
@@ -432,7 +432,7 @@ impl Codegen {
         let cursor_a = self.gen_jmp_if_placeholder();
 
         self.gen_expr(right, locals, functions, depth);
-        self.code.push(opcode::op_bar);
+        self.code.push(opcode::or_or);
         let cursor_b = self.code.len();
 
         self.replace_u32(cursor_a, cursor_b as u32);

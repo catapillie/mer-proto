@@ -17,9 +17,9 @@ opcodes! {
     0x28 op_lt,
     0x29 op_ge,
     0x2a op_gt,
-    0x2b op_amp,
-    0x2c op_bar,
-    0x2d op_car,
+    0x2b or_and,
+    0x2c or_or,
+    0x2d op_xor,
     0x30 op_neg,
     0x31 op_not,
     0x40 ld_loc, // u8
