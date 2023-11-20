@@ -4,8 +4,8 @@ use super::pos::Pos;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Span {
-    from: Pos,
-    to: Pos,
+    pub from: Pos,
+    pub to: Pos,
 }
 
 impl Span {

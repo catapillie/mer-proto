@@ -1,4 +1,4 @@
-use self::parser::Parser;
+use self::{parser::Parser, errors::ParseError, span::Span};
 use crate::{com::codegen::Codegen, msg};
 use colored::Colorize;
 use std::{
@@ -16,6 +16,9 @@ mod span;
 mod tokens;
 
 pub fn compile(source: String) {
+    let vec = source.lines().collect::<Vec<_>>();
+    let lines = vec.as_slice();
+
     let parser = Parser::init(source.as_str());
     let (ast, errors) = parser.parse_program();
 
@@ -25,8 +28,8 @@ pub fn compile(source: String) {
                 .bold()
                 .to_string(),
         );
-        for error in errors {
-            println!("      {error}");
+        for (error, span) in errors {
+            print_err(lines, error, span);
         }
         process::exit(1);
     }
@@ -61,4 +64,29 @@ pub fn compile(source: String) {
     }
 
     process::exit(0);
+}
+
+fn print_err(lines: &[&str], error: ParseError, span: Span) {
+    assert!(span.from.line == span.to.line);
+
+    let from  = span.from.column;
+    let to = span.to.column;
+
+    let line_index = span.from.line;
+    let line = lines[line_index];
+    let chars = line.chars();
+
+    msg::error(error.to_string());
+
+    print!("{:>4} │ ", line_index + 1);
+    print!("{}", chars.clone().take(from).collect::<String>());
+    print!("{}", chars.clone().skip(from).take(to-from).collect::<String>().bright_red());
+    print!("{}", chars.clone().skip(to).collect::<String>());
+    println!("");
+
+    print!("     │{}", " ".repeat(span.from.column));
+    print!("{}", "└".bright_red());
+    print!("{}", "─".repeat(span.to.column - span.from.column).bright_red());
+    print!("{}", "┘".bright_red());
+    println!();
 }

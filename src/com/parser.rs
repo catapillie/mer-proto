@@ -10,7 +10,7 @@ pub struct Parser<'src> {
     cursor: Cursor<'src>,
     look_ahead: Token,
     last_token: Token,
-    errors: Vec<ParseError>,
+    errors: Vec<(ParseError, Span)>,
 }
 
 impl<'src> Parser<'src> {
@@ -25,7 +25,7 @@ impl<'src> Parser<'src> {
         parser
     }
 
-    pub fn parse_program(mut self) -> (ProgramAst, Vec<ParseError>) {
+    pub fn parse_program(mut self) -> (ProgramAst, Vec<(ParseError, Span)>) {
         let mut stmts = Vec::new();
 
         loop {
@@ -39,7 +39,8 @@ impl<'src> Parser<'src> {
             match self.try_match_token::<Eof>() {
                 Some(_) => break,
                 None => {
-                    self.errors.push(ParseError::ExpectedStatement);
+                    let e = (ParseError::ExpectedStatement, self.span_here());
+                    self.errors.push(e);
                     self.recover_to_next_statement();
                 }
             }
@@ -178,7 +179,8 @@ impl<'src> Parser<'src> {
             let stmt = match self.parse_block_statement() {
                 Some(stmt) => StmtAst::Block(stmt),
                 None => {
-                    self.errors.push(ParseError::ExpectedStatement);
+                    let e = (ParseError::ExpectedStatement, self.span_here());
+                    self.errors.push(e);
                     StmtAst::Empty
                 }
             };
@@ -216,16 +218,18 @@ impl<'src> Parser<'src> {
             match self.try_match_token::<RightBrace>() {
                 Some(_) => break,
                 None => {
-                    self.errors.push(ParseError::ExpectedStatement);
+                    let e = (ParseError::ExpectedStatement, self.span_here());
+                    self.errors.push(e);
                     self.recover_to_next_statement();
                 }
             }
 
             if self.try_match_token::<Eof>().is_some() {
-                self.errors.push(ParseError::ExpectedToken(
+                let e = (ParseError::ExpectedToken(
                     self.last_token.clone(),
                     RightBrace::kind(),
-                ));
+                ), self.span_here());
+                self.errors.push(e);
                 break;
             }
         }
@@ -285,7 +289,8 @@ impl<'src> Parser<'src> {
         match self.parse_expression() {
             Some(expr) => expr,
             None => {
-                self.errors.push(ParseError::ExpectedExpression);
+                let e = (ParseError::ExpectedExpression, self.span_here());
+                self.errors.push(e);
                 ExprAst::Bad
             }
         }
@@ -301,7 +306,8 @@ impl<'src> Parser<'src> {
             let inner = match self.parse_operation_expression(Precedence::MAX) {
                 Some(inner) => inner,
                 None => {
-                    self.errors.push(ParseError::ExpectedExpression);
+                    let e = (ParseError::ExpectedExpression, self.span_here());
+                    self.errors.push(e);
                     ExprAst::Bad
                 }
             };
@@ -325,7 +331,8 @@ impl<'src> Parser<'src> {
             let expr_right = match self.parse_operation_expression(prec_ahead) {
                 Some(inner) => inner,
                 None => {
-                    self.errors.push(ParseError::ExpectedExpression);
+                    let e = (ParseError::ExpectedExpression, self.span_here());
+                    self.errors.push(e);
                     ExprAst::Bad
                 }
             };
@@ -391,6 +398,10 @@ impl<'src> Parser<'src> {
         self.try_match_token::<Newline>();
     }
 
+    fn span_here(&self) -> Span {
+        Span::at(self.cursor.pos())
+    }
+
     fn consume_token(&mut self) {
         let next = self.lex();
         self.last_token = std::mem::replace(&mut self.look_ahead, next);
@@ -407,10 +418,13 @@ impl<'src> Parser<'src> {
                 Some(value)
             }
             None => {
-                self.errors.push(ParseError::ExpectedToken(
-                    self.look_ahead.clone(),
+                let tok = self.look_ahead.clone();
+                let span = tok.span();
+                let e = (ParseError::ExpectedToken(
+                    tok,
                     T::kind(),
-                ));
+                ), span);
+                self.errors.push(e);
                 None
             }
         }
@@ -425,10 +439,13 @@ impl<'src> Parser<'src> {
             None => match self.try_match_token::<Eof>() {
                 Some(_) => Some(T::default()),
                 None => {
-                    self.errors.push(ParseError::ExpectedToken(
-                        self.look_ahead.clone(),
+                    let tok = self.look_ahead.clone();
+                    let span = tok.span();
+                    let e = (ParseError::ExpectedToken(
+                        tok,
                         T::kind(),
-                    ));
+                    ), span);
+                    self.errors.push(e);
                     None
                 }
             },
@@ -632,7 +649,8 @@ impl<'src> Parser<'src> {
 
             match self.cursor.peek() {
                 Some(u) => {
-                    self.errors.push(ParseError::IllegalCharacter(u));
+                    let e = (ParseError::IllegalCharacter(u), self.span_here());
+                    self.errors.push(e);
                     self.cursor.next();
                     continue;
                 }
