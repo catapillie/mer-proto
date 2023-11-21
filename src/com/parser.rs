@@ -175,6 +175,14 @@ impl<'src> Parser<'src> {
             self.match_token::<RightParen>();
 
             self.skip_newlines();
+
+            if self.try_match_token::<Equal>().is_some() {
+                let expr = self.expect_expression();
+                let body = StmtAst::ReturnWith(expr);
+
+                return Some(StmtAst::Func(name, params, Box::new(body)));
+            }
+
             let stmt = match self.parse_block_statement() {
                 Some(stmt) => StmtAst::Block(stmt),
                 None => {
