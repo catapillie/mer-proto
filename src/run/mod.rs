@@ -11,7 +11,7 @@ pub mod opcode;
 mod vm;
 
 pub fn run(program: Vec<Opcode>) {
-    let mut vm = VM::new(program);
+    let mut vm = VM::new(program.as_slice());
     vm.run();
 }
 

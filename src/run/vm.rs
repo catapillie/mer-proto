@@ -1,11 +1,17 @@
 use std::{
     fmt::Display,
+    io::{Cursor, Seek, SeekFrom},
     process::{self},
 };
+
+use byteorder::ReadBytesExt;
 
 use crate::msg;
 
 use super::opcode::{self, Opcode};
+
+const INITIAL_STACK_CAPACITY: usize = 512;
+const INITIAL_CALLSTACK_CAPACITY: usize = 64;
 
 #[derive(Debug, Clone)]
 pub enum Value {
@@ -38,35 +44,29 @@ impl Display for Value {
 }
 
 struct Frame {
-    back: Option<usize>,
+    back: Option<u64>,
     local_count: u8,
     local_offset: usize,
 }
 
-pub struct VM {
-    program: Vec<u8>,
-    ip: usize,
+pub struct VM<'a> {
+    cursor: Cursor<&'a [u8]>,
     stack: Vec<Value>,
     frames: Vec<Frame>,
     done: bool,
 }
 
-impl VM {
-    pub fn new(program: Vec<u8>) -> Self {
+impl<'a> VM<'a> {
+    pub fn new(program: &'a [u8]) -> Self {
         Self {
-            program,
-            ip: 0,
-            stack: Vec::new(),
-            frames: Vec::new(),
+            cursor: Cursor::new(program),
+            stack: Vec::with_capacity(INITIAL_STACK_CAPACITY),
+            frames: Vec::with_capacity(INITIAL_CALLSTACK_CAPACITY),
             done: false,
         }
     }
 
-    fn has_reached_end(&self) -> bool {
-        self.ip >= self.program.len()
-    }
-
-    fn create_frame(&mut self, back: Option<usize>, param_count: u8, local_count: u8) {
+    fn create_frame(&mut self, back: Option<u64>, param_count: u8, local_count: u8) {
         let local_offset = self.stack.len() - param_count as usize;
         self.frames.push(Frame {
             back,
@@ -86,12 +86,12 @@ impl VM {
             return;
         };
 
-        self.ip = ip;
+        self.cursor.set_position(ip);
     }
 
     pub fn run(&mut self) {
         let first = self.next_opcode();
-        let entry_point = self.read_u32() as usize;
+        let entry_point = self.read_u32() as u64;
 
         if !matches!(first, opcode::entry_point) {
             msg::error("no entry point defined");
@@ -100,7 +100,7 @@ impl VM {
 
         self.call_fn(entry_point, None);
 
-        while !self.done && !self.has_reached_end() {
+        while !self.done {
             let opcode = self.next_opcode();
             match opcode {
                 opcode::nop => continue,
@@ -135,23 +135,23 @@ impl VM {
                 opcode::ret => {
                     self.destroy_frame();
                     self.push(Value::Unit);
-                },
+                }
                 opcode::ret_val => {
                     let val = self.pop();
                     self.destroy_frame();
                     self.push(val);
-                },
+                }
 
                 opcode::dbg => {
                     println!("{}", self.pop());
                 }
 
                 opcode::call => {
-                    let fp = self.read_u32() as usize;
-                    let back = self.ip;
+                    let fp = self.read_u32() as u64;
+                    let back = self.cursor.position();
                     self.call_fn(fp, Some(back));
                 }
-                
+
                 _ => {
                     msg::error("encountered illegal opcode");
                     process::exit(1);
@@ -170,8 +170,8 @@ impl VM {
         self.done = true;
     }
 
-    fn call_fn(&mut self, fp: usize, back: Option<usize>) {
-        self.ip = fp;
+    fn call_fn(&mut self, fp: u64, back: Option<u64>) {
+        self.cursor.set_position(fp);
         let (param_count, local_count) = self.read_function();
         self.create_frame(back, param_count, local_count);
 
@@ -188,10 +188,8 @@ impl VM {
         }
 
         let n = self.read_u16() as usize;
-        // let bytes = &self.program[self.ip..self.ip + n];
-        self.ip += n;
+        self.cursor.seek(SeekFrom::Current(n as i64)).unwrap();
 
-        // let _name = String::from_utf8(bytes.to_vec()).unwrap();
         let param_count = self.read_u8();
         let local_count = self.read_u8();
 
@@ -199,14 +197,15 @@ impl VM {
     }
 
     fn jmp(&mut self) {
-        self.ip = self.read_u32() as usize;
+        let to = self.read_u32() as u64;
+        self.cursor.set_position(to);
     }
 
     fn jmp_if(&mut self) {
         let to = self.read_u32();
         let guard = self.pop();
         match guard {
-            Value::Bool(true) => self.ip = to as usize,
+            Value::Bool(true) => self.cursor.set_position(to as u64),
             Value::Bool(false) => (),
             _ => {
                 msg::error(format!("invalid jump condition: {}", guard.type_name()));
@@ -227,59 +226,59 @@ impl VM {
         self.stack[offset + index] = self.pop();
     }
 
-    binary_op! { 
+    binary_op! {
         self op_add "+"
         Value::Num(a), Value::Num(b) => Value::Num(a + b)
     }
 
-    binary_op! { 
+    binary_op! {
         self op_sub "-"
         Value::Num(a), Value::Num(b) => Value::Num(a - b)
     }
 
-    binary_op! { 
+    binary_op! {
         self op_mul "*"
         Value::Num(a), Value::Num(b) => Value::Num(a * b)
     }
 
-    binary_op! { 
+    binary_op! {
         self op_div "/"
         Value::Num(a), Value::Num(b) => Value::Num(a / b)
     }
 
-    binary_op! { 
+    binary_op! {
         self op_mod "%"
         Value::Num(a), Value::Num(b) => Value::Num(a % b)
     }
 
-    binary_op! { 
+    binary_op! {
         self op_eq "=="
         Value::Num(a), Value::Num(b) => Value::Bool(a == b)
         Value::Bool(a), Value::Bool(b) => Value::Bool(a == b)
     }
 
-    binary_op! { 
+    binary_op! {
         self op_ne "!="
         Value::Num(a), Value::Num(b) => Value::Bool(a != b)
         Value::Bool(a), Value::Bool(b) => Value::Bool(a != b)
     }
 
-    binary_op! { 
+    binary_op! {
         self op_le "<="
         Value::Num(a), Value::Num(b) => Value::Bool(a <= b)
     }
 
-    binary_op! { 
+    binary_op! {
         self op_lt "<"
         Value::Num(a), Value::Num(b) => Value::Bool(a < b)
     }
 
-    binary_op! { 
+    binary_op! {
         self op_ge ">="
         Value::Num(a), Value::Num(b) => Value::Bool(a >= b)
     }
 
-    binary_op! { 
+    binary_op! {
         self op_gt ">"
         Value::Num(a), Value::Num(b) => Value::Bool(a > b)
     }
@@ -342,7 +341,7 @@ impl VM {
             None => {
                 msg::error("stack underflow");
                 process::exit(1);
-            },
+            }
         }
     }
 
@@ -351,35 +350,19 @@ impl VM {
     }
 
     fn read_u8(&mut self) -> u8 {
-        let byte = self.program[self.ip];
-        self.ip += 1;
-        byte
+        self.cursor.read_u8().unwrap()
     }
 
     fn read_u16(&mut self) -> u16 {
-        u16::from_le_bytes([self.read_u8(), self.read_u8()])
+        self.cursor.read_u16::<byteorder::LE>().unwrap()
     }
 
     fn read_u32(&mut self) -> u32 {
-        u32::from_le_bytes([
-            self.read_u8(),
-            self.read_u8(),
-            self.read_u8(),
-            self.read_u8(),
-        ])
+        self.cursor.read_u32::<byteorder::LE>().unwrap()
     }
 
     fn read_f64(&mut self) -> f64 {
-        f64::from_le_bytes([
-            self.read_u8(),
-            self.read_u8(),
-            self.read_u8(),
-            self.read_u8(),
-            self.read_u8(),
-            self.read_u8(),
-            self.read_u8(),
-            self.read_u8(),
-        ])
+        self.cursor.read_f64::<byteorder::LE>().unwrap()
     }
 }
 
