@@ -104,9 +104,15 @@ impl<'a> VM<'a> {
             let opcode = self.next_opcode();
             match opcode {
                 opcode::nop => continue,
+
+                opcode::dbg => println!("{}", self.pop()),
+                opcode::pop => _ = self.pop(),
+                opcode::dup => self.dup(),
+
                 opcode::ld_num_const => self.ld_num_const(),
                 opcode::ld_true_const => self.ld_true_const(),
                 opcode::ld_false_const => self.ld_false_const(),
+
                 opcode::op_add => self.op_add(),
                 opcode::op_sub => self.op_sub(),
                 opcode::op_mul => self.op_mul(),
@@ -121,36 +127,20 @@ impl<'a> VM<'a> {
                 opcode::or_and => self.op_and(),
                 opcode::or_or => self.op_or(),
                 opcode::op_xor => self.op_xor(),
+
                 opcode::op_neg => self.op_neg(),
                 opcode::op_not => self.op_not(),
+
                 opcode::ld_loc => self.ld_loc(),
                 opcode::st_loc => self.st_loc(),
-
-                opcode::pop => _ = self.pop(),
-                opcode::dup => self.dup(),
-
+                
                 opcode::jmp => self.jmp(),
                 opcode::jmp_if => self.jmp_if(),
-
-                opcode::ret => {
-                    self.destroy_frame();
-                    self.push(Value::Unit);
-                }
-                opcode::ret_val => {
-                    let val = self.pop();
-                    self.destroy_frame();
-                    self.push(val);
-                }
-
-                opcode::dbg => {
-                    println!("{}", self.pop());
-                }
-
-                opcode::call => {
-                    let fp = self.read_u32() as u64;
-                    let back = self.cursor.position();
-                    self.call_fn(fp, Some(back));
-                }
+                
+                opcode::ret => self.ret(),
+                opcode::ret_val => self.ret_val(),
+                
+                opcode::call => self.call(),
 
                 _ => {
                     msg::error("encountered illegal opcode");
@@ -170,32 +160,72 @@ impl<'a> VM<'a> {
         self.done = true;
     }
 
-    fn call_fn(&mut self, fp: u64, back: Option<u64>) {
-        self.cursor.set_position(fp);
-        let (param_count, local_count) = self.read_function();
-        self.create_frame(back, param_count, local_count);
+    fn push(&mut self, value: Value) {
+        self.stack.push(value);
+    }
 
-        // push non-parameter locals
-        for _ in 0..(local_count - param_count) {
-            self.push(Value::Uninitialized);
+    fn pop(&mut self) -> Value {
+        match self.stack.pop() {
+            Some(value) => value,
+            None => {
+                msg::error("stack underflow");
+                process::exit(1);
+            }
         }
     }
 
-    fn read_function(&mut self) -> (u8, u8) {
-        if !matches!(self.next_opcode(), opcode::function) {
-            msg::error("jumped to invalid function");
-            process::exit(1);
+    fn dup(&mut self) {
+        match self.stack.last() {
+            Some(last) => self.push(last.clone()),
+            None => {
+                msg::error("stack underflow");
+                process::exit(1);
+            }
         }
-
-        let n = self.read_u16() as usize;
-        self.cursor.seek(SeekFrom::Current(n as i64)).unwrap();
-
-        let param_count = self.read_u8();
-        let local_count = self.read_u8();
-
-        (param_count, local_count)
     }
 
+    fn ld_num_const(&mut self) {
+        let num = self.read_f64();
+        self.push(Value::Num(num))
+    }
+
+    fn ld_true_const(&mut self) {
+        self.push(Value::Bool(true))
+    }
+
+    fn ld_false_const(&mut self) {
+        self.push(Value::Bool(false))
+    }
+    
+    fn ld_loc(&mut self) {
+        let index = self.read_u8() as usize;
+        let offset = self.frames.last().unwrap().local_offset;
+        self.push(self.stack[offset + index].clone());
+    }
+
+    fn st_loc(&mut self) {
+        let index = self.read_u8() as usize;
+        let offset = self.frames.last().unwrap().local_offset;
+        self.stack[offset + index] = self.pop();
+    }
+
+    fn call(&mut self) {
+        let fp = self.read_u32() as u64;
+        let back = self.cursor.position();
+        self.call_fn(fp, Some(back));
+    }
+
+    fn ret(&mut self) {
+        self.destroy_frame();
+        self.push(Value::Unit);
+    }
+
+    fn ret_val(&mut self) {
+        let val = self.pop();
+        self.destroy_frame();
+        self.push(val);
+    }
+    
     fn jmp(&mut self) {
         let to = self.read_u32() as u64;
         self.cursor.set_position(to);
@@ -214,16 +244,31 @@ impl<'a> VM<'a> {
         }
     }
 
-    fn ld_loc(&mut self) {
-        let index = self.read_u8() as usize;
-        let offset = self.frames.last().unwrap().local_offset;
-        self.push(self.stack[offset + index].clone());
+    fn call_fn(&mut self, fp: u64, back: Option<u64>) {
+        self.cursor.set_position(fp);
+        let (param_count, local_count) = self.read_function_header();
+        self.create_frame(back, param_count, local_count);
+
+        // push non-parameter locals
+        for _ in 0..(local_count - param_count) {
+            self.push(Value::Uninitialized);
+        }
     }
 
-    fn st_loc(&mut self) {
-        let index = self.read_u8() as usize;
-        let offset = self.frames.last().unwrap().local_offset;
-        self.stack[offset + index] = self.pop();
+    // returns (param_count, local_count)
+    fn read_function_header(&mut self) -> (u8, u8) {
+        if !matches!(self.next_opcode(), opcode::function) {
+            msg::error("jumped to invalid function");
+            process::exit(1);
+        }
+
+        let n = self.read_u16() as usize;
+        self.cursor.seek(SeekFrom::Current(n as i64)).unwrap();
+
+        let param_count = self.read_u8();
+        let local_count = self.read_u8();
+
+        (param_count, local_count)
     }
 
     binary_op! {
@@ -306,43 +351,6 @@ impl<'a> VM<'a> {
     unary_op! {
         self op_not "not"
         Value::Bool(b) => Value::Bool(!*b)
-    }
-
-    fn ld_num_const(&mut self) {
-        let num = self.read_f64();
-        self.push(Value::Num(num))
-    }
-
-    fn ld_true_const(&mut self) {
-        self.push(Value::Bool(true))
-    }
-
-    fn ld_false_const(&mut self) {
-        self.push(Value::Bool(false))
-    }
-
-    fn push(&mut self, value: Value) {
-        self.stack.push(value);
-    }
-
-    fn pop(&mut self) -> Value {
-        match self.stack.pop() {
-            Some(value) => value,
-            None => {
-                msg::error("stack underflow");
-                process::exit(1);
-            }
-        }
-    }
-
-    fn dup(&mut self) {
-        match self.stack.last() {
-            Some(last) => self.push(last.clone()),
-            None => {
-                msg::error("stack underflow");
-                process::exit(1);
-            }
-        }
     }
 
     fn next_opcode(&mut self) -> Opcode {
