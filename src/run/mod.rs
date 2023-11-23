@@ -1,3 +1,6 @@
+use std::io::{Cursor, Read};
+
+use byteorder::ReadBytesExt;
 use colored::Colorize;
 
 use crate::run::opcode::Opcode;
@@ -12,11 +15,15 @@ pub fn run(program: Vec<Opcode>) {
     vm.run();
 }
 
-pub fn disassemble(program: Vec<Opcode>) {
-    let mut ip: usize = 0;
-    while let Some(&byte) = program.get(ip) {
-        let offset = ip;
-        ip += 1;
+pub fn disassemble(program: Vec<Opcode>) -> Option<()> {
+    let mut cursor = Cursor::new(program.as_slice());
+    
+    loop {
+        let offset = cursor.position();
+        let byte = match cursor.read_u8() {
+            Ok(b) => b,
+            Err(_) => break,
+        };
 
         let opcode = match opcode::name(byte) {
             Some(name) => name,
@@ -28,20 +35,15 @@ pub fn disassemble(program: Vec<Opcode>) {
 
         match byte {
             opcode::ld_num_const => {
-                let bytes: [u8; 8] = program[ip..ip + 8].try_into().unwrap();
-                let value = f64::from_le_bytes(bytes);
-                ip += 8;
+                let value = cursor.read_f64::<byteorder::LE>().ok()?;
                 println!(
-                    "{offset:0width$} | {byte:02x} {:>16} {value:+.10e} ({:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x})",
+                    "{offset:0width$} | {byte:02x} {:>16} {value:+.10e}",
                     opcode.bold(),
-                    bytes[0], bytes[1], bytes[2], bytes[3],
-                    bytes[4], bytes[5], bytes[6], bytes[7],
                     width = 8
                 );
             }
             opcode::ld_loc | opcode::st_loc => {
-                let count = program[ip];
-                ip += 1;
+                let count = cursor.read_u8().ok()?;
                 println!(
                     "{offset:0width$} | {byte:02x} {:>16} {count}",
                     opcode.bold(),
@@ -49,8 +51,7 @@ pub fn disassemble(program: Vec<Opcode>) {
                 );
             }
             opcode::jmp | opcode::jmp_if => {
-                let to = u32::from_le_bytes(program[ip..ip + 4].try_into().unwrap());
-                ip += 4;
+                let to = cursor.read_u32::<byteorder::LE>().ok()?;
                 println!(
                     "{offset:0width$} | {byte:02x} {:>16} -> {to:0width$}",
                     opcode.bold(),
@@ -58,8 +59,7 @@ pub fn disassemble(program: Vec<Opcode>) {
                 );
             }
             opcode::entry_point => {
-                let to = u32::from_le_bytes(program[ip..ip + 4].try_into().unwrap());
-                ip += 4;
+                let to = cursor.read_u32::<byteorder::LE>().ok()?;
                 println!(
                     "{offset:0width$} | !! {} -> {to:0width$}",
                     "entry-point".bold(),
@@ -67,18 +67,14 @@ pub fn disassemble(program: Vec<Opcode>) {
                  );
              }
             opcode::function => {
-                let n = u16::from_le_bytes(program[ip..ip + 2].try_into().unwrap()) as usize;
-                ip += 2;
+                let n =  cursor.read_u16::<byteorder::LE>().ok()?;
 
-                let bytes = &program[ip..ip + n];
-                let name = String::from_utf8(bytes.to_vec()).unwrap();
-                ip += n;
+                let mut bytes = vec![0; n as usize];
+                cursor.read_exact(&mut bytes).ok()?;
+                let name = String::from_utf8(bytes).unwrap();
 
-                let param_count = program[ip];
-                ip += 1;
-
-                let local_count = program[ip];
-                ip += 1;
+                let param_count = cursor.read_u8().ok()?;
+                let local_count = cursor.read_u8().ok()?;
 
                 println!(
                     "{offset:0width$} | :: {} ({} params, {} locals)",
@@ -89,15 +85,17 @@ pub fn disassemble(program: Vec<Opcode>) {
                 );
             },
             opcode::call => {
-                let fp = u32::from_le_bytes(program[ip..ip + 4].try_into().unwrap());
-                ip += 4;
+                let fp = cursor.read_u32::<byteorder::LE>().ok()?;
 
-                let mut ip_alt = 1 + fp as usize;
-                let n = u16::from_le_bytes(program[ip_alt..ip_alt + 2].try_into().unwrap()) as usize;
-                ip_alt += 2;
+                let mut cursor_alt = cursor.clone();
+                cursor_alt.set_position(fp as u64);
+                cursor_alt.read_u8().ok()?;
 
-                let bytes = &program[ip_alt..ip_alt + n];
-                let name = String::from_utf8(bytes.to_vec()).unwrap();
+                let n = cursor_alt.read_u16::<byteorder::LE>().ok()?;
+
+                let mut bytes = vec![0; n as usize];
+                cursor_alt.read_exact(&mut bytes).ok()?;
+                let name = String::from_utf8(bytes).unwrap();
 
                 println!(
                     "{offset:0width$} | {byte:02x} {:>16} -> {} ({fp:0width$})",
@@ -115,4 +113,6 @@ pub fn disassemble(program: Vec<Opcode>) {
             }
         }
     }
+
+    Some(())
 }
