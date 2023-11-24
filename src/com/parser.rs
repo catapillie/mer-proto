@@ -545,7 +545,7 @@ impl<'a> Parser<'a> {
     }
 
     fn is_identifier_head(c: char) -> bool {
-        c.is_alphabetic()
+        c.is_alphabetic() || c == '_'
     }
 
     fn is_identifier_tail(c: char) -> bool {
