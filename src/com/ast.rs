@@ -13,7 +13,7 @@ pub enum StmtAst {
     WhileDo(ExprAst, Box<StmtAst>),
     DoWhile(Box<StmtAst>, ExprAst),
     Do(Box<StmtAst>),
-    Func(Option<String>, Vec<String>, Box<StmtAst>),
+    Func(Option<String>, Vec<String>, Box<StmtAst>, TypeAst),
     Return,
     ReturnWith(ExprAst),
 }
@@ -27,6 +27,13 @@ pub enum ExprAst {
     BinaryOp(BinaryOperator, Box<ExprAst>, Box<ExprAst>),
     UnaryOp(UnaryOperator, Box<ExprAst>),
     Call(String, Vec<ExprAst>),
+}
+
+#[derive(Debug)]
+pub enum TypeAst {
+    Bad,
+    Unit,
+    Declared(String),
 }
 
 #[derive(Debug)]

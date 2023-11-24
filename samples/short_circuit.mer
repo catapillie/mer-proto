@@ -1,14 +1,14 @@
-func yes() {
+func yes() -> bool {
     return 1 + 2 <= 3
 }
 
-func no() {
+func no() -> bool {
     return true == false
 }
 
-func log(x) {
-    x
-    return x
+func log(b) -> bool {
+    b
+    return b
 }
 
 if log(yes()) and log(no()) then 1 else 0

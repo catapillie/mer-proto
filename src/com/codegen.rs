@@ -61,7 +61,7 @@ impl Codegen {
     fn gen_functions(&mut self, stmts: &Vec<StmtAst>) -> HashMap<(String, u8), u32> {
         let mut functions = HashMap::new();
         for stmt in stmts {
-            let StmtAst::Func(Some(name), params, body) = stmt else {
+            let StmtAst::Func(Some(name), params, body, _) = stmt else {
                 continue;
             };
 
@@ -282,7 +282,7 @@ impl Codegen {
                 self.code.push(opcode::ret_val);
             }
 
-            StmtAst::Func(_, _, _) => (),
+            StmtAst::Func(_, _, _, _) => (),
 
             StmtAst::Then(_) => unreachable!(),
             StmtAst::Else(_) => unreachable!(),

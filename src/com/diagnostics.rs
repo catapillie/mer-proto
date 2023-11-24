@@ -83,6 +83,7 @@ pub enum DiagnosticKind {
     ExpectedToken { found: Token, expected: TokenKind },
     ExpectedExpression,
     ExpectedStatement,
+    ExpectedType,
 }
 
 #[rustfmt::skip]
@@ -97,6 +98,8 @@ impl DiagnosticKind {
                 => "expected an expression".to_string(),
             DiagnosticKind::ExpectedStatement
                 => "expected a statement".to_string(),
+            DiagnosticKind::ExpectedType
+                => "expected a type expression".to_string(),
         }
     }
 }

@@ -1,5 +1,8 @@
 use super::{
-    ast::{Associativity, BinaryOperator, ExprAst, Precedence, ProgramAst, StmtAst, UnaryOperator},
+    ast::{
+        Associativity, BinaryOperator, ExprAst, Precedence, ProgramAst, StmtAst, TypeAst,
+        UnaryOperator,
+    },
     cursor::Cursor,
     diagnostics::{self, DiagnosticKind, Diagnostics},
     pos::Pos,
@@ -179,13 +182,16 @@ impl<'a> Parser<'a> {
             }
             self.match_token::<RightParen>();
 
+            self.match_token::<RightArrow>();
+            let ty = self.expected_type_expression();
+
             self.skip_newlines();
 
             if self.try_match_token::<Equal>().is_some() {
                 let expr = self.expect_expression();
                 let body = StmtAst::ReturnWith(expr);
 
-                return Some(StmtAst::Func(name, params, Box::new(body)));
+                return Some(StmtAst::Func(name, params, Box::new(body), ty));
             }
 
             let stmt = match self.parse_block_statement() {
@@ -200,7 +206,7 @@ impl<'a> Parser<'a> {
                 }
             };
 
-            return Some(StmtAst::Func(name, params, Box::new(stmt)));
+            return Some(StmtAst::Func(name, params, Box::new(stmt), ty));
         }
 
         if self.try_match_token::<ReturnKw>().is_some() {
@@ -268,10 +274,6 @@ impl<'a> Parser<'a> {
                 | Token::LeftParen(_, _)
         )
     }
-
-    /*
-
-    */
 
     #[rustfmt::skip]
     fn is_binary_operator(&mut self) -> Option<(BinaryOperator, Precedence, Associativity)> {
@@ -414,6 +416,33 @@ impl<'a> Parser<'a> {
             self.skip_newlines();
             self.match_token::<RightParen>();
             return Some(expr);
+        }
+
+        None
+    }
+
+    fn expected_type_expression(&mut self) -> TypeAst {
+        match self.parse_type_expression() {
+            Some(ty) => ty,
+            None => {
+                let d = diagnostics::create_diagnostic()
+                    .with_kind(DiagnosticKind::ExpectedType)
+                    .with_pos(self.pos())
+                    .done();
+                self.diagnostics.push(d);
+                TypeAst::Bad
+            }
+        }
+    }
+
+    fn parse_type_expression(&mut self) -> Option<TypeAst> {
+        if let Some(id) = self.try_match_token::<Identifier>() {
+            return Some(TypeAst::Declared(id.0));
+        }
+
+        if self.try_match_token::<LeftParen>().is_some() {
+            self.match_token::<RightParen>();
+            return Some(TypeAst::Unit);
         }
 
         None
@@ -639,17 +668,19 @@ impl<'a> Parser<'a> {
                 return Newline.wrap(Span::at(start_pos));
             }
 
+            match_by_string!(self, "->" => RightArrow);
             match_by_string!(self, "==" => EqualEqual);
             match_by_string!(self, "!=" => NotEqual);
             match_by_string!(self, "<=" => LessEqual);
-            match_by_string!(self, "<" => LessThan);
             match_by_string!(self, ">=" => GreaterEqual);
+            match_by_string!(self, "<" => LessThan);
             match_by_string!(self, ">" => GreaterThan);
             match_by_string!(self, "(" => LeftParen);
             match_by_string!(self, ")" => RightParen);
             match_by_string!(self, "{" => LeftBrace);
             match_by_string!(self, "}" => RightBrace);
             match_by_string!(self, "," => Comma);
+            match_by_string!(self, ":" => Colon);
             match_by_string!(self, "=" => Equal);
             match_by_string!(self, "+" => Plus);
             match_by_string!(self, "-" => Minus);

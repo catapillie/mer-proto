@@ -28,6 +28,8 @@ gen_tokens! {
 
     Comma ","
         self => (","),
+    Colon ":"
+        self => (":"),
 
     Equal "="
         self => ("="),
@@ -60,13 +62,16 @@ gen_tokens! {
     GreaterThan ">"
         self => ("<"),
 
+    RightArrow "->"
+        self => ("->"),
+
     IfKw "'if' keyword"
         self => ("'if' keyword"),
     ThenKw "'then' keyword"
         self => ("'then' keyword"),
     ElseKw "'else' keyword"
         self => ("'else' keyword"),
-    WhileKw "'whild' keyword"
+    WhileKw "'while' keyword"
         self => ("'whild' keyword"),
     DoKw "'do' keyword"
         self => ("'do' keyword"),
