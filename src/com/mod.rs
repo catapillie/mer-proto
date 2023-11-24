@@ -1,6 +1,6 @@
 use self::{diagnostics::Diagnostic, parser::Parser};
 use crate::{
-    com::{codegen::Codegen, diagnostics::Diagnostics},
+    com::{analyser::Analyser, codegen::Codegen, diagnostics::Diagnostics},
     msg,
 };
 use colored::Colorize;
@@ -9,6 +9,8 @@ use std::{
     process::{self},
 };
 
+mod abt;
+mod analyser;
 mod ast;
 mod codegen;
 mod cursor;
@@ -23,24 +25,17 @@ pub fn compile(source: String) {
 
     let mut diagnostics = Diagnostics::new();
 
-    let parser = Parser::new(source.as_str(), &mut diagnostics);
-    let ast = parser.parse_program();
+    let ast = Parser::new(source.as_str(), &mut diagnostics).parse_program();
+    let _abt = Analyser::new(&mut diagnostics).analyse_program(&ast);
 
     let diagnostics = diagnostics.done();
-
     if !diagnostics.is_empty() {
-        msg::error(
-            format!("parsing finished with {} error(s)", diagnostics.len())
-                .bold()
-                .to_string(),
-        );
         for diagnostic in diagnostics {
             print_diagnostic(lines.as_slice(), diagnostic);
         }
         process::exit(1);
     }
-
-    msg::ok("parsing finished successfully");
+    msg::ok("analysis finished successfully");
 
     let result = Codegen::new().gen(&ast);
 
