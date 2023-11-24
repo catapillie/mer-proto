@@ -1,36 +1,35 @@
 use super::{
     ast::{Associativity, BinaryOperator, ExprAst, Precedence, ProgramAst, StmtAst, UnaryOperator},
     cursor::Cursor,
-    errors::ParseError,
     span::Span,
-    tokens::*,
+    tokens::*, diagnostics::{Diagnostic, DiagnosticBuilder}, pos::Pos,
 };
 
-pub struct Parser<'src> {
-    cursor: Cursor<'src>,
+pub struct Parser<'a> {
+    cursor: Cursor<'a>,
     look_ahead: Token,
     last_token: Token,
-    errors: Vec<(ParseError, Span)>,
+    diagnostics: &'a mut DiagnosticBuilder,
 }
 
-impl<'src> Parser<'src> {
-    pub fn init(source: &'src str) -> Self {
+impl<'a> Parser<'a> {
+    pub fn new(source: &'a str, diagnostics: &'a mut DiagnosticBuilder) -> Self {
         let mut parser = Self {
             cursor: Cursor::new(source),
             look_ahead: Token::Eof(Eof, Span::EOF),
             last_token: Token::Eof(Eof, Span::EOF),
-            errors: vec![],
+            diagnostics,
         };
         parser.look_ahead = parser.lex();
         parser
     }
 
-    pub fn parse_program(mut self) -> (ProgramAst, Vec<(ParseError, Span)>) {
-        let mut stmts = Vec::new();
+    pub fn parse_program(mut self) -> ProgramAst {
+        let mut program = Vec::new();
 
         loop {
             while let Some(stmt) = self.parse_statement() {
-                stmts.push(stmt);
+                program.push(stmt);
                 if !self.expect_newlines_or_eof() {
                     self.recover_to_next_statement();
                 }
@@ -39,14 +38,15 @@ impl<'src> Parser<'src> {
             match self.try_match_token::<Eof>() {
                 Some(_) => break,
                 None => {
-                    let e = (ParseError::ExpectedStatement, self.span_here());
-                    self.errors.push(e);
+                    self.diagnostics.push(Diagnostic::ExpectedStatement {
+                        at: self.pos()
+                    });
                     self.recover_to_next_statement();
                 }
             }
         }
 
-        (stmts, self.errors)
+        program
     }
 
     fn recover_to_next_statement(&mut self) {
@@ -179,8 +179,9 @@ impl<'src> Parser<'src> {
             let stmt = match self.parse_block_statement() {
                 Some(stmt) => StmtAst::Block(stmt),
                 None => {
-                    let e = (ParseError::ExpectedStatement, self.span_here());
-                    self.errors.push(e);
+                    self.diagnostics.push(Diagnostic::ExpectedStatement {
+                        at: self.pos(),
+                    });
                     StmtAst::Empty
                 }
             };
@@ -218,18 +219,18 @@ impl<'src> Parser<'src> {
             match self.try_match_token::<RightBrace>() {
                 Some(_) => break,
                 None => {
-                    let e = (ParseError::ExpectedStatement, self.span_here());
-                    self.errors.push(e);
+                    self.diagnostics.push(Diagnostic::ExpectedStatement {
+                        at: self.pos(),
+                    });
                     self.recover_to_next_statement();
                 }
             }
 
             if self.try_match_token::<Eof>().is_some() {
-                let e = (ParseError::ExpectedToken(
-                    self.last_token.clone(),
-                    RightBrace::kind(),
-                ), self.span_here());
-                self.errors.push(e);
+                self.diagnostics.push(Diagnostic::ExpectedToken {
+                    found: self.last_token.clone(),
+                    expected: TokenKind::RightBrace,
+                });
                 break;
             }
         }
@@ -289,8 +290,9 @@ impl<'src> Parser<'src> {
         match self.parse_expression() {
             Some(expr) => expr,
             None => {
-                let e = (ParseError::ExpectedExpression, self.span_here());
-                self.errors.push(e);
+                self.diagnostics.push(Diagnostic::ExpectedExpression {
+                    at: self.pos(),
+                });
                 ExprAst::Bad
             }
         }
@@ -305,9 +307,10 @@ impl<'src> Parser<'src> {
             self.consume_token();
             let inner = match self.parse_operation_expression(Precedence::MAX) {
                 Some(inner) => inner,
-                None => {
-                    let e = (ParseError::ExpectedExpression, self.span_here());
-                    self.errors.push(e);
+                None => { 
+                    self.diagnostics.push(Diagnostic::ExpectedExpression {
+                        at: self.pos(),
+                    });
                     ExprAst::Bad
                 }
             };
@@ -331,8 +334,9 @@ impl<'src> Parser<'src> {
             let expr_right = match self.parse_operation_expression(prec_ahead) {
                 Some(inner) => inner,
                 None => {
-                    let e = (ParseError::ExpectedExpression, self.span_here());
-                    self.errors.push(e);
+                    self.diagnostics.push(Diagnostic::ExpectedExpression {
+                        at: self.pos(),
+                    });
                     ExprAst::Bad
                 }
             };
@@ -398,8 +402,8 @@ impl<'src> Parser<'src> {
         self.try_match_token::<Newline>();
     }
 
-    fn span_here(&self) -> Span {
-        Span::at(self.cursor.pos())
+    fn pos(&self) -> Pos {
+        self.cursor.pos()
     }
 
     fn consume_token(&mut self) {
@@ -419,12 +423,10 @@ impl<'src> Parser<'src> {
             }
             None => {
                 let tok = self.look_ahead.clone();
-                let span = tok.span();
-                let e = (ParseError::ExpectedToken(
-                    tok,
-                    T::kind(),
-                ), span);
-                self.errors.push(e);
+                self.diagnostics.push(Diagnostic::ExpectedToken {
+                    found: tok,
+                    expected: T::kind()
+                });
                 None
             }
         }
@@ -440,12 +442,10 @@ impl<'src> Parser<'src> {
                 Some(_) => Some(T::default()),
                 None => {
                     let tok = self.look_ahead.clone();
-                    let span = tok.span();
-                    let e = (ParseError::ExpectedToken(
-                        tok,
-                        T::kind(),
-                    ), span);
-                    self.errors.push(e);
+                    self.diagnostics.push(Diagnostic::ExpectedToken {
+                        found: tok,
+                        expected: T::kind()
+                    });
                     None
                 }
             },
@@ -649,8 +649,7 @@ impl<'src> Parser<'src> {
 
             match self.cursor.peek() {
                 Some(u) => {
-                    let e = (ParseError::IllegalCharacter(u), self.span_here());
-                    self.errors.push(e);
+                    self.diagnostics.push(Diagnostic::IllegalCharacter { ill: u, at: self.pos() });
                     self.cursor.next();
                     continue;
                 }
