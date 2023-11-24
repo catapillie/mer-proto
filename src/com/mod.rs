@@ -1,5 +1,5 @@
-use self::parser::Parser;
-use crate::{com::{codegen::Codegen, diagnostics::DiagnosticBuilder}, msg};
+use self::{parser::Parser, diagnostics::Diagnostic};
+use crate::{com::{codegen::Codegen, diagnostics::Diagnostics}, msg};
 use colored::Colorize;
 use std::{
     fs,
@@ -16,12 +16,14 @@ mod span;
 mod tokens;
 
 pub fn compile(source: String) {
-    let mut diagnostic_builder = DiagnosticBuilder::new();
+    let lines = source.lines().collect::<Vec<_>>();
 
-    let parser = Parser::new(source.as_str(), &mut diagnostic_builder);
+    let mut diagnostics = Diagnostics::new();
+
+    let parser = Parser::new(source.as_str(), &mut diagnostics);
     let ast = parser.parse_program();
 
-    let diagnostics = diagnostic_builder.done();
+    let diagnostics = diagnostics.done();
 
     if !diagnostics.is_empty() {
         msg::error(
@@ -30,7 +32,7 @@ pub fn compile(source: String) {
                 .to_string(),
         );
         for diagnostic in diagnostics {
-            msg::error(diagnostic.msg());
+            print_diagnostic(lines.as_slice(), diagnostic);
         }
         process::exit(1);
     }
@@ -65,4 +67,42 @@ pub fn compile(source: String) {
     }
 
     process::exit(0);
+}
+
+// TODO: make it work with TAB characters
+fn print_diagnostic(lines: &[&str], diagnostic: Diagnostic) {
+    let msg = diagnostic.kind.msg();
+    let span = diagnostic.span;
+
+    assert!(span.from.line == span.to.line);
+
+    let from  = span.from.column;
+    let to = span.to.column;
+
+    let line_index = span.from.line;
+    let prev_line = lines.get(line_index - 1);
+    let next_line = lines.get(line_index + 1);
+    let chars = lines[line_index].chars();
+
+    msg::error(msg);
+
+    if let Some(line) = prev_line {
+        println!("{:>4} │ {line}", line_index);
+    }
+
+    print!("{:>4} │ ", line_index + 1);
+    print!("{}", chars.clone().take(from).collect::<String>());
+    print!("{}", chars.clone().skip(from).take(to-from).collect::<String>().bright_red());
+    print!("{}", chars.clone().skip(to).collect::<String>());
+    println!("");
+
+    print!("     │{}", " ".repeat(span.from.column));
+    print!("{}", "└".bright_red());
+    print!("{}", "─".repeat(span.to.column - span.from.column).bright_red());
+    print!("{}", "┘".bright_red());
+    println!();
+
+    if let Some(line) = next_line {
+        println!("{:>4} │ {line}", line_index + 2);
+    }
 }

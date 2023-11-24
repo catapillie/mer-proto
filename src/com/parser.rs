@@ -1,19 +1,21 @@
 use super::{
     ast::{Associativity, BinaryOperator, ExprAst, Precedence, ProgramAst, StmtAst, UnaryOperator},
     cursor::Cursor,
+    diagnostics::{self, DiagnosticKind, Diagnostics},
+    pos::Pos,
     span::Span,
-    tokens::*, diagnostics::{Diagnostic, DiagnosticBuilder}, pos::Pos,
+    tokens::*,
 };
 
 pub struct Parser<'a> {
     cursor: Cursor<'a>,
     look_ahead: Token,
     last_token: Token,
-    diagnostics: &'a mut DiagnosticBuilder,
+    diagnostics: &'a mut Diagnostics,
 }
 
 impl<'a> Parser<'a> {
-    pub fn new(source: &'a str, diagnostics: &'a mut DiagnosticBuilder) -> Self {
+    pub fn new(source: &'a str, diagnostics: &'a mut Diagnostics) -> Self {
         let mut parser = Self {
             cursor: Cursor::new(source),
             look_ahead: Token::Eof(Eof, Span::EOF),
@@ -38,9 +40,11 @@ impl<'a> Parser<'a> {
             match self.try_match_token::<Eof>() {
                 Some(_) => break,
                 None => {
-                    self.diagnostics.push(Diagnostic::ExpectedStatement {
-                        at: self.pos()
-                    });
+                    let d = diagnostics::create_diagnostic()
+                        .with_kind(DiagnosticKind::ExpectedStatement)
+                        .with_pos(self.pos())
+                        .done();
+                    self.diagnostics.push(d);
                     self.recover_to_next_statement();
                 }
             }
@@ -179,9 +183,11 @@ impl<'a> Parser<'a> {
             let stmt = match self.parse_block_statement() {
                 Some(stmt) => StmtAst::Block(stmt),
                 None => {
-                    self.diagnostics.push(Diagnostic::ExpectedStatement {
-                        at: self.pos(),
-                    });
+                    let d = diagnostics::create_diagnostic()
+                        .with_kind(DiagnosticKind::ExpectedStatement)
+                        .with_pos(self.pos())
+                        .done();
+                    self.diagnostics.push(d);
                     StmtAst::Empty
                 }
             };
@@ -219,18 +225,24 @@ impl<'a> Parser<'a> {
             match self.try_match_token::<RightBrace>() {
                 Some(_) => break,
                 None => {
-                    self.diagnostics.push(Diagnostic::ExpectedStatement {
-                        at: self.pos(),
-                    });
+                    let d = diagnostics::create_diagnostic()
+                        .with_kind(DiagnosticKind::ExpectedStatement)
+                        .with_pos(self.pos())
+                        .done();
+                    self.diagnostics.push(d);
                     self.recover_to_next_statement();
                 }
             }
 
             if self.try_match_token::<Eof>().is_some() {
-                self.diagnostics.push(Diagnostic::ExpectedToken {
-                    found: self.last_token.clone(),
-                    expected: TokenKind::RightBrace,
-                });
+                let d = diagnostics::create_diagnostic()
+                    .with_kind(DiagnosticKind::ExpectedToken {
+                        found: self.last_token.clone(),
+                        expected: TokenKind::RightBrace,
+                    })
+                    .with_span(self.last_token.span())
+                    .done();
+                self.diagnostics.push(d);
                 break;
             }
         }
@@ -290,9 +302,11 @@ impl<'a> Parser<'a> {
         match self.parse_expression() {
             Some(expr) => expr,
             None => {
-                self.diagnostics.push(Diagnostic::ExpectedExpression {
-                    at: self.pos(),
-                });
+                let d = diagnostics::create_diagnostic()
+                    .with_kind(DiagnosticKind::ExpectedExpression)
+                    .with_pos(self.pos())
+                    .done();
+                self.diagnostics.push(d);
                 ExprAst::Bad
             }
         }
@@ -307,10 +321,12 @@ impl<'a> Parser<'a> {
             self.consume_token();
             let inner = match self.parse_operation_expression(Precedence::MAX) {
                 Some(inner) => inner,
-                None => { 
-                    self.diagnostics.push(Diagnostic::ExpectedExpression {
-                        at: self.pos(),
-                    });
+                None => {
+                    let d = diagnostics::create_diagnostic()
+                        .with_kind(DiagnosticKind::ExpectedExpression)
+                        .with_pos(self.pos())
+                        .done();
+                    self.diagnostics.push(d);
                     ExprAst::Bad
                 }
             };
@@ -334,9 +350,11 @@ impl<'a> Parser<'a> {
             let expr_right = match self.parse_operation_expression(prec_ahead) {
                 Some(inner) => inner,
                 None => {
-                    self.diagnostics.push(Diagnostic::ExpectedExpression {
-                        at: self.pos(),
-                    });
+                    let d = diagnostics::create_diagnostic()
+                        .with_kind(DiagnosticKind::ExpectedExpression)
+                        .with_pos(self.pos())
+                        .done();
+                    self.diagnostics.push(d);
                     ExprAst::Bad
                 }
             };
@@ -423,10 +441,15 @@ impl<'a> Parser<'a> {
             }
             None => {
                 let tok = self.look_ahead.clone();
-                self.diagnostics.push(Diagnostic::ExpectedToken {
-                    found: tok,
-                    expected: T::kind()
-                });
+                let span = tok.span();
+                let d = diagnostics::create_diagnostic()
+                    .with_kind(DiagnosticKind::ExpectedToken {
+                        found: tok,
+                        expected: T::kind(),
+                    })
+                    .with_span(span)
+                    .done();
+                self.diagnostics.push(d);
                 None
             }
         }
@@ -442,10 +465,15 @@ impl<'a> Parser<'a> {
                 Some(_) => Some(T::default()),
                 None => {
                     let tok = self.look_ahead.clone();
-                    self.diagnostics.push(Diagnostic::ExpectedToken {
-                        found: tok,
-                        expected: T::kind()
-                    });
+                    let span = tok.span();
+                    let d = diagnostics::create_diagnostic()
+                        .with_kind(DiagnosticKind::ExpectedToken {
+                            found: tok,
+                            expected: T::kind(),
+                        })
+                        .with_span(span)
+                        .done();
+                    self.diagnostics.push(d);
                     None
                 }
             },
@@ -649,7 +677,11 @@ impl<'a> Parser<'a> {
 
             match self.cursor.peek() {
                 Some(u) => {
-                    self.diagnostics.push(Diagnostic::IllegalCharacter { ill: u, at: self.pos() });
+                    let d = diagnostics::create_diagnostic()
+                        .with_kind(DiagnosticKind::IllegalCharacter(u))
+                        .with_pos(self.pos())
+                        .done();
+                    self.diagnostics.push(d);
                     self.cursor.next();
                     continue;
                 }
