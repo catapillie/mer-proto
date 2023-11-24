@@ -1,36 +1,37 @@
 use super::{
     ast::{Associativity, BinaryOperator, ExprAst, Precedence, ProgramAst, StmtAst, UnaryOperator},
     cursor::Cursor,
-    errors::ParseError,
+    diagnostics::{self, DiagnosticKind, Diagnostics},
+    pos::Pos,
     span::Span,
     tokens::*,
 };
 
-pub struct Parser<'src> {
-    cursor: Cursor<'src>,
+pub struct Parser<'a> {
+    cursor: Cursor<'a>,
     look_ahead: Token,
     last_token: Token,
-    errors: Vec<ParseError>,
+    diagnostics: &'a mut Diagnostics,
 }
 
-impl<'src> Parser<'src> {
-    pub fn init(source: &'src str) -> Self {
+impl<'a> Parser<'a> {
+    pub fn new(source: &'a str, diagnostics: &'a mut Diagnostics) -> Self {
         let mut parser = Self {
             cursor: Cursor::new(source),
             look_ahead: Token::Eof(Eof, Span::EOF),
             last_token: Token::Eof(Eof, Span::EOF),
-            errors: vec![],
+            diagnostics,
         };
         parser.look_ahead = parser.lex();
         parser
     }
 
-    pub fn parse_program(mut self) -> (ProgramAst, Vec<ParseError>) {
-        let mut stmts = Vec::new();
+    pub fn parse_program(mut self) -> ProgramAst {
+        let mut program = Vec::new();
 
         loop {
             while let Some(stmt) = self.parse_statement() {
-                stmts.push(stmt);
+                program.push(stmt);
                 if !self.expect_newlines_or_eof() {
                     self.recover_to_next_statement();
                 }
@@ -39,13 +40,17 @@ impl<'src> Parser<'src> {
             match self.try_match_token::<Eof>() {
                 Some(_) => break,
                 None => {
-                    self.errors.push(ParseError::ExpectedStatement);
+                    let d = diagnostics::create_diagnostic()
+                        .with_kind(DiagnosticKind::ExpectedStatement)
+                        .with_pos(self.pos())
+                        .done();
+                    self.diagnostics.push(d);
                     self.recover_to_next_statement();
                 }
             }
         }
 
-        (stmts, self.errors)
+        program
     }
 
     fn recover_to_next_statement(&mut self) {
@@ -186,7 +191,11 @@ impl<'src> Parser<'src> {
             let stmt = match self.parse_block_statement() {
                 Some(stmt) => StmtAst::Block(stmt),
                 None => {
-                    self.errors.push(ParseError::ExpectedStatement);
+                    let d = diagnostics::create_diagnostic()
+                        .with_kind(DiagnosticKind::ExpectedStatement)
+                        .with_pos(self.pos())
+                        .done();
+                    self.diagnostics.push(d);
                     StmtAst::Empty
                 }
             };
@@ -224,16 +233,24 @@ impl<'src> Parser<'src> {
             match self.try_match_token::<RightBrace>() {
                 Some(_) => break,
                 None => {
-                    self.errors.push(ParseError::ExpectedStatement);
+                    let d = diagnostics::create_diagnostic()
+                        .with_kind(DiagnosticKind::ExpectedStatement)
+                        .with_pos(self.pos())
+                        .done();
+                    self.diagnostics.push(d);
                     self.recover_to_next_statement();
                 }
             }
 
             if self.try_match_token::<Eof>().is_some() {
-                self.errors.push(ParseError::ExpectedToken(
-                    self.last_token.clone(),
-                    RightBrace::kind(),
-                ));
+                let d = diagnostics::create_diagnostic()
+                    .with_kind(DiagnosticKind::ExpectedToken {
+                        found: self.last_token.clone(),
+                        expected: TokenKind::RightBrace,
+                    })
+                    .with_span(self.last_token.span())
+                    .done();
+                self.diagnostics.push(d);
                 break;
             }
         }
@@ -293,7 +310,11 @@ impl<'src> Parser<'src> {
         match self.parse_expression() {
             Some(expr) => expr,
             None => {
-                self.errors.push(ParseError::ExpectedExpression);
+                let d = diagnostics::create_diagnostic()
+                    .with_kind(DiagnosticKind::ExpectedExpression)
+                    .with_pos(self.pos())
+                    .done();
+                self.diagnostics.push(d);
                 ExprAst::Bad
             }
         }
@@ -309,7 +330,11 @@ impl<'src> Parser<'src> {
             let inner = match self.parse_operation_expression(Precedence::MAX) {
                 Some(inner) => inner,
                 None => {
-                    self.errors.push(ParseError::ExpectedExpression);
+                    let d = diagnostics::create_diagnostic()
+                        .with_kind(DiagnosticKind::ExpectedExpression)
+                        .with_pos(self.pos())
+                        .done();
+                    self.diagnostics.push(d);
                     ExprAst::Bad
                 }
             };
@@ -333,7 +358,11 @@ impl<'src> Parser<'src> {
             let expr_right = match self.parse_operation_expression(prec_ahead) {
                 Some(inner) => inner,
                 None => {
-                    self.errors.push(ParseError::ExpectedExpression);
+                    let d = diagnostics::create_diagnostic()
+                        .with_kind(DiagnosticKind::ExpectedExpression)
+                        .with_pos(self.pos())
+                        .done();
+                    self.diagnostics.push(d);
                     ExprAst::Bad
                 }
             };
@@ -399,6 +428,10 @@ impl<'src> Parser<'src> {
         self.try_match_token::<Newline>();
     }
 
+    fn pos(&self) -> Pos {
+        self.cursor.pos()
+    }
+
     fn consume_token(&mut self) {
         let next = self.lex();
         self.last_token = std::mem::replace(&mut self.look_ahead, next);
@@ -415,10 +448,16 @@ impl<'src> Parser<'src> {
                 Some(value)
             }
             None => {
-                self.errors.push(ParseError::ExpectedToken(
-                    self.look_ahead.clone(),
-                    T::kind(),
-                ));
+                let tok = self.look_ahead.clone();
+                let span = tok.span();
+                let d = diagnostics::create_diagnostic()
+                    .with_kind(DiagnosticKind::ExpectedToken {
+                        found: tok,
+                        expected: T::kind(),
+                    })
+                    .with_span(span)
+                    .done();
+                self.diagnostics.push(d);
                 None
             }
         }
@@ -433,10 +472,16 @@ impl<'src> Parser<'src> {
             None => match self.try_match_token::<Eof>() {
                 Some(_) => Some(T::default()),
                 None => {
-                    self.errors.push(ParseError::ExpectedToken(
-                        self.look_ahead.clone(),
-                        T::kind(),
-                    ));
+                    let tok = self.look_ahead.clone();
+                    let span = tok.span();
+                    let d = diagnostics::create_diagnostic()
+                        .with_kind(DiagnosticKind::ExpectedToken {
+                            found: tok,
+                            expected: T::kind(),
+                        })
+                        .with_span(span)
+                        .done();
+                    self.diagnostics.push(d);
                     None
                 }
             },
@@ -640,7 +685,11 @@ impl<'src> Parser<'src> {
 
             match self.cursor.peek() {
                 Some(u) => {
-                    self.errors.push(ParseError::IllegalCharacter(u));
+                    let d = diagnostics::create_diagnostic()
+                        .with_kind(DiagnosticKind::IllegalCharacter(u))
+                        .with_pos(self.pos())
+                        .done();
+                    self.diagnostics.push(d);
                     self.cursor.next();
                     continue;
                 }

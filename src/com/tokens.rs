@@ -127,7 +127,7 @@ macro_rules! gen_tokens {
             }
         }
 
-        #[derive(Debug)]
+        #[derive(Debug, Copy, Clone)]
         pub enum TokenKind {
             $(
                 $name
