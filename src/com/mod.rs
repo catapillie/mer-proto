@@ -1,5 +1,8 @@
-use self::{parser::Parser, diagnostics::Diagnostic};
-use crate::{com::{codegen::Codegen, diagnostics::Diagnostics}, msg};
+use self::{diagnostics::Diagnostic, parser::Parser};
+use crate::{
+    com::{codegen::Codegen, diagnostics::Diagnostics},
+    msg,
+};
 use colored::Colorize;
 use std::{
     fs,
@@ -76,11 +79,16 @@ fn print_diagnostic(lines: &[&str], diagnostic: Diagnostic) {
 
     assert!(span.from.line == span.to.line);
 
-    let from  = span.from.column;
+    let from = span.from.column;
     let to = span.to.column;
+    let width = to - from;
 
     let line_index = span.from.line;
-    let prev_line = lines.get(line_index - 1);
+    let prev_line = if line_index == 0 {
+        None
+    } else {
+        lines.get(line_index - 1)
+    };
     let next_line = lines.get(line_index + 1);
     let chars = lines[line_index].chars();
 
@@ -90,16 +98,37 @@ fn print_diagnostic(lines: &[&str], diagnostic: Diagnostic) {
         println!("{:>4} │ {line}", line_index);
     }
 
-    print!("{:>4} │ ", line_index + 1);
-    print!("{}", chars.clone().take(from).collect::<String>());
-    print!("{}", chars.clone().skip(from).take(to-from).collect::<String>().bright_red());
-    print!("{}", chars.clone().skip(to).collect::<String>());
-    println!("");
+    let current_line = lines[line_index];
+    if !current_line.is_empty() {
+        print!("{:>4} │ ", line_index + 1);
+        print!("{}", chars.clone().take(from).collect::<String>());
+        print!(
+            "{}",
+            chars
+                .clone()
+                .skip(from)
+                .take(to - from)
+                .collect::<String>()
+                .bright_red()
+        );
+        print!("{}", chars.clone().skip(to).collect::<String>());
+    } else {
+        println!("{:>4} │ {current_line}", line_index + 1);
+    }
+    println!();
 
-    print!("     │{}", " ".repeat(span.from.column));
-    print!("{}", "└".bright_red());
-    print!("{}", "─".repeat(span.to.column - span.from.column).bright_red());
-    print!("{}", "┘".bright_red());
+    if width > 1 {
+        print!("     │{}", " ".repeat(span.from.column));
+        print!("{}", "└".bright_red());
+        print!(
+            "{}",
+            "─".repeat(span.to.column - span.from.column).bright_red()
+        );
+        print!("{}", "┘".bright_red());
+    } else {
+        print!("     │{}", " ".repeat(span.from.column + 1));
+        print!("{}", "↑ here".bright_red());
+    }
     println!();
 
     if let Some(line) = next_line {

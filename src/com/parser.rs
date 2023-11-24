@@ -716,12 +716,15 @@ impl<'a> Parser<'a> {
 
             match self.cursor.peek() {
                 Some(u) => {
+                    let pos_from = self.pos();
+                    self.cursor.next();
+                    let pos_to = self.pos();
+
                     let d = diagnostics::create_diagnostic()
                         .with_kind(DiagnosticKind::IllegalCharacter(u))
-                        .with_pos(self.pos())
+                        .with_span(Span::new(pos_from, pos_to))
                         .done();
                     self.diagnostics.push(d);
-                    self.cursor.next();
                     continue;
                 }
                 None => return Eof.wrap(Span::EOF),
