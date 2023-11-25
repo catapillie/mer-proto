@@ -72,7 +72,7 @@ gen_tokens! {
     ElseKw "'else' keyword"
         self => ("'else' keyword"),
     WhileKw "'while' keyword"
-        self => ("'whild' keyword"),
+        self => ("'while' keyword"),
     DoKw "'do' keyword"
         self => ("'do' keyword"),
     VarKw "'var' keyword"
