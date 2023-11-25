@@ -18,6 +18,23 @@ impl Span {
     pub const fn at(pos: Pos) -> Self {
         Self::new(pos, pos)
     }
+
+    // joins two slices into one
+    pub fn join(self, rhs: Self) -> Self {
+        let max = if self.to.index >= rhs.to.index {
+            self.to
+        } else {
+            rhs.to
+        };
+
+        let min = if self.from.index <= rhs.from.index {
+            self.from
+        } else {
+            rhs.from
+        };
+
+        Span::new(min, max)
+    }
 }
 
 impl Display for Span {

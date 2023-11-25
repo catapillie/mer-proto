@@ -1,7 +1,7 @@
 use super::{
     ast::{
-        Associativity, BinaryOperator, ExprAst, Precedence, ProgramAst, StmtAst, TypeAst,
-        UnaryOperator,
+        Associativity, BinaryOperator, ExprAstKind, Precedence, ProgramAst, StmtAstKind, TypeAstKind,
+        UnaryOperator, TypeAst, ExprAst, StmtAst,
     },
     cursor::Cursor,
     diagnostics::{self, DiagnosticKind, Diagnostics},
@@ -12,6 +12,7 @@ use super::{
 
 pub struct Parser<'a> {
     cursor: Cursor<'a>,
+    last_boundary: Pos,
     look_ahead: Token,
     last_token: Token,
     diagnostics: &'a mut Diagnostics,
@@ -21,6 +22,7 @@ impl<'a> Parser<'a> {
     pub fn new(source: &'a str, diagnostics: &'a mut Diagnostics) -> Self {
         let mut parser = Self {
             cursor: Cursor::new(source),
+            last_boundary: Pos::MIN,
             look_ahead: Token::Eof(Eof, Span::EOF),
             last_token: Token::Eof(Eof, Span::EOF),
             diagnostics,
@@ -78,93 +80,152 @@ impl<'a> Parser<'a> {
         }
     }
 
+    fn empty_statement_here(&self) -> StmtAst {
+        StmtAstKind::Empty.wrap(Span::at(self.pos()))
+    }
+
     pub fn parse_statement(&mut self) -> Option<StmtAst> {
         self.skip_newlines();
 
-        if self.try_match_token::<VarKw>().is_some() {
+        try_return_some!(self.parse_variable_definition());
+
+        if let Some(expr) = self.parse_expression() {
+            let span = expr.span;
+            return Some(StmtAstKind::Expr(Box::new(expr)).wrap(span));
+        }
+
+        try_return_some!(self.parse_block_statement());
+
+        try_return_some!(self.parse_if_statement());
+        try_return_some!(self.parse_then_statement());
+        try_return_some!(self.parse_else_statement());
+        
+        try_return_some!(self.parse_while_do_statement());
+        try_return_some!(self.parse_do_while_statement());
+
+        try_return_some!(self.parse_function_statement());
+        try_return_some!(self.parse_return_statement());
+
+        None
+    }
+
+    fn parse_variable_definition(&mut self) -> Option<StmtAst> {
+        let (stmt, span) = take_span!(self => {
+            self.try_match_token::<VarKw>()?;
+
             let id = self.match_token::<Identifier>().map(|tok| tok.0);
             self.match_token::<Equal>();
             let expr = self.expect_expression();
-            return Some(StmtAst::VarDef(id, expr));
-        }
+            Some(StmtAstKind::VarDef(id, Box::new(expr)))
+        });
 
-        if let Some(expr) = self.parse_expression() {
-            return Some(StmtAst::Expr(expr));
-        }
+        stmt.map(|s| s.wrap(span))
+    }
 
-        if let Some(stmts) = self.parse_block_statement() {
-            return Some(StmtAst::Block(stmts));
-        }
+    fn parse_if_statement(&mut self) -> Option<StmtAst> {
+        let (stmt, span) = take_span!(self => {
+            self.try_match_token::<IfKw>()?;
 
-        if self.try_match_token::<IfKw>().is_some() {
             let expr = self.expect_expression();
-
+    
             self.skip_newlines();
             self.match_token::<ThenKw>();
             self.skip_newlines();
             if self.try_match_token::<ElseKw>().is_some() {
                 self.skip_newlines();
-                let stmt_else = self.parse_statement().unwrap_or(StmtAst::Empty);
-                return Some(StmtAst::IfThenElse(
-                    expr,
-                    Box::new(StmtAst::Empty),
-                    Box::new(stmt_else),
-                ));
-            }
-
-            let stmt_if = self.parse_statement().unwrap_or(StmtAst::Empty);
-
-            self.skip_newlines();
-            if self.try_match_token::<ElseKw>().is_some() {
-                self.skip_newlines();
-                let stmt_else = self.parse_statement().unwrap_or(StmtAst::Empty);
-                return Some(StmtAst::IfThenElse(
-                    expr,
+                let stmt_if = self.empty_statement_here();
+                let stmt_else = self.parse_statement().unwrap_or(self.empty_statement_here());
+                return Some(StmtAstKind::IfThenElse(
+                    Box::new(expr),
                     Box::new(stmt_if),
                     Box::new(stmt_else),
                 ));
             }
 
-            return Some(StmtAst::IfThen(expr, Box::new(stmt_if)));
-        }
+            let stmt_if = self.parse_statement().unwrap_or(self.empty_statement_here());
 
-        if self.try_match_token::<ThenKw>().is_some() {
             self.skip_newlines();
-            let stmt = self.parse_statement().unwrap_or(StmtAst::Empty);
-            return Some(StmtAst::Then(Box::new(stmt)));
-        }
+            if self.try_match_token::<ElseKw>().is_some() {
+                self.skip_newlines();
+                let stmt_else = self.parse_statement().unwrap_or(self.empty_statement_here());
+                return Some(StmtAstKind::IfThenElse(
+                    Box::new(expr),
+                    Box::new(stmt_if),
+                    Box::new(stmt_else),
+                ));
+            }
 
-        if self.try_match_token::<ElseKw>().is_some() {
+            Some(StmtAstKind::IfThen(Box::new(expr), Box::new(stmt_if)))
+        });
+
+        stmt.map(|s| s.wrap(span))
+    }
+
+    fn parse_then_statement(&mut self) -> Option<StmtAst> {
+        let (stmt, span) = take_span!(self => {
+            self.try_match_token::<ThenKw>()?;
+
             self.skip_newlines();
-            let stmt = self.parse_statement().unwrap_or(StmtAst::Empty);
-            return Some(StmtAst::Else(Box::new(stmt)));
-        }
+            let stmt = self.parse_statement().unwrap_or(self.empty_statement_here());
+            Some(StmtAstKind::Then(Box::new(stmt)))
+        });
 
-        if self.try_match_token::<WhileKw>().is_some() {
+        stmt.map(|s| s.wrap(span))
+    }
+
+    fn parse_else_statement(&mut self) -> Option<StmtAst> {
+        let (stmt, span) = take_span!(self => {
+            self.try_match_token::<ElseKw>()?;
+
+            self.skip_newlines();
+            let stmt = self.parse_statement().unwrap_or(self.empty_statement_here());
+            Some(StmtAstKind::Else(Box::new(stmt)))
+        });
+
+        stmt.map(|s| s.wrap(span))
+    }
+
+    fn parse_while_do_statement(&mut self) -> Option<StmtAst> {
+        let (stmt, span) = take_span!(self => {
+            self.try_match_token::<WhileKw>()?;
+
             self.skip_newlines();
             let expr = self.expect_expression();
             self.skip_newlines();
+
             self.match_token::<DoKw>();
             self.skip_newlines();
-            let stmt_do = self.parse_statement().unwrap_or(StmtAst::Empty);
-            return Some(StmtAst::WhileDo(expr, Box::new(stmt_do)));
-        }
+            let stmt_do = self.parse_statement().unwrap_or(self.empty_statement_here());
+            return Some(StmtAstKind::WhileDo(Box::new(expr), Box::new(stmt_do)));
+        });
 
-        if self.try_match_token::<DoKw>().is_some() {
+        stmt.map(|s| s.wrap(span))
+    }
+
+    fn parse_do_while_statement(&mut self) -> Option<StmtAst> {
+        let (stmt, span) = take_span!(self => {
+            self.try_match_token::<DoKw>()?;
+
             self.skip_newlines();
-            let stmt_do = self.parse_statement().unwrap_or(StmtAst::Empty);
+            let stmt_do = self.parse_statement().unwrap_or(self.empty_statement_here());
             self.skip_newlines();
 
             if self.try_match_token::<WhileKw>().is_some() {
                 self.skip_newlines();
                 let expr = self.expect_expression();
-                return Some(StmtAst::DoWhile(Box::new(stmt_do), expr));
+                return Some(StmtAstKind::DoWhile(Box::new(stmt_do), Box::new(expr)));
             }
 
-            return Some(StmtAst::Do(Box::new(stmt_do)));
-        }
+            Some(StmtAstKind::Do(Box::new(stmt_do)))
+        });
 
-        if self.try_match_token::<FuncKw>().is_some() {
+        stmt.map(|s| s.wrap(span))
+    }
+
+    fn parse_function_statement(&mut self) -> Option<StmtAst> {
+        let (stmt, span) = take_span!(self => {
+            self.try_match_token::<FuncKw>()?;
+
             let name = self.match_token::<Identifier>().map(|id| id.0);
             let mut params = Vec::new();
 
@@ -189,79 +250,90 @@ impl<'a> Parser<'a> {
 
             if self.try_match_token::<Equal>().is_some() {
                 let expr = self.expect_expression();
-                let body = StmtAst::ReturnWith(expr);
+                let span = expr.span;
+                let body = StmtAstKind::ReturnWith(Box::new(expr)).wrap(span);
 
-                return Some(StmtAst::Func(name, params, Box::new(body), ty));
+                return Some(StmtAstKind::Func(name, params, Box::new(body), Box::new(ty)));
             }
 
             let stmt = match self.parse_block_statement() {
-                Some(stmt) => StmtAst::Block(stmt),
+                Some(stmt) => stmt,
                 None => {
                     let d = diagnostics::create_diagnostic()
                         .with_kind(DiagnosticKind::ExpectedStatement)
                         .with_pos(self.pos())
                         .done();
                     self.diagnostics.push(d);
-                    StmtAst::Empty
+                    self.empty_statement_here()
                 }
             };
 
-            return Some(StmtAst::Func(name, params, Box::new(stmt), ty));
-        }
+            Some(StmtAstKind::Func(name, params, Box::new(stmt), Box::new(ty)))
+        });
 
-        if self.try_match_token::<ReturnKw>().is_some() {
-            if let Some(expr) = self.parse_expression() {
-                return Some(StmtAst::ReturnWith(expr));
-            } else {
-                return Some(StmtAst::Return);
-            }
-        }
-
-        None
+        stmt.map(|s| s.wrap(span))
     }
 
-    fn parse_block_statement(&mut self) -> Option<Vec<StmtAst>> {
-        self.try_match_token::<LeftBrace>()?;
-        self.skip_newlines();
+    fn parse_return_statement(&mut self) -> Option<StmtAst> {
+        let (stmt, span) = take_span!(self => {
+            self.try_match_token::<ReturnKw>()?;
 
-        let mut stmts = Vec::new();
-        loop {
-            while let Some(stmt) = self.parse_statement() {
-                stmts.push(stmt);
-                if self.peek_token::<RightBrace>() {
-                    break;
-                }
-                if !self.expect_newlines_or_eof() {
-                    self.recover_to_next_statement();
-                }
+            if let Some(expr) = self.parse_expression() {
+                Some(StmtAstKind::ReturnWith(Box::new(expr)))
+            } else {
+                Some(StmtAstKind::Return)
             }
+        });
 
-            match self.try_match_token::<RightBrace>() {
-                Some(_) => break,
-                None => {
+        stmt.map(|s| s.wrap(span))
+    }
+
+    fn parse_block_statement(&mut self) -> Option<StmtAst> {
+        let (stmts, span) = take_span!(self => {
+            self.try_match_token::<LeftBrace>()?;
+            self.skip_newlines();
+
+            let mut stmts = Vec::new();
+            loop {
+                while let Some(stmt) = self.parse_statement() {
+                    stmts.push(stmt);
+                    if self.peek_token::<RightBrace>() {
+                        break;
+                    }
+                    if !self.expect_newlines_or_eof() {
+                        self.recover_to_next_statement();
+                    }
+                }
+
+                match self.try_match_token::<RightBrace>() {
+                    Some(_) => break,
+                    None => {
+                        let d = diagnostics::create_diagnostic()
+                            .with_kind(DiagnosticKind::ExpectedStatement)
+                            .with_pos(self.pos())
+                            .done();
+                        self.diagnostics.push(d);
+                        self.recover_to_next_statement();
+                    }
+                }
+
+                if self.try_match_token::<Eof>().is_some() {
                     let d = diagnostics::create_diagnostic()
-                        .with_kind(DiagnosticKind::ExpectedStatement)
-                        .with_pos(self.pos())
+                        .with_kind(DiagnosticKind::ExpectedToken {
+                            found: self.last_token.clone(),
+                            expected: TokenKind::RightBrace,
+                        })
+                        .with_span(self.last_token.span())
                         .done();
                     self.diagnostics.push(d);
-                    self.recover_to_next_statement();
+                    break;
                 }
             }
 
-            if self.try_match_token::<Eof>().is_some() {
-                let d = diagnostics::create_diagnostic()
-                    .with_kind(DiagnosticKind::ExpectedToken {
-                        found: self.last_token.clone(),
-                        expected: TokenKind::RightBrace,
-                    })
-                    .with_span(self.last_token.span())
-                    .done();
-                self.diagnostics.push(d);
-                break;
-            }
-        }
+            Some(stmts)
+        });
 
-        Some(stmts)
+        stmts.map(|s| StmtAstKind::Block(s).wrap(span))
     }
 
     pub fn is_start_of_expression(&self) -> bool {
@@ -317,7 +389,7 @@ impl<'a> Parser<'a> {
                     .with_pos(self.pos())
                     .done();
                 self.diagnostics.push(d);
-                ExprAst::Bad
+                ExprAstKind::Bad.wrap(Span::at(self.pos()))
             }
         }
     }
@@ -328,19 +400,21 @@ impl<'a> Parser<'a> {
 
     pub fn parse_operation_expression(&mut self, prec: Precedence) -> Option<ExprAst> {
         let mut expr = if let Some(op) = self.is_unary_operator() {
-            self.consume_token();
-            let inner = match self.parse_operation_expression(Precedence::MAX) {
-                Some(inner) => inner,
-                None => {
-                    let d = diagnostics::create_diagnostic()
-                        .with_kind(DiagnosticKind::ExpectedExpression)
-                        .with_pos(self.pos())
-                        .done();
-                    self.diagnostics.push(d);
-                    ExprAst::Bad
+            let (inner, span) = take_span!(self => {
+                self.consume_token();
+                match self.parse_operation_expression(Precedence::MAX) {
+                    Some(inner) => inner,
+                    None => {
+                        let d = diagnostics::create_diagnostic()
+                            .with_kind(DiagnosticKind::ExpectedExpression)
+                            .with_pos(self.pos())
+                            .done();
+                        self.diagnostics.push(d);
+                        ExprAstKind::Bad.wrap(Span::at(self.pos()))
+                    }
                 }
-            };
-            ExprAst::UnaryOp(op, Box::new(inner))
+            });
+            ExprAstKind::UnaryOp(op, Box::new(inner)).wrap(span)
         } else {
             self.parse_primary_expression()?
         };
@@ -365,60 +439,65 @@ impl<'a> Parser<'a> {
                         .with_pos(self.pos())
                         .done();
                     self.diagnostics.push(d);
-                    ExprAst::Bad
+                    ExprAstKind::Bad.wrap(Span::at(self.pos()))
                 }
             };
 
-            expr = ExprAst::BinaryOp(op, Box::new(expr), Box::new(expr_right));
+            let span = expr.span.join(expr_right.span);
+            expr = ExprAstKind::BinaryOp(op, Box::new(expr), Box::new(expr_right)).wrap(span);
         }
 
         Some(expr)
     }
 
     fn parse_primary_expression(&mut self) -> Option<ExprAst> {
-        if let Some(num) = self.try_match_token::<Number>() {
-            return Some(ExprAst::Number(num.0));
-        }
-
-        if let Some(id) = self.try_match_token::<Identifier>() {
-            if self.try_match_token::<LeftParen>().is_none() {
-                return Some(ExprAst::Identifier(id.0));
+        let (expr, span) = take_span!(self => {
+            if let Some(num) = self.try_match_token::<Number>() {
+                return Some(ExprAstKind::Number(num.0));
             }
-
-            let mut params = Vec::new();
-            loop {
-                let Some(expr) = self.parse_expression() else {
-                    break;
-                };
-
-                params.push(expr);
-
-                if self.try_match_token::<Comma>().is_none() {
-                    break;
+    
+            if let Some(id) = self.try_match_token::<Identifier>() {
+                if self.try_match_token::<LeftParen>().is_none() {
+                    return Some(ExprAstKind::Identifier(id.0));
                 }
+    
+                let mut params = Vec::new();
+                loop {
+                    let Some(expr) = self.parse_expression() else {
+                        break;
+                    };
+    
+                    params.push(expr);
+    
+                    if self.try_match_token::<Comma>().is_none() {
+                        break;
+                    }
+                }
+                self.match_token::<RightParen>();
+    
+                return Some(ExprAstKind::Call(id.0, params));
             }
-            self.match_token::<RightParen>();
+    
+            if self.try_match_token::<TrueKw>().is_some() {
+                return Some(ExprAstKind::Boolean(true));
+            }
+    
+            if self.try_match_token::<FalseKw>().is_some() {
+                return Some(ExprAstKind::Boolean(false));
+            }
+    
+            if self.try_match_token::<LeftParen>().is_some() {
+                self.skip_newlines();
+                let expr = self.expect_expression();
+                self.skip_newlines();
+                self.match_token::<RightParen>();
+                return Some(ExprAstKind::Parenthesized(Box::new(expr)));
+            }
+    
+            None
+        });
 
-            return Some(ExprAst::Call(id.0, params));
-        }
-
-        if self.try_match_token::<TrueKw>().is_some() {
-            return Some(ExprAst::Boolean(true));
-        }
-
-        if self.try_match_token::<FalseKw>().is_some() {
-            return Some(ExprAst::Boolean(false));
-        }
-
-        if self.try_match_token::<LeftParen>().is_some() {
-            self.skip_newlines();
-            let expr = self.expect_expression();
-            self.skip_newlines();
-            self.match_token::<RightParen>();
-            return Some(expr);
-        }
-
-        None
+        expr.map(|e| e.wrap(span))
     }
 
     fn expected_type_expression(&mut self) -> TypeAst {
@@ -430,19 +509,19 @@ impl<'a> Parser<'a> {
                     .with_pos(self.pos())
                     .done();
                 self.diagnostics.push(d);
-                TypeAst::Bad
+                TypeAstKind::Bad.wrap(Span::at(self.pos()))
             }
         }
     }
 
     fn parse_type_expression(&mut self) -> Option<TypeAst> {
         if let Some(id) = self.try_match_token::<Identifier>() {
-            return Some(TypeAst::Declared(id.0));
+            return Some(TypeAstKind::Declared(id.0).wrap(self.last_span()));
         }
 
         if self.try_match_token::<LeftParen>().is_some() {
             self.match_token::<RightParen>();
-            return Some(TypeAst::Unit);
+            return Some(TypeAstKind::Unit.wrap(self.last_span()));
         }
 
         None
@@ -457,6 +536,10 @@ impl<'a> Parser<'a> {
         self.try_match_token::<Newline>();
     }
 
+    fn last_span(&self) -> Span {
+        self.last_token.span()
+    }
+
     fn pos(&self) -> Pos {
         self.cursor.pos()
     }
@@ -464,6 +547,12 @@ impl<'a> Parser<'a> {
     fn consume_token(&mut self) {
         let next = self.lex();
         self.last_token = std::mem::replace(&mut self.look_ahead, next);
+        match self.last_token {
+            Token::Eof(_, _) | Token::Newline(_, _) => (),
+            _ => {
+                self.last_boundary = self.last_token.span().to;
+            }
+        }
     }
 
     fn peek_token<T: TokenValue>(&mut self) -> bool {
@@ -733,6 +822,25 @@ impl<'a> Parser<'a> {
     }
 }
 
+macro_rules! take_span {
+    ($self:ident => $e:expr) => {
+        {
+            let from = $self.last_boundary;
+            #[allow(clippy::redundant_closure_call)]
+            let res = (|| $e)();
+            let to = $self.last_boundary;
+            (res, Span::new(from, to))
+        }
+    };
+}
+
+macro_rules! try_return_some {
+    ($e:expr) => {
+        let e = $e;
+        if e.is_some() { return e; }
+    };
+}
+
 macro_rules! match_by_string {
     ($self:ident, $string:literal => $token:ident) => {
         if let Some(span) = $self.try_consume_string($string) {
@@ -741,4 +849,4 @@ macro_rules! match_by_string {
     };
 }
 
-use match_by_string;
+use {take_span, try_return_some, match_by_string};

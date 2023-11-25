@@ -5,7 +5,7 @@ use std::{
 
 use crate::run::opcode::{self, Opcode};
 
-use super::ast::{BinaryOperator, ExprAst, ProgramAst, StmtAst, UnaryOperator};
+use super::ast::{BinaryOperator, ExprAstKind, ProgramAst, StmtAstKind, UnaryOperator, StmtAst, ExprAst};
 
 #[derive(Default)]
 struct LocalsInfo {
@@ -61,7 +61,7 @@ impl Codegen {
     fn gen_functions(&mut self, stmts: &Vec<StmtAst>) -> HashMap<(String, u8), u32> {
         let mut functions = HashMap::new();
         for stmt in stmts {
-            let StmtAst::Func(Some(name), params, body, _) = stmt else {
+            let StmtAstKind::Func(Some(name), params, body, _) = &stmt.kind else {
                 continue;
             };
 
@@ -95,8 +95,8 @@ impl Codegen {
 
     // must issue recursive calls for statements that contain nested statements
     fn count_locals_in_stmt(locals: &mut LocalsInfo, stmt: &StmtAst, depth: u8) {
-        match stmt {
-            StmtAst::VarDef(id, _) => {
+        match &stmt.kind {
+            StmtAstKind::VarDef(id, _) => {
                 let Some(id) = id else {
                     return;
                 };
@@ -104,16 +104,16 @@ impl Codegen {
                 let n = locals.indices.len() as u8;
                 locals.indices.entry((id.clone(), depth)).or_insert(n);
             }
-            StmtAst::Block(stmts) => {
+            StmtAstKind::Block(stmts) => {
                 Self::count_locals_at(locals, stmts, depth + 1);
             }
-            StmtAst::IfThen(_, stmt) => Self::count_locals_in_stmt(locals, stmt, depth),
-            StmtAst::IfThenElse(_, stmt_if, stmt_else) => {
+            StmtAstKind::IfThen(_, stmt) => Self::count_locals_in_stmt(locals, stmt, depth),
+            StmtAstKind::IfThenElse(_, stmt_if, stmt_else) => {
                 Self::count_locals_in_stmt(locals, stmt_if, depth);
                 Self::count_locals_in_stmt(locals, stmt_else, depth);
             }
-            StmtAst::WhileDo(_, stmt) => Self::count_locals_in_stmt(locals, stmt, depth),
-            StmtAst::DoWhile(stmt, _) => Self::count_locals_in_stmt(locals, stmt, depth),
+            StmtAstKind::WhileDo(_, stmt) => Self::count_locals_in_stmt(locals, stmt, depth),
+            StmtAstKind::DoWhile(stmt, _) => Self::count_locals_in_stmt(locals, stmt, depth),
             _ => {}
         }
     }
@@ -195,24 +195,24 @@ impl Codegen {
         functions: &HashMap<(String, u8), u32>,
         depth: u8,
     ) {
-        match stmt {
-            StmtAst::Empty => {}
+        match &stmt.kind {
+            StmtAstKind::Empty => {}
 
-            StmtAst::VarDef(Some(id), expr) => {
+            StmtAstKind::VarDef(Some(id), expr) => {
                 self.gen_expr(expr, locals, functions, depth);
                 self.gen_st_loc(locals.get_local_index(id, depth).unwrap());
             }
 
-            StmtAst::Expr(expr) => {
+            StmtAstKind::Expr(expr) => {
                 let is_assignemt = self.gen_expr(expr, locals, functions, depth);
                 if !is_assignemt {
                     self.code.push(opcode::dbg);
                 }
             }
 
-            StmtAst::Block(stmts) => self.gen_block(stmts, locals, functions, depth),
+            StmtAstKind::Block(stmts) => self.gen_block(stmts, locals, functions, depth),
 
-            StmtAst::IfThen(guard, body) => {
+            StmtAstKind::IfThen(guard, body) => {
                 // if ...
                 self.gen_expr(guard, locals, functions, depth);
                 self.code.push(opcode::op_not);
@@ -226,7 +226,7 @@ impl Codegen {
                 self.replace_u32(cursor_from, cursor_to);
             }
 
-            StmtAst::IfThenElse(guard, body_if, body_else) => {
+            StmtAstKind::IfThenElse(guard, body_if, body_else) => {
                 // if ... then
                 self.gen_expr(guard, locals, functions, depth);
                 self.code.push(opcode::op_not);
@@ -246,7 +246,7 @@ impl Codegen {
                 self.replace_u32(cursor_guard_end, cursor_body_else_start as u32);
             }
 
-            StmtAst::WhileDo(guard, stmt) => {
+            StmtAstKind::WhileDo(guard, stmt) => {
                 // while ...
                 let cursor_guard_start = self.code.len();
                 self.gen_expr(guard, locals, functions, depth);
@@ -263,7 +263,7 @@ impl Codegen {
                 self.replace_u32(cursor_guard_end, cursor_body_end as u32);
             }
 
-            StmtAst::DoWhile(stmt, guard) => {
+            StmtAstKind::DoWhile(stmt, guard) => {
                 // do ...
                 let cursor_stmt_start = self.code.len();
                 self.gen_stmt(stmt, locals, functions, depth);
@@ -274,19 +274,19 @@ impl Codegen {
                 self.push_u32(cursor_stmt_start as u32);
             }
 
-            StmtAst::VarDef(None, _) => unreachable!(),
+            StmtAstKind::VarDef(None, _) => unreachable!(),
 
-            StmtAst::Return => self.code.push(opcode::ret),
-            StmtAst::ReturnWith(expr) => {
+            StmtAstKind::Return => self.code.push(opcode::ret),
+            StmtAstKind::ReturnWith(expr) => {
                 self.gen_expr(expr, locals, functions, depth);
                 self.code.push(opcode::ret_val);
             }
 
-            StmtAst::Func(_, _, _, _) => (),
+            StmtAstKind::Func(_, _, _, _) => (),
 
-            StmtAst::Then(_) => unreachable!(),
-            StmtAst::Else(_) => unreachable!(),
-            StmtAst::Do(_) => unreachable!(),
+            StmtAstKind::Then(_) => unreachable!(),
+            StmtAstKind::Else(_) => unreachable!(),
+            StmtAstKind::Do(_) => unreachable!(),
         }
     }
 
@@ -307,17 +307,17 @@ impl Codegen {
         functions: &HashMap<(String, u8), u32>,
         depth: u8,
     ) -> bool {
-        match expr {
-            ExprAst::Number(num) => {
+        match &expr.kind {
+            ExprAstKind::Number(num) => {
                 self.code.push(opcode::ld_num_const);
                 self.code.extend_from_slice(&num.to_le_bytes());
                 false
             }
-            ExprAst::Identifier(id) => {
+            ExprAstKind::Identifier(id) => {
                 self.gen_ld_loc(locals.get_local_index(id, depth).expect("unknown variable"));
                 false
             }
-            ExprAst::Boolean(value) => {
+            ExprAstKind::Boolean(value) => {
                 self.code.push(if *value {
                     opcode::ld_true_const
                 } else {
@@ -325,8 +325,8 @@ impl Codegen {
                 });
                 false
             }
-            ExprAst::BinaryOp(BinaryOperator::Equal, assignee, value) => {
-                let ExprAst::Identifier(ref id) = **assignee else {
+            ExprAstKind::BinaryOp(BinaryOperator::Equal, assignee, value) => {
+                let ExprAstKind::Identifier(ref id) = assignee.kind else {
                     panic!("assignee must be identifier");
                 };
 
@@ -334,15 +334,16 @@ impl Codegen {
                 self.gen_st_loc(locals.get_local_index(id, depth).unwrap());
                 true // signal an assignment
             }
-            ExprAst::BinaryOp(BinaryOperator::And, left, right) => {
+            ExprAstKind::Parenthesized(inner) => self.gen_expr(inner, locals, functions, depth),
+            ExprAstKind::BinaryOp(BinaryOperator::And, left, right) => {
                 self.gen_short_circuit_and(left, right, locals, functions, depth);
                 false
             }
-            ExprAst::BinaryOp(BinaryOperator::Or, left, right) => {
+            ExprAstKind::BinaryOp(BinaryOperator::Or, left, right) => {
                 self.gen_short_circuit_or(left, right, locals, functions, depth);
                 false
             }
-            ExprAst::BinaryOp(op, left, right) => {
+            ExprAstKind::BinaryOp(op, left, right) => {
                 self.gen_expr(left, locals, functions, depth);
                 self.gen_expr(right, locals, functions, depth);
 
@@ -370,7 +371,7 @@ impl Codegen {
                 false
             }
 
-            ExprAst::UnaryOp(op, expr) => {
+            ExprAstKind::UnaryOp(op, expr) => {
                 self.gen_expr(expr, locals, functions, depth);
 
                 match op {
@@ -382,7 +383,7 @@ impl Codegen {
                 false
             }
 
-            ExprAst::Call(name, params) => {
+            ExprAstKind::Call(name, params) => {
                 let fp = *functions
                     .get(&(name.clone(), params.len() as u8))
                     .expect("unknown function");
@@ -395,7 +396,7 @@ impl Codegen {
                 false
             }
 
-            ExprAst::Bad => unreachable!(),
+            ExprAstKind::Bad => unreachable!(),
         }
     }
 

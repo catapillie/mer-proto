@@ -8,6 +8,7 @@ pub struct Pos {
 }
 
 impl Pos {
+    pub const MIN: Self = Self::new(usize::MIN, usize::MIN, usize::MIN);
     pub const MAX: Self = Self::new(usize::MAX, usize::MAX, usize::MAX);
 
     pub const fn new(index: usize, line: usize, column: usize) -> Self {

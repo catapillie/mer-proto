@@ -1,36 +1,75 @@
+use super::span::Span;
+
 pub type ProgramAst = Vec<StmtAst>;
 
 #[derive(Debug)]
-pub enum StmtAst {
-    Empty,
-    VarDef(Option<String>, ExprAst),
-    Expr(ExprAst),
-    Block(Vec<StmtAst>),
-    IfThen(ExprAst, Box<StmtAst>),
-    Then(Box<StmtAst>),
-    IfThenElse(ExprAst, Box<StmtAst>, Box<StmtAst>),
-    Else(Box<StmtAst>),
-    WhileDo(ExprAst, Box<StmtAst>),
-    DoWhile(Box<StmtAst>, ExprAst),
-    Do(Box<StmtAst>),
-    Func(Option<String>, Vec<String>, Box<StmtAst>, TypeAst),
-    Return,
-    ReturnWith(ExprAst),
+pub struct StmtAst {
+    pub kind: StmtAstKind,
+    pub span: Span,
 }
 
 #[derive(Debug)]
-pub enum ExprAst {
+pub struct ExprAst {
+    pub kind: ExprAstKind,
+    pub span: Span,
+}
+
+#[derive(Debug)]
+pub struct TypeAst {
+    pub kind: TypeAstKind,
+    pub span: Span,
+}
+
+impl StmtAstKind {
+    pub fn wrap(self, span: Span) -> StmtAst {
+        StmtAst { kind: self, span }
+    }
+}
+
+#[derive(Debug)]
+pub enum StmtAstKind {
+    Empty,
+    VarDef(Option<String>, Box<ExprAst>),
+    Expr(Box<ExprAst>),
+    Block(Vec<StmtAst>),
+    IfThen(Box<ExprAst>, Box<StmtAst>),
+    Then(Box<StmtAst>),
+    IfThenElse(Box<ExprAst>, Box<StmtAst>, Box<StmtAst>),
+    Else(Box<StmtAst>),
+    WhileDo(Box<ExprAst>, Box<StmtAst>),
+    DoWhile(Box<StmtAst>, Box<ExprAst>),
+    Do(Box<StmtAst>),
+    Func(Option<String>, Vec<String>, Box<StmtAst>, Box<TypeAst>),
+    Return,
+    ReturnWith(Box<ExprAst>),
+}
+
+impl ExprAstKind {
+    pub fn wrap(self, span: Span) -> ExprAst {
+        ExprAst { kind: self, span }
+    }
+}
+
+#[derive(Debug)]
+pub enum ExprAstKind {
     Bad,
     Number(f64),
     Identifier(String),
     Boolean(bool),
+    Parenthesized(Box<ExprAst>),
     BinaryOp(BinaryOperator, Box<ExprAst>, Box<ExprAst>),
     UnaryOp(UnaryOperator, Box<ExprAst>),
     Call(String, Vec<ExprAst>),
 }
 
+impl TypeAstKind {
+    pub fn wrap(self, span: Span) -> TypeAst {
+        TypeAst { kind: self, span }
+    }
+}
+
 #[derive(Debug)]
-pub enum TypeAst {
+pub enum TypeAstKind {
     Bad,
     Unit,
     Declared(String),

@@ -1,7 +1,7 @@
 use super::{
     abt::{ExprAbt, StmtAbt},
-    ast::{BinaryOperator, ExprAst, ProgramAst, StmtAst},
-    diagnostics::{Diagnostics, self},
+    ast::{BinaryOperator, ExprAstKind, ProgramAst, StmtAstKind, ExprAst, StmtAst},
+    diagnostics::Diagnostics,
 };
 
 pub struct Analyser<'a> {
@@ -20,33 +20,34 @@ impl<'a> Analyser<'a> {
     }
 
     fn analyse_statement(&self, stmt: &StmtAst) -> StmtAbt {
-        match stmt {
-            StmtAst::Empty => StmtAbt::Empty,
-            StmtAst::VarDef(_, _) => todo!(),
-            StmtAst::Expr(expr) => StmtAbt::Expr(self.analyse_expression(expr)),
-            StmtAst::Block(_) => todo!(),
-            StmtAst::IfThen(_, _) => todo!(),
-            StmtAst::Then(_) => todo!(),
-            StmtAst::IfThenElse(_, _, _) => todo!(),
-            StmtAst::Else(_) => todo!(),
-            StmtAst::WhileDo(_, _) => todo!(),
-            StmtAst::DoWhile(_, _) => todo!(),
-            StmtAst::Do(_) => todo!(),
-            StmtAst::Func(_, _, _, _) => todo!(),
-            StmtAst::Return => todo!(),
-            StmtAst::ReturnWith(_) => todo!(),
+        match &stmt.kind {
+            StmtAstKind::Empty => StmtAbt::Empty,
+            StmtAstKind::VarDef(_, _) => todo!(),
+            StmtAstKind::Expr(expr) => StmtAbt::Expr(self.analyse_expression(expr)),
+            StmtAstKind::Block(_) => todo!(),
+            StmtAstKind::IfThen(_, _) => todo!(),
+            StmtAstKind::Then(_) => todo!(),
+            StmtAstKind::IfThenElse(_, _, _) => todo!(),
+            StmtAstKind::Else(_) => todo!(),
+            StmtAstKind::WhileDo(_, _) => todo!(),
+            StmtAstKind::DoWhile(_, _) => todo!(),
+            StmtAstKind::Do(_) => todo!(),
+            StmtAstKind::Func(_, _, _, _) => todo!(),
+            StmtAstKind::Return => todo!(),
+            StmtAstKind::ReturnWith(_) => todo!(),
         }
     }
 
     fn analyse_expression(&self, expr: &ExprAst) -> ExprAbt {
-        match expr {
-            ExprAst::Bad => ExprAbt::Unknown,
-            ExprAst::Number(num) => ExprAbt::Number(*num),
-            ExprAst::Identifier(_) => todo!(),
-            ExprAst::Boolean(b) => ExprAbt::Boolean(*b),
-            ExprAst::BinaryOp(op, left, right) => self.analyse_binary_operation(*op, left, right),
-            ExprAst::UnaryOp(_, _) => todo!(),
-            ExprAst::Call(_, _) => todo!(),
+        match &expr.kind {
+            ExprAstKind::Bad => ExprAbt::Unknown,
+            ExprAstKind::Number(num) => ExprAbt::Number(*num),
+            ExprAstKind::Identifier(_) => todo!(),
+            ExprAstKind::Boolean(b) => ExprAbt::Boolean(*b),
+            ExprAstKind::Parenthesized(_) => todo!(),
+            ExprAstKind::BinaryOp(op, left, right) => self.analyse_binary_operation(*op, left, right),
+            ExprAstKind::UnaryOp(_, _) => todo!(),
+            ExprAstKind::Call(_, _) => todo!(),
         }
     }
 
