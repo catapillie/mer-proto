@@ -17,7 +17,7 @@ pub fn run(program: Vec<Opcode>) {
 
 pub fn disassemble(program: Vec<Opcode>) -> Option<()> {
     let mut cursor = Cursor::new(program.as_slice());
-    
+
     loop {
         let offset = cursor.position();
         let byte = match cursor.read_u8() {
@@ -30,7 +30,7 @@ pub fn disassemble(program: Vec<Opcode>) -> Option<()> {
             None => {
                 println!("{offset:0>8} | {byte:02x} {:>16}", "illegal".bright_red());
                 continue;
-            },
+            }
         };
 
         match byte {
@@ -64,10 +64,10 @@ pub fn disassemble(program: Vec<Opcode>) -> Option<()> {
                     "{offset:0width$} | !! {} -> {to:0width$}",
                     "entry-point".bold(),
                     width = 8
-                 );
-             }
+                );
+            }
             opcode::function => {
-                let n =  cursor.read_u16::<byteorder::LE>().ok()?;
+                let n = cursor.read_u16::<byteorder::LE>().ok()?;
 
                 let mut bytes = vec![0; n as usize];
                 cursor.read_exact(&mut bytes).ok()?;
@@ -83,7 +83,7 @@ pub fn disassemble(program: Vec<Opcode>) -> Option<()> {
                     local_count.to_string().bold(),
                     width = 8
                 );
-            },
+            }
             opcode::call => {
                 let fp = cursor.read_u32::<byteorder::LE>().ok()?;
 

@@ -133,13 +133,13 @@ impl<'a> VM<'a> {
 
                 opcode::ld_loc => self.ld_loc(),
                 opcode::st_loc => self.st_loc(),
-                
+
                 opcode::jmp => self.jmp(),
                 opcode::jmp_if => self.jmp_if(),
-                
+
                 opcode::ret => self.ret(),
                 opcode::ret_val => self.ret_val(),
-                
+
                 opcode::call => self.call(),
 
                 _ => {
@@ -196,7 +196,7 @@ impl<'a> VM<'a> {
     fn ld_false_const(&mut self) {
         self.push(Value::Bool(false))
     }
-    
+
     fn ld_loc(&mut self) {
         let index = self.read_u8() as usize;
         let offset = self.frames.last().unwrap().local_offset;
@@ -225,7 +225,7 @@ impl<'a> VM<'a> {
         self.destroy_frame();
         self.push(val);
     }
-    
+
     fn jmp(&mut self) {
         let to = self.read_u32() as u64;
         self.cursor.set_position(to);

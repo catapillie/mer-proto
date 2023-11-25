@@ -5,7 +5,9 @@ use std::{
 
 use crate::run::opcode::{self, Opcode};
 
-use super::ast::{BinaryOperator, ExprAstKind, ProgramAst, StmtAstKind, UnaryOperator, StmtAst, ExprAst};
+use super::ast::{
+    BinaryOperator, ExprAst, ExprAstKind, ProgramAst, StmtAst, StmtAstKind, UnaryOperator,
+};
 
 #[derive(Default)]
 struct LocalsInfo {
@@ -379,7 +381,7 @@ impl Codegen {
                     UnaryOperator::Neg => self.code.push(opcode::op_neg),
                     UnaryOperator::Not => self.code.push(opcode::op_not),
                 }
-                
+
                 false
             }
 

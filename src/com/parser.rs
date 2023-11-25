@@ -1,7 +1,7 @@
 use super::{
     ast::{
-        Associativity, BinaryOperator, ExprAstKind, Precedence, ProgramAst, StmtAstKind, TypeAstKind,
-        UnaryOperator, TypeAst, ExprAst, StmtAst,
+        Associativity, BinaryOperator, ExprAst, ExprAstKind, Precedence, ProgramAst, StmtAst,
+        StmtAstKind, TypeAst, TypeAstKind, UnaryOperator,
     },
     cursor::Cursor,
     diagnostics::{self, DiagnosticKind, Diagnostics},
@@ -73,8 +73,15 @@ impl<'a> Parser<'a> {
 
     fn is_start_of_statement(&self) -> bool {
         match self.look_ahead {
-            Token::ReturnKw(_, _) => true,
-            Token::LeftBrace(_, _) => true,
+            Token::ReturnKw(_, _)
+            | Token::LeftBrace(_, _)
+            | Token::IfKw(_, _)
+            | Token::ThenKw(_, _)
+            | Token::ElseKw(_, _)
+            | Token::WhileKw(_, _)
+            | Token::DoKw(_, _)
+            | Token::VarKw(_, _)
+            | Token::FuncKw(_, _) => true,
             _ if self.is_start_of_expression() => true,
             _ => false,
         }
@@ -99,7 +106,7 @@ impl<'a> Parser<'a> {
         try_return_some!(self.parse_if_statement());
         try_return_some!(self.parse_then_statement());
         try_return_some!(self.parse_else_statement());
-        
+
         try_return_some!(self.parse_while_do_statement());
         try_return_some!(self.parse_do_while_statement());
 
@@ -127,7 +134,7 @@ impl<'a> Parser<'a> {
             self.try_match_token::<IfKw>()?;
 
             let expr = self.expect_expression();
-    
+
             self.skip_newlines();
             self.match_token::<ThenKw>();
             self.skip_newlines();
@@ -455,37 +462,37 @@ impl<'a> Parser<'a> {
             if let Some(num) = self.try_match_token::<Number>() {
                 return Some(ExprAstKind::Number(num.0));
             }
-    
+
             if let Some(id) = self.try_match_token::<Identifier>() {
                 if self.try_match_token::<LeftParen>().is_none() {
                     return Some(ExprAstKind::Identifier(id.0));
                 }
-    
+
                 let mut params = Vec::new();
                 loop {
                     let Some(expr) = self.parse_expression() else {
                         break;
                     };
-    
+
                     params.push(expr);
-    
+
                     if self.try_match_token::<Comma>().is_none() {
                         break;
                     }
                 }
                 self.match_token::<RightParen>();
-    
+
                 return Some(ExprAstKind::Call(id.0, params));
             }
-    
+
             if self.try_match_token::<TrueKw>().is_some() {
                 return Some(ExprAstKind::Boolean(true));
             }
-    
+
             if self.try_match_token::<FalseKw>().is_some() {
                 return Some(ExprAstKind::Boolean(false));
             }
-    
+
             if self.try_match_token::<LeftParen>().is_some() {
                 self.skip_newlines();
                 let expr = self.expect_expression();
@@ -493,7 +500,7 @@ impl<'a> Parser<'a> {
                 self.match_token::<RightParen>();
                 return Some(ExprAstKind::Parenthesized(Box::new(expr)));
             }
-    
+
             None
         });
 
@@ -823,21 +830,21 @@ impl<'a> Parser<'a> {
 }
 
 macro_rules! take_span {
-    ($self:ident => $e:expr) => {
-        {
-            let from = $self.last_boundary;
-            #[allow(clippy::redundant_closure_call)]
-            let res = (|| $e)();
-            let to = $self.last_boundary;
-            (res, Span::new(from, to))
-        }
-    };
+    ($self:ident => $e:expr) => {{
+        let from = $self.last_boundary;
+        #[allow(clippy::redundant_closure_call)]
+        let res = (|| $e)();
+        let to = $self.last_boundary;
+        (res, Span::new(from, to))
+    }};
 }
 
 macro_rules! try_return_some {
     ($e:expr) => {
         let e = $e;
-        if e.is_some() { return e; }
+        if e.is_some() {
+            return e;
+        }
     };
 }
 
@@ -849,4 +856,4 @@ macro_rules! match_by_string {
     };
 }
 
-use {take_span, try_return_some, match_by_string};
+use {match_by_string, take_span, try_return_some};

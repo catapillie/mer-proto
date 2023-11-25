@@ -1,6 +1,6 @@
 use super::{
     abt::{ExprAbt, StmtAbt},
-    ast::{BinaryOperator, ExprAstKind, ProgramAst, StmtAstKind, ExprAst, StmtAst},
+    ast::{BinaryOperator, ExprAst, ExprAstKind, ProgramAst, StmtAst, StmtAstKind},
     diagnostics::Diagnostics,
 };
 
@@ -45,7 +45,9 @@ impl<'a> Analyser<'a> {
             ExprAstKind::Identifier(_) => todo!(),
             ExprAstKind::Boolean(b) => ExprAbt::Boolean(*b),
             ExprAstKind::Parenthesized(_) => todo!(),
-            ExprAstKind::BinaryOp(op, left, right) => self.analyse_binary_operation(*op, left, right),
+            ExprAstKind::BinaryOp(op, left, right) => {
+                self.analyse_binary_operation(*op, left, right)
+            }
             ExprAstKind::UnaryOp(_, _) => todo!(),
             ExprAstKind::Call(_, _) => todo!(),
         }

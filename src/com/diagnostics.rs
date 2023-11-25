@@ -1,6 +1,7 @@
 use super::{
+    pos::Pos,
     span::Span,
-    tokens::{Token, TokenKind}, pos::Pos,
+    tokens::{Token, TokenKind},
 };
 
 pub struct Diagnostics {
