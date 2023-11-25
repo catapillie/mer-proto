@@ -1,7 +1,9 @@
+use crate::com::abt::TypeAbt;
+
 use super::{
     abt::{ExprAbt, StmtAbt},
     ast::{BinaryOperator, ExprAst, ExprAstKind, ProgramAst, StmtAst, StmtAstKind},
-    diagnostics::Diagnostics,
+    diagnostics::{Diagnostics, self, DiagnosticKind},
 };
 
 pub struct Analyser<'a> {
@@ -13,19 +15,19 @@ impl<'a> Analyser<'a> {
         Self { diagnostics }
     }
 
-    pub fn analyse_program(self, ast: &ProgramAst) {
+    pub fn analyse_program(mut self, ast: &ProgramAst) {
         for stmt in ast {
             self.analyse_statement(stmt);
         }
     }
 
-    fn analyse_statement(&self, stmt: &StmtAst) -> StmtAbt {
+    fn analyse_statement(&mut self, stmt: &StmtAst) -> StmtAbt {
         match &stmt.kind {
             StmtAstKind::Empty => StmtAbt::Empty,
             StmtAstKind::VarDef(_, _) => todo!(),
-            StmtAstKind::Expr(expr) => StmtAbt::Expr(self.analyse_expression(expr)),
+            StmtAstKind::Expr(expr) => StmtAbt::Expr(Box::new(self.analyse_expression(expr))),
             StmtAstKind::Block(_) => todo!(),
-            StmtAstKind::IfThen(_, _) => todo!(),
+            StmtAstKind::IfThen(guard, body_then) => self.analyse_if_then_statement(guard, body_then),
             StmtAstKind::Then(_) => todo!(),
             StmtAstKind::IfThenElse(_, _, _) => todo!(),
             StmtAstKind::Else(_) => todo!(),
@@ -81,5 +83,20 @@ impl<'a> Analyser<'a> {
             BinaryOperator::Or => todo!(),
             BinaryOperator::Equal => todo!(),
         }
+    }
+
+    fn analyse_if_then_statement(&mut self, guard: &ExprAst, body: &StmtAst) -> StmtAbt {
+        let bound_guard = self.analyse_expression(guard);
+        let bound_body = self.analyse_statement(body);
+
+        if !matches!(bound_guard.ty(), TypeAbt::Boolean) {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::GuardNotBoolean)
+                .with_span(guard.span)
+                .done();
+            self.diagnostics.push(d);
+        }
+
+        StmtAbt::IfThen(Box::new(bound_guard), Box::new(bound_body))
     }
 }

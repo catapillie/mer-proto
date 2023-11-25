@@ -85,6 +85,8 @@ pub enum DiagnosticKind {
     ExpectedExpression,
     ExpectedStatement,
     ExpectedType,
+
+    GuardNotBoolean,
 }
 
 #[rustfmt::skip]
@@ -101,6 +103,8 @@ impl DiagnosticKind {
                 => "expected a statement".to_string(),
             DiagnosticKind::ExpectedType
                 => "expected a type expression".to_string(),
+            DiagnosticKind::GuardNotBoolean
+                => "guard is not a boolean".to_string(),
         }
     }
 }

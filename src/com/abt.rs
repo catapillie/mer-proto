@@ -1,7 +1,8 @@
 #[derive(Debug)]
 pub enum StmtAbt {
     Empty,
-    Expr(ExprAbt),
+    Expr(Box<ExprAbt>),
+    IfThen(Box<ExprAbt>, Box<StmtAbt>),
 }
 
 #[derive(Debug)]
