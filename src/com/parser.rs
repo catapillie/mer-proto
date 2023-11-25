@@ -103,7 +103,7 @@ impl<'a> Parser<'a> {
 
         try_return_some!(self.parse_block_statement());
 
-        try_return_some!(self.parse_if_statement());
+        try_return_some!(self.parse_if_then_statement());
         try_return_some!(self.parse_then_statement());
         try_return_some!(self.parse_else_statement());
 
@@ -129,40 +129,40 @@ impl<'a> Parser<'a> {
         stmt.map(|s| s.wrap(span))
     }
 
-    fn parse_if_statement(&mut self) -> Option<StmtAst> {
+    fn parse_if_then_statement(&mut self) -> Option<StmtAst> {
         let (stmt, span) = take_span!(self => {
             self.try_match_token::<IfKw>()?;
 
-            let expr = self.expect_expression();
+            let guard = self.expect_expression();
 
             self.skip_newlines();
             self.match_token::<ThenKw>();
             self.skip_newlines();
             if self.try_match_token::<ElseKw>().is_some() {
                 self.skip_newlines();
-                let stmt_if = self.empty_statement_here();
+                let stmt_then = self.empty_statement_here();
                 let stmt_else = self.parse_statement().unwrap_or(self.empty_statement_here());
                 return Some(StmtAstKind::IfThenElse(
-                    Box::new(expr),
-                    Box::new(stmt_if),
+                    Box::new(guard),
+                    Box::new(stmt_then),
                     Box::new(stmt_else),
                 ));
             }
 
-            let stmt_if = self.parse_statement().unwrap_or(self.empty_statement_here());
+            let stmt_then = self.parse_statement().unwrap_or(self.empty_statement_here());
 
             self.skip_newlines();
             if self.try_match_token::<ElseKw>().is_some() {
                 self.skip_newlines();
                 let stmt_else = self.parse_statement().unwrap_or(self.empty_statement_here());
                 return Some(StmtAstKind::IfThenElse(
-                    Box::new(expr),
-                    Box::new(stmt_if),
+                    Box::new(guard),
+                    Box::new(stmt_then),
                     Box::new(stmt_else),
                 ));
             }
 
-            Some(StmtAstKind::IfThen(Box::new(expr), Box::new(stmt_if)))
+            Some(StmtAstKind::IfThen(Box::new(guard), Box::new(stmt_then)))
         });
 
         stmt.map(|s| s.wrap(span))
