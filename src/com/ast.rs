@@ -77,11 +77,21 @@ pub enum TypeAstKind {
     Declared(String),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum UnaryOperator {
     Pos,
     Neg,
     Not,
+}
+
+impl Display for UnaryOperator {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            UnaryOperator::Pos => write!(f, "+"),
+            UnaryOperator::Neg => write!(f, "-"),
+            UnaryOperator::Not => write!(f, "not"),
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

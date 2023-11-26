@@ -19,7 +19,8 @@ pub enum ExprAbt {
     Boolean(bool),
     Variable(String, TypeAbt),
     Assignment(String, TypeAbt, Box<ExprAbt>),
-    Binary((BinaryOp, TypeAbt), Box<ExprAbt>, Box<ExprAbt>)
+    Unary((UnaryOp, TypeAbt), Box<ExprAbt>),
+    Binary((BinaryOp, TypeAbt), Box<ExprAbt>, Box<ExprAbt>),
 }
 
 impl ExprAbt {
@@ -31,6 +32,7 @@ impl ExprAbt {
             ExprAbt::Variable(_, ty) => ty.clone(),
             ExprAbt::Assignment(_, ty, _) => ty.clone(),
             ExprAbt::Binary((_, ty), _, _) => ty.clone(),
+            ExprAbt::Unary((_, ty), _) => ty.clone(),
         }
     }
 }
@@ -53,6 +55,13 @@ pub enum BinaryOp {
     Bar,
     And,
     Or,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum UnaryOp {
+    Pos,
+    Neg,
+    Not,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

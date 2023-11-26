@@ -2,9 +2,10 @@ use colored::Colorize;
 
 use super::{
     abt::TypeAbt,
+    ast::{BinaryOperator, UnaryOperator},
     pos::Pos,
     span::Span,
-    tokens::{Token, TokenKind}, ast::BinaryOperator,
+    tokens::{Token, TokenKind},
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -102,7 +103,10 @@ impl DiagnosticBuilder<DiagnosticKind, Severity, Span> {
 #[derive(Debug, Clone)]
 pub enum DiagnosticKind {
     IllegalCharacter(char),
-    ExpectedToken { found: Token, expected: TokenKind },
+    ExpectedToken {
+        found: Token,
+        expected: TokenKind,
+    },
     ExpectedExpression,
     ExpectedStatement,
     ExpectedType,
@@ -121,9 +125,16 @@ pub enum DiagnosticKind {
     UnknownVariable(String),
     AssigneeMustBeVariable,
 
-    TypeMismatch { found: TypeAbt, expected: TypeAbt },
+    TypeMismatch {
+        found: TypeAbt,
+        expected: TypeAbt,
+    },
 
-    InvalidBinaryOperation { 
+    InvalidUnaryOperation {
+        op: UnaryOperator,
+        ty: TypeAbt,
+    },
+    InvalidBinaryOperation {
         op: BinaryOperator,
         left: TypeAbt,
         right: TypeAbt,
@@ -173,6 +184,11 @@ impl DiagnosticKind {
                 => format!("type mismatch of {} into {}",
                     found.to_string().bold(),
                     expected.to_string().bold(),
+                ),
+            DiagnosticKind::InvalidUnaryOperation { op, ty }
+                => format!("invalid unary operation {} {}",
+                    op.to_string().bold(),
+                    ty.to_string().bold(),
                 ),
             DiagnosticKind::InvalidBinaryOperation { op, left, right }
                 => format!("invalid binary operation {} {} {}",

@@ -3,8 +3,8 @@ use std::{collections::HashMap, mem};
 use crate::com::abt::{BinaryOp, TypeAbt};
 
 use super::{
-    abt::{ExprAbt, StmtAbt},
-    ast::{BinaryOperator, ExprAst, ExprAstKind, ProgramAst, StmtAst, StmtAstKind},
+    abt::{ExprAbt, StmtAbt, UnaryOp},
+    ast::{BinaryOperator, ExprAst, ExprAstKind, ProgramAst, StmtAst, StmtAstKind, UnaryOperator},
     diagnostics::{self, DiagnosticKind, Diagnostics, Severity},
     span::Span,
 };
@@ -14,6 +14,7 @@ struct Scope {
     parent: Option<Box<Scope>>,
 
     variables: HashMap<String, TypeAbt>,
+    unary_operations: HashMap<(UnaryOperator, TypeAbt), (UnaryOp, TypeAbt)>,
     binary_operations: HashMap<(BinaryOperator, TypeAbt, TypeAbt), (BinaryOp, TypeAbt)>,
 }
 
@@ -27,6 +28,31 @@ impl Scope {
             Some(ty) => Some(ty.clone()),
             None => match self.parent {
                 Some(ref parent) => parent.get_variable(name),
+                None => None,
+            },
+        }
+    }
+
+    pub fn declare_unary_operation(
+        &mut self,
+        key: (UnaryOperator, TypeAbt),
+        value: (UnaryOp, TypeAbt),
+    ) {
+        self.unary_operations.insert(key, value);
+    }
+
+    pub fn get_unary_operation(
+        &self,
+        op: UnaryOperator,
+        ty: &TypeAbt,
+    ) -> Option<(UnaryOp, TypeAbt)> {
+        match self
+            .unary_operations
+            .get(&(op, ty.clone()))
+        {
+            Some(res) => Some(res.clone()),
+            None => match self.parent {
+                Some(ref parent) => parent.get_unary_operation(op, ty),
                 None => None,
             },
         }
@@ -69,33 +95,44 @@ impl<'a> Analyser<'a> {
     pub fn new(diagnostics: &'a mut Diagnostics) -> Self {
         let mut scope = Scope::default();
 
-        use BinaryOp as O;
-        use BinaryOperator as I;
         use TypeAbt as Ty;
         
+        use BinaryOperator as BI;
+        use BinaryOp as BO;
+        
         // number <op> number -> number
-        scope.declare_binary_operation((I::Plus, Ty::Number, Ty::Number), (O::Plus, Ty::Number));
-        scope.declare_binary_operation((I::Minus, Ty::Number, Ty::Number), (O::Minus, Ty::Number));
-        scope.declare_binary_operation((I::Star, Ty::Number, Ty::Number), (O::Star, Ty::Number));
-        scope.declare_binary_operation((I::Slash, Ty::Number, Ty::Number), (O::Slash, Ty::Number));
-        scope.declare_binary_operation((I::Percent, Ty::Number, Ty::Number), (O::Percent, Ty::Number));
+        scope.declare_binary_operation((BI::Plus, Ty::Number, Ty::Number), (BO::Plus, Ty::Number));
+        scope.declare_binary_operation((BI::Minus, Ty::Number, Ty::Number), (BO::Minus, Ty::Number));
+        scope.declare_binary_operation((BI::Star, Ty::Number, Ty::Number), (BO::Star, Ty::Number));
+        scope.declare_binary_operation((BI::Slash, Ty::Number, Ty::Number), (BO::Slash, Ty::Number));
+        scope.declare_binary_operation((BI::Percent, Ty::Number, Ty::Number), (BO::Percent, Ty::Number));
 
         // number <op> number -> boolean
-        scope.declare_binary_operation((I::EqualEqual, Ty::Number, Ty::Number), (O::EqualEqual, Ty::Boolean));
-        scope.declare_binary_operation((I::NotEqual, Ty::Number, Ty::Number), (O::NotEqual, Ty::Boolean));
-        scope.declare_binary_operation((I::LessEqual, Ty::Number, Ty::Number), (O::LessEqual, Ty::Boolean));
-        scope.declare_binary_operation((I::LessThan, Ty::Number, Ty::Number), (O::LessThan, Ty::Boolean));
-        scope.declare_binary_operation((I::GreaterEqual, Ty::Number, Ty::Number), (O::GreaterEqual, Ty::Boolean));
-        scope.declare_binary_operation((I::GreaterThan, Ty::Number, Ty::Number), (O::GreaterThan, Ty::Boolean));
+        scope.declare_binary_operation((BI::EqualEqual, Ty::Number, Ty::Number), (BO::EqualEqual, Ty::Boolean));
+        scope.declare_binary_operation((BI::NotEqual, Ty::Number, Ty::Number), (BO::NotEqual, Ty::Boolean));
+        scope.declare_binary_operation((BI::LessEqual, Ty::Number, Ty::Number), (BO::LessEqual, Ty::Boolean));
+        scope.declare_binary_operation((BI::LessThan, Ty::Number, Ty::Number), (BO::LessThan, Ty::Boolean));
+        scope.declare_binary_operation((BI::GreaterEqual, Ty::Number, Ty::Number), (BO::GreaterEqual, Ty::Boolean));
+        scope.declare_binary_operation((BI::GreaterThan, Ty::Number, Ty::Number), (BO::GreaterThan, Ty::Boolean));
 
         // boolean <op> boolean -> boolean
-        scope.declare_binary_operation((I::Ampersand, Ty::Boolean, Ty::Boolean), (O::Ampersand, Ty::Boolean));
-        scope.declare_binary_operation((I::Caret, Ty::Boolean, Ty::Boolean), (O::Caret, Ty::Boolean));
-        scope.declare_binary_operation((I::Bar, Ty::Boolean, Ty::Boolean), (O::Bar, Ty::Boolean));
-        scope.declare_binary_operation((I::And, Ty::Boolean, Ty::Boolean), (O::And, Ty::Boolean));
-        scope.declare_binary_operation((I::Or, Ty::Boolean, Ty::Boolean), (O::Or, Ty::Boolean));
-        scope.declare_binary_operation((I::EqualEqual, Ty::Boolean, Ty::Boolean), (O::EqualEqual, Ty::Boolean));
-        scope.declare_binary_operation((I::NotEqual, Ty::Boolean, Ty::Boolean), (O::NotEqual, Ty::Boolean));
+        scope.declare_binary_operation((BI::Ampersand, Ty::Boolean, Ty::Boolean), (BO::Ampersand, Ty::Boolean));
+        scope.declare_binary_operation((BI::Caret, Ty::Boolean, Ty::Boolean), (BO::Caret, Ty::Boolean));
+        scope.declare_binary_operation((BI::Bar, Ty::Boolean, Ty::Boolean), (BO::Bar, Ty::Boolean));
+        scope.declare_binary_operation((BI::And, Ty::Boolean, Ty::Boolean), (BO::And, Ty::Boolean));
+        scope.declare_binary_operation((BI::Or, Ty::Boolean, Ty::Boolean), (BO::Or, Ty::Boolean));
+        scope.declare_binary_operation((BI::EqualEqual, Ty::Boolean, Ty::Boolean), (BO::EqualEqual, Ty::Boolean));
+        scope.declare_binary_operation((BI::NotEqual, Ty::Boolean, Ty::Boolean), (BO::NotEqual, Ty::Boolean));
+
+        use UnaryOperator as UI;
+        use UnaryOp as UO;
+
+        // <op> number -> number
+        scope.declare_unary_operation((UI::Pos, Ty::Number), (UO::Pos, Ty::Number));
+        scope.declare_unary_operation((UI::Neg, Ty::Number), (UO::Neg, Ty::Number));
+
+        // <op> boolean -> boolean
+        scope.declare_unary_operation((UI::Not, Ty::Boolean), (UO::Not, Ty::Boolean));
 
         Self { diagnostics, scope }
     }
@@ -335,8 +372,8 @@ impl<'a> Analyser<'a> {
                 => self.analyse_expression(inner),
             ExprAstKind::BinaryOp(op, left, right)
                 => self.analyse_binary_operation(*op, left, right),
-            ExprAstKind::UnaryOp(_, _)
-                => todo!(),
+            ExprAstKind::UnaryOp(op, operand)
+                => self.analyse_unary_operation(*op, operand, expr.span),
             ExprAstKind::Call(_, _)
                 => todo!(),
         }
@@ -392,6 +429,30 @@ impl<'a> Analyser<'a> {
         };
 
         ExprAbt::Binary(bin_op, Box::new(bound_left), Box::new(bound_right))
+    }
+
+    fn analyse_unary_operation(&mut self, op: UnaryOperator, operand: &ExprAst, span: Span) -> ExprAbt {
+        let bound_operand = self.analyse_expression(operand);
+        let ty = bound_operand.ty();
+
+        if !ty.is_known() {
+            return ExprAbt::Unknown;
+        }
+
+        let Some(un_op) = self.scope.get_unary_operation(op, &ty) else {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::InvalidUnaryOperation {
+                    op,
+                    ty,
+                })
+                .with_severity(Severity::Error)
+                .with_span(span)
+                .done();
+            self.diagnostics.push(d);
+            return ExprAbt::Unknown;
+        };
+
+        ExprAbt::Unary(un_op, Box::new(bound_operand))
     }
 
     fn analyse_assignment(&mut self, left: &ExprAst, right: &ExprAst) -> ExprAbt {
