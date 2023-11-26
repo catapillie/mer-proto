@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 #[derive(Debug)]
 pub enum StmtAbt {
     Empty,
@@ -15,7 +17,8 @@ pub enum ExprAbt {
     Unknown,
     Number(f64),
     Boolean(bool),
-    Variable(TypeAbt),
+    Variable(String, TypeAbt),
+    Assignment(String, TypeAbt, Box<ExprAbt>),
 }
 
 impl ExprAbt {
@@ -24,7 +27,8 @@ impl ExprAbt {
             ExprAbt::Unknown => TypeAbt::Unknown,
             ExprAbt::Number(_) => TypeAbt::Number,
             ExprAbt::Boolean(_) => TypeAbt::Boolean,
-            ExprAbt::Variable(ty) => ty.clone(),
+            ExprAbt::Variable(_, ty) => ty.clone(),
+            ExprAbt::Assignment(_, ty, _) => ty.clone(),
         }
     }
 }
@@ -44,6 +48,20 @@ impl TypeAbt {
             TypeAbt::Unknown => true, // ignored
             TypeAbt::Number => matches!(ty, TypeAbt::Number),
             TypeAbt::Boolean => matches!(ty, TypeAbt::Boolean),
+        }
+    }
+
+    pub fn is_known(&self) -> bool {
+        !matches!(self, TypeAbt::Unknown)
+    }
+}
+
+impl Display for TypeAbt {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TypeAbt::Unknown => write!(f, "unknown"),
+            TypeAbt::Number => write!(f, "number"),
+            TypeAbt::Boolean => write!(f, "boolean"),
         }
     }
 }

@@ -1,4 +1,5 @@
 use super::{
+    abt::TypeAbt,
     pos::Pos,
     span::Span,
     tokens::{Token, TokenKind},
@@ -105,7 +106,7 @@ pub enum DiagnosticKind {
     ExpectedType,
 
     GuardNotBoolean,
-    
+
     EmptyThenStatement,
     EmptyElseStatement,
     ThenWithoutIf,
@@ -114,8 +115,11 @@ pub enum DiagnosticKind {
     EmptyWhileDoStatement,
     EmptyDoWhileStatement,
     DoWithoutWhile,
-    
+
     UnknownVariable(String),
+    AssigneeMustBeVariable,
+
+    TypeMismatch { found: TypeAbt, expected: TypeAbt },
 }
 
 #[rustfmt::skip]
@@ -150,6 +154,10 @@ impl DiagnosticKind {
                 => "do statement without while".to_string(),
             DiagnosticKind::UnknownVariable(name)
                 => format!("unknown variable '{name}'"),
+            DiagnosticKind::AssigneeMustBeVariable
+                => "assignee must be a variable".to_string(),
+            DiagnosticKind::TypeMismatch { found, expected }
+                => format!("type mismatch of {found} into {expected}"),
         }
     }
 }

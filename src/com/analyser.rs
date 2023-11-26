@@ -289,7 +289,7 @@ impl<'a> Analyser<'a> {
 
     fn analyse_variable_expression(&mut self, id: &str, span: Span) -> ExprAbt {
         match self.scope.get_variable(id) {
-            Some(ty) => ExprAbt::Variable(ty),
+            Some(ty) => ExprAbt::Variable(id.to_string(), ty),
             None => {
                 let d = diagnostics::create_diagnostic()
                     .with_kind(DiagnosticKind::UnknownVariable(id.to_string()))
@@ -308,10 +308,16 @@ impl<'a> Analyser<'a> {
         left: &ExprAst,
         right: &ExprAst,
     ) -> ExprAbt {
-        let _left = self.analyse_expression(left);
-        let _right = self.analyse_expression(right);
+        let bound_left = self.analyse_expression(left);
+        let bound_right = self.analyse_expression(right);
+
+        if !bound_left.ty().is_known() || !bound_right.ty().is_known() {
+            return ExprAbt::Unknown;
+        }
 
         match op {
+            BinaryOperator::Equal => self.analyse_assignment(left, bound_left, right, bound_right),
+
             BinaryOperator::Plus => todo!(),
             BinaryOperator::Minus => todo!(),
             BinaryOperator::Star => todo!(),
@@ -328,7 +334,39 @@ impl<'a> Analyser<'a> {
             BinaryOperator::Bar => todo!(),
             BinaryOperator::And => todo!(),
             BinaryOperator::Or => todo!(),
-            BinaryOperator::Equal => todo!(),
         }
+    }
+
+    fn analyse_assignment(
+        &mut self,
+        left: &ExprAst,
+        bound_left: ExprAbt,
+        right: &ExprAst,
+        bound_right: ExprAbt,
+    ) -> ExprAbt {
+        let ExprAbt::Variable(name, ty_left) = bound_left else {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::AssigneeMustBeVariable)
+                .with_severity(Severity::Error)
+                .with_span(left.span)
+                .done();
+            self.diagnostics.push(d);
+            return ExprAbt::Unknown;
+        };
+
+        if !bound_right.ty().is(&ty_left) {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::TypeMismatch {
+                    found: bound_right.ty(),
+                    expected: ty_left
+                })
+                .with_severity(Severity::Error)
+                .with_span(right.span)
+                .done();
+            self.diagnostics.push(d);
+            return ExprAbt::Unknown;
+        }
+
+        ExprAbt::Assignment(name, ty_left, Box::new(bound_right))
     }
 }
