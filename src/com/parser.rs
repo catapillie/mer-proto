@@ -831,7 +831,7 @@ impl<'a> Parser<'a> {
 
 macro_rules! take_span {
     ($self:ident => $e:expr) => {{
-        let from = $self.last_boundary;
+        let from = $self.look_ahead.span().from;
         #[allow(clippy::redundant_closure_call)]
         let res = (|| $e)();
         let to = $self.last_boundary;
