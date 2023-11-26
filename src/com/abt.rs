@@ -35,3 +35,15 @@ pub enum TypeAbt {
     Number,
     Boolean,
 }
+
+impl TypeAbt {
+    /// Determines whether [`self`] is of the specified type.
+    /// If [`self`] is [`TypeAbt::Unknown`], then the check is true.
+    pub fn is(&self, ty: &Self) -> bool {
+        match self {
+            TypeAbt::Unknown => true, // ignored
+            TypeAbt::Number => matches!(ty, TypeAbt::Number),
+            TypeAbt::Boolean => matches!(ty, TypeAbt::Boolean),
+        }
+    }
+}

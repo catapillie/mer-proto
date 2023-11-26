@@ -129,7 +129,7 @@ impl<'a> Analyser<'a> {
             self.diagnostics.push(d);
         }
 
-        if !matches!(bound_guard.ty(), TypeAbt::Boolean) {
+        if !bound_guard.ty().is(&TypeAbt::Boolean) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::GuardNotBoolean)
                 .with_severity(Severity::Error)
@@ -169,7 +169,7 @@ impl<'a> Analyser<'a> {
             self.diagnostics.push(d);
         }
 
-        if !matches!(bound_guard.ty(), TypeAbt::Boolean) {
+        if !bound_guard.ty().is(&TypeAbt::Boolean) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::GuardNotBoolean)
                 .with_severity(Severity::Error)
@@ -218,7 +218,7 @@ impl<'a> Analyser<'a> {
             self.diagnostics.push(d);
         }
 
-        if !matches!(bound_guard.ty(), TypeAbt::Boolean) {
+        if !bound_guard.ty().is(&TypeAbt::Boolean) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::GuardNotBoolean)
                 .with_severity(Severity::Error)
@@ -243,7 +243,7 @@ impl<'a> Analyser<'a> {
             self.diagnostics.push(d);
         }
 
-        if !matches!(bound_guard.ty(), TypeAbt::Boolean) {
+        if !bound_guard.ty().is(&TypeAbt::Boolean) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::GuardNotBoolean)
                 .with_severity(Severity::Error)
