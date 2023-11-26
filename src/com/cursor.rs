@@ -33,6 +33,7 @@ impl<'a> Iterator for Cursor<'a> {
             return None;
         };
 
+        self.pos.index += 1;
         if c == '\n' {
             self.pos.line += 1;
             self.pos.column = 0;
