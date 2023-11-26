@@ -4,6 +4,12 @@ use super::{
     tokens::{Token, TokenKind},
 };
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum Severity {
+    Error,
+    Warning,
+}
+
 pub struct Diagnostics {
     diagnostics: Vec<Diagnostic>,
 }
@@ -27,53 +33,65 @@ impl Diagnostics {
 #[derive(Debug)]
 pub struct Diagnostic {
     pub kind: DiagnosticKind,
+    pub severity: Severity,
     pub span: Span,
 }
 
 // type-state builder
-pub struct NoKind;
-pub struct WithKind(DiagnosticKind);
-pub struct NoSpan;
-pub struct WithSpan(Span);
-pub struct DiagnosticBuilder<K, S> {
-    kind: K,
-    span: S,
+pub struct DiagnosticBuilder<Ki, Sev, Sp> {
+    kind: Ki,
+    severity: Sev,
+    span: Sp,
 }
 
-pub fn create_diagnostic() -> DiagnosticBuilder<NoKind, NoSpan> {
+pub fn create_diagnostic() -> DiagnosticBuilder<(), (), ()> {
     DiagnosticBuilder {
-        kind: NoKind,
-        span: NoSpan,
+        kind: (),
+        severity: (),
+        span: (),
     }
 }
 
-impl<S> DiagnosticBuilder<NoKind, S> {
-    pub fn with_kind(self, kind: DiagnosticKind) -> DiagnosticBuilder<WithKind, S> {
+impl<Sev, Sp> DiagnosticBuilder<(), Sev, Sp> {
+    pub fn with_kind(self, kind: DiagnosticKind) -> DiagnosticBuilder<DiagnosticKind, Sev, Sp> {
         DiagnosticBuilder {
-            kind: WithKind(kind),
+            kind,
+            severity: self.severity,
             span: self.span,
         }
     }
 }
 
-impl<K> DiagnosticBuilder<K, NoSpan> {
-    pub fn with_span(self, span: Span) -> DiagnosticBuilder<K, WithSpan> {
+impl<Ki, Sp> DiagnosticBuilder<Ki, (), Sp> {
+    pub fn with_severity(self, severity: Severity) -> DiagnosticBuilder<Ki, Severity, Sp> {
         DiagnosticBuilder {
             kind: self.kind,
-            span: WithSpan(span),
+            severity,
+            span: self.span,
+        }
+    }
+}
+
+impl<Ki, Sev> DiagnosticBuilder<Ki, Sev, ()> {
+    pub fn with_span(self, span: Span) -> DiagnosticBuilder<Ki, Sev, Span> {
+        DiagnosticBuilder {
+            kind: self.kind,
+            severity: self.severity,
+            span,
         }
     }
 
-    pub fn with_pos(self, pos: Pos) -> DiagnosticBuilder<K, WithSpan> {
+    pub fn with_pos(self, pos: Pos) -> DiagnosticBuilder<Ki, Sev, Span> {
         self.with_span(Span::at(pos))
     }
 }
 
-impl DiagnosticBuilder<WithKind, WithSpan> {
+impl DiagnosticBuilder<DiagnosticKind, Severity, Span> {
     pub fn done(self) -> Diagnostic {
         Diagnostic {
-            kind: self.kind.0,
-            span: self.span.0,
+            kind: self.kind,
+            severity: self.severity,
+            span: self.span,
         }
     }
 }
@@ -87,6 +105,7 @@ pub enum DiagnosticKind {
     ExpectedType,
 
     GuardNotBoolean,
+    EmptyIfThenStatement,
 }
 
 #[rustfmt::skip]
@@ -105,6 +124,8 @@ impl DiagnosticKind {
                 => "expected a type expression".to_string(),
             DiagnosticKind::GuardNotBoolean
                 => "guard is not a boolean".to_string(),
+            DiagnosticKind::EmptyIfThenStatement
+                => "empty if-then statement".to_string(),
         }
     }
 }

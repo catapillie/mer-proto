@@ -1,6 +1,6 @@
 use self::{diagnostics::Diagnostic, parser::Parser};
 use crate::{
-    com::{analyser::Analyser, codegen::Codegen, diagnostics::Diagnostics},
+    com::{analyser::Analyser, codegen::Codegen, diagnostics::{Diagnostics, Severity}},
     msg,
 };
 use colored::Colorize;
@@ -87,7 +87,10 @@ fn print_diagnostic(lines: &[&str], diagnostic: Diagnostic) {
     let next_line = lines.get(line_index + 1);
     let chars = lines[line_index].chars();
 
-    msg::error(msg);
+    match diagnostic.severity {
+        Severity::Error => msg::error(msg),
+        Severity::Warning => msg::warn(msg),
+    }
 
     if let Some(line) = prev_line {
         println!("{:>4} │ {line}", line_index);

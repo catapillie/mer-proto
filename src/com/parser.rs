@@ -1,3 +1,5 @@
+use crate::com::diagnostics::Severity;
+
 use super::{
     ast::{
         Associativity, BinaryOperator, ExprAst, ExprAstKind, Precedence, ProgramAst, StmtAst,
@@ -47,6 +49,7 @@ impl<'a> Parser<'a> {
                 None => {
                     let d = diagnostics::create_diagnostic()
                         .with_kind(DiagnosticKind::ExpectedStatement)
+                        .with_severity(Severity::Error)
                         .with_pos(self.pos())
                         .done();
                     self.diagnostics.push(d);
@@ -88,7 +91,7 @@ impl<'a> Parser<'a> {
     }
 
     fn empty_statement_here(&self) -> StmtAst {
-        StmtAstKind::Empty.wrap(Span::at(self.pos()))
+        StmtAstKind::Empty.wrap(Span::at(self.last_boundary))
     }
 
     pub fn parse_statement(&mut self) -> Option<StmtAst> {
@@ -268,6 +271,7 @@ impl<'a> Parser<'a> {
                 None => {
                     let d = diagnostics::create_diagnostic()
                         .with_kind(DiagnosticKind::ExpectedStatement)
+                        .with_severity(Severity::Error)
                         .with_pos(self.pos())
                         .done();
                     self.diagnostics.push(d);
@@ -317,6 +321,7 @@ impl<'a> Parser<'a> {
                     None => {
                         let d = diagnostics::create_diagnostic()
                             .with_kind(DiagnosticKind::ExpectedStatement)
+                            .with_severity(Severity::Error)
                             .with_pos(self.pos())
                             .done();
                         self.diagnostics.push(d);
@@ -330,6 +335,7 @@ impl<'a> Parser<'a> {
                             found: self.last_token.clone(),
                             expected: TokenKind::RightBrace,
                         })
+                        .with_severity(Severity::Error)
                         .with_span(self.last_token.span())
                         .done();
                     self.diagnostics.push(d);
@@ -393,6 +399,7 @@ impl<'a> Parser<'a> {
             None => {
                 let d = diagnostics::create_diagnostic()
                     .with_kind(DiagnosticKind::ExpectedExpression)
+                    .with_severity(Severity::Error)
                     .with_pos(self.pos())
                     .done();
                 self.diagnostics.push(d);
@@ -414,6 +421,7 @@ impl<'a> Parser<'a> {
                     None => {
                         let d = diagnostics::create_diagnostic()
                             .with_kind(DiagnosticKind::ExpectedExpression)
+                            .with_severity(Severity::Error)
                             .with_pos(self.pos())
                             .done();
                         self.diagnostics.push(d);
@@ -443,6 +451,7 @@ impl<'a> Parser<'a> {
                 None => {
                     let d = diagnostics::create_diagnostic()
                         .with_kind(DiagnosticKind::ExpectedExpression)
+                        .with_severity(Severity::Error)
                         .with_pos(self.pos())
                         .done();
                     self.diagnostics.push(d);
@@ -513,6 +522,7 @@ impl<'a> Parser<'a> {
             None => {
                 let d = diagnostics::create_diagnostic()
                     .with_kind(DiagnosticKind::ExpectedType)
+                    .with_severity(Severity::Error)
                     .with_pos(self.pos())
                     .done();
                 self.diagnostics.push(d);
@@ -580,6 +590,7 @@ impl<'a> Parser<'a> {
                         found: tok,
                         expected: T::kind(),
                     })
+                    .with_severity(Severity::Error)
                     .with_span(span)
                     .done();
                 self.diagnostics.push(d);
@@ -604,6 +615,7 @@ impl<'a> Parser<'a> {
                             found: tok,
                             expected: T::kind(),
                         })
+                        .with_severity(Severity::Error)
                         .with_span(span)
                         .done();
                     self.diagnostics.push(d);
@@ -818,6 +830,7 @@ impl<'a> Parser<'a> {
 
                     let d = diagnostics::create_diagnostic()
                         .with_kind(DiagnosticKind::IllegalCharacter(u))
+                        .with_severity(Severity::Error)
                         .with_span(Span::new(pos_from, pos_to))
                         .done();
                     self.diagnostics.push(d);

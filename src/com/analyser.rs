@@ -3,7 +3,7 @@ use crate::com::abt::TypeAbt;
 use super::{
     abt::{ExprAbt, StmtAbt},
     ast::{BinaryOperator, ExprAst, ExprAstKind, ProgramAst, StmtAst, StmtAstKind},
-    diagnostics::{Diagnostics, self, DiagnosticKind},
+    diagnostics::{Diagnostics, self, DiagnosticKind, Severity},
 };
 
 pub struct Analyser<'a> {
@@ -89,9 +89,21 @@ impl<'a> Analyser<'a> {
         let bound_guard = self.analyse_expression(guard);
         let bound_body = self.analyse_statement(body);
 
+        println!("{}", guard.span);
+        println!("{}", body.span);
+        if matches!(bound_body, StmtAbt::Empty) {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::EmptyIfThenStatement)
+                .with_severity(Severity::Warning)
+                .with_span(body.span)
+                .done();
+            self.diagnostics.push(d);
+        }
+
         if !matches!(bound_guard.ty(), TypeAbt::Boolean) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::GuardNotBoolean)
+                .with_severity(Severity::Error)
                 .with_span(guard.span)
                 .done();
             self.diagnostics.push(d);
