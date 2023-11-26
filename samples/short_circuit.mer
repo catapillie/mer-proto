@@ -6,7 +6,7 @@ func no() -> bool {
     return true == false
 }
 
-func log(b) -> bool {
+func log(b: bool) -> bool {
     b
     return b
 }

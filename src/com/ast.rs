@@ -41,7 +41,7 @@ pub enum StmtAstKind {
     WhileDo(Box<ExprAst>, Box<StmtAst>),
     DoWhile(Box<StmtAst>, Box<ExprAst>),
     Do(Box<StmtAst>),
-    Func(Option<String>, Vec<String>, Box<StmtAst>, Box<TypeAst>),
+    Func(Option<String>, Vec<(String, TypeAst)>, Box<StmtAst>, Box<TypeAst>),
     Return,
     ReturnWith(Box<ExprAst>),
 }

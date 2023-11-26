@@ -245,7 +245,10 @@ impl<'a> Parser<'a> {
                     break;
                 };
 
-                params.push(id.0);
+                self.match_token::<Colon>();
+                let ty = self.expect_type_expression();
+
+                params.push((id.0, ty));
 
                 if self.try_match_token::<Comma>().is_none() {
                     break;
@@ -254,7 +257,7 @@ impl<'a> Parser<'a> {
             self.match_token::<RightParen>();
 
             self.match_token::<RightArrow>();
-            let ty = self.expected_type_expression();
+            let ty = self.expect_type_expression();
 
             self.skip_newlines();
 
@@ -516,17 +519,17 @@ impl<'a> Parser<'a> {
         expr.map(|e| e.wrap(span))
     }
 
-    fn expected_type_expression(&mut self) -> TypeAst {
+    fn expect_type_expression(&mut self) -> TypeAst {
         match self.parse_type_expression() {
             Some(ty) => ty,
             None => {
                 let d = diagnostics::create_diagnostic()
                     .with_kind(DiagnosticKind::ExpectedType)
                     .with_severity(Severity::Error)
-                    .with_pos(self.pos())
+                    .with_pos(self.last_span().from)
                     .done();
                 self.diagnostics.push(d);
-                TypeAstKind::Bad.wrap(Span::at(self.pos()))
+                TypeAstKind::Bad.wrap(Span::at(self.last_span().from))
             }
         }
     }

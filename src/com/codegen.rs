@@ -68,7 +68,7 @@ impl Codegen {
             };
 
             let mut locals = LocalsInfo::default();
-            for (i, param) in params.iter().enumerate() {
+            for (i, (param, _)) in params.iter().enumerate() {
                 locals.indices.insert((param.clone(), 0), i as u8);
             }
             Self::count_locals_in_stmt(&mut locals, body, 0);

@@ -130,7 +130,7 @@ fn print_diagnostic(lines: &[&str], diagnostic: Diagnostic) {
         );
         print!("{}", "┘".color(color));
     } else {
-        print!("     │{}", " ".repeat(span.from.column + 1));
+        print!("     │{}", " ".repeat(span.from.column + 2 - width));
         print!("{}", "↑ here".color(color));
     }
     println!();
