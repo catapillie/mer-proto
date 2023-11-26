@@ -139,6 +139,9 @@ pub enum DiagnosticKind {
         left: TypeAbt,
         right: TypeAbt,
     },
+    MustReturnValue {
+        expected: TypeAbt,
+    },
 }
 
 #[rustfmt::skip]
@@ -183,6 +186,10 @@ impl DiagnosticKind {
             DiagnosticKind::TypeMismatch { found, expected }
                 => format!("type mismatch of {} into {}",
                     found.to_string().bold(),
+                    expected.to_string().bold(),
+                ),
+            DiagnosticKind::MustReturnValue { expected }
+                => format!("must return a {} value",
                     expected.to_string().bold(),
                 ),
             DiagnosticKind::InvalidUnaryOperation { op, ty }

@@ -10,11 +10,13 @@ pub enum StmtAbt {
     IfThenElse(Box<ExprAbt>, Box<StmtAbt>, Box<StmtAbt>),
     WhileDo(Box<ExprAbt>, Box<StmtAbt>),
     DoWhile(Box<StmtAbt>, Box<ExprAbt>),
+    Return(Box<ExprAbt>),
 }
 
 #[derive(Debug)]
 pub enum ExprAbt {
     Unknown,
+    Unit,
     Number(f64),
     Boolean(bool),
     Variable(String, TypeAbt),
@@ -27,6 +29,7 @@ impl ExprAbt {
     pub fn ty(&self) -> TypeAbt {
         match self {
             ExprAbt::Unknown => TypeAbt::Unknown,
+            ExprAbt::Unit => TypeAbt::Unit,
             ExprAbt::Number(_) => TypeAbt::Number,
             ExprAbt::Boolean(_) => TypeAbt::Boolean,
             ExprAbt::Variable(_, ty) => ty.clone(),
@@ -67,6 +70,7 @@ pub enum UnaryOp {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum TypeAbt {
     Unknown,
+    Unit,
     Number,
     Boolean,
 }
@@ -77,6 +81,7 @@ impl TypeAbt {
     pub fn is(&self, ty: &Self) -> bool {
         match self {
             TypeAbt::Unknown => true, // ignored
+            TypeAbt::Unit => matches!(ty, TypeAbt::Unit),
             TypeAbt::Number => matches!(ty, TypeAbt::Number),
             TypeAbt::Boolean => matches!(ty, TypeAbt::Boolean),
         }
@@ -91,6 +96,7 @@ impl Display for TypeAbt {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             TypeAbt::Unknown => write!(f, "unknown"),
+            TypeAbt::Unit => write!(f, "()"),
             TypeAbt::Number => write!(f, "number"),
             TypeAbt::Boolean => write!(f, "boolean"),
         }

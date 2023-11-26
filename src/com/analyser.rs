@@ -9,13 +9,28 @@ use super::{
     span::Span,
 };
 
-#[derive(Default)]
 struct Scope {
     parent: Option<Box<Scope>>,
 
     variables: HashMap<String, TypeAbt>,
     unary_operations: HashMap<(UnaryOperator, TypeAbt), (UnaryOp, TypeAbt)>,
     binary_operations: HashMap<(BinaryOperator, TypeAbt, TypeAbt), (BinaryOp, TypeAbt)>,
+
+    return_type: TypeAbt,
+}
+
+impl Default for Scope {
+    fn default() -> Self {
+        Self {
+            parent: None,
+
+            variables: Default::default(),
+            unary_operations: Default::default(),
+            binary_operations: Default::default(),
+
+            return_type: TypeAbt::Unknown,
+        }
+    }
 }
 
 impl Scope {
@@ -134,12 +149,17 @@ impl<'a> Analyser<'a> {
         // <op> boolean -> boolean
         scope.declare_unary_operation((UI::Not, Ty::Boolean), (UO::Not, Ty::Boolean));
 
+        // the main scope must return unit
+        scope.return_type = TypeAbt::Unit;
+
         Self { diagnostics, scope }
     }
 
     fn open_scope(&mut self) {
         let parent = mem::take(&mut self.scope);
+        let return_type = parent.return_type.clone();
         self.scope.parent = Some(Box::new(parent));
+        self.scope.return_type = return_type;
     }
 
     fn close_scope(&mut self) {
@@ -177,8 +197,10 @@ impl<'a> Analyser<'a> {
             StmtAstKind::Do(body)
                 => self.analyse_do_statement(body),
             StmtAstKind::Func(_, _, _, _) => todo!(),
-            StmtAstKind::Return => todo!(),
-            StmtAstKind::ReturnWith(_) => todo!(),
+            StmtAstKind::Return
+                => self.analyse_return_statement(stmt.span),
+            StmtAstKind::ReturnWith(expr)
+                => self.analyse_return_with_statement(expr),
         }
     }
 
@@ -355,6 +377,44 @@ impl<'a> Analyser<'a> {
             .done();
         self.diagnostics.push(d);
         StmtAbt::Empty
+    }
+
+    fn analyse_return_statement(&mut self, span: Span) -> StmtAbt {
+        let ty = TypeAbt::Unit;
+
+        if !ty.is(&self.scope.return_type) {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::MustReturnValue {
+                    expected: self.scope.return_type.clone()
+                })
+                .with_severity(Severity::Error)
+                .with_span(span)
+                .done();
+            self.diagnostics.push(d);
+            return StmtAbt::Empty
+        }
+
+        StmtAbt::Return(Box::new(ExprAbt::Unit))
+    }
+
+    fn analyse_return_with_statement(&mut self, expr: &ExprAst) -> StmtAbt {
+        let bound_expr = self.analyse_expression(expr);
+        let ty_expr = bound_expr.ty();
+
+        if !ty_expr.is(&self.scope.return_type) {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::TypeMismatch {
+                    found: ty_expr,
+                    expected: self.scope.return_type.clone()
+                })
+                .with_severity(Severity::Error)
+                .with_span(expr.span)
+                .done();
+            self.diagnostics.push(d);
+            return StmtAbt::Empty;
+        }
+
+        StmtAbt::Return(Box::new(bound_expr))
     }
 
     #[rustfmt::skip]
