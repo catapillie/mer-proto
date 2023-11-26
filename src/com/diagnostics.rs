@@ -1,3 +1,5 @@
+use colored::Colorize;
+
 use super::{
     abt::TypeAbt,
     pos::Pos,
@@ -127,9 +129,14 @@ impl DiagnosticKind {
     pub fn msg(&self) -> String {
         match self {
             DiagnosticKind::IllegalCharacter(ill)
-                => format!("encountered illegal character {ill:?}"),
+                => format!("encountered illegal character {}",
+                    format!("{ill:?}").bold()
+                ),
             DiagnosticKind::ExpectedToken { found, expected }
-                => format!("expected {expected}, but found {found}"),
+                => format!("expected {}, but found {}",
+                    expected.to_string().bold(),
+                    found.to_string().bold()
+                ),
             DiagnosticKind::ExpectedExpression
                 => "expected an expression".to_string(),
             DiagnosticKind::ExpectedStatement
@@ -153,11 +160,14 @@ impl DiagnosticKind {
             DiagnosticKind::DoWithoutWhile
                 => "do statement without while".to_string(),
             DiagnosticKind::UnknownVariable(name)
-                => format!("unknown variable '{name}'"),
+                => format!("unknown variable '{}'", name.bold()),
             DiagnosticKind::AssigneeMustBeVariable
                 => "assignee must be a variable".to_string(),
             DiagnosticKind::TypeMismatch { found, expected }
-                => format!("type mismatch of {found} into {expected}"),
+                => format!("type mismatch of {} into {}",
+                    found.to_string().bold(),
+                    expected.to_string().bold()
+                ),
         }
     }
 }
