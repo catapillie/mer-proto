@@ -81,16 +81,20 @@ impl TypeAbt {
     /// Determines whether [`self`] is of the specified type.
     /// If [`self`] is [`TypeAbt::Unknown`], then the check is true.
     pub fn is(&self, ty: &Self) -> bool {
+        if !ty.is_known() {
+            return true; // ignored
+        }
+
         match self {
-            TypeAbt::Unknown => true, // ignored
-            TypeAbt::Unit => matches!(ty, TypeAbt::Unit),
-            TypeAbt::Number => matches!(ty, TypeAbt::Number),
-            TypeAbt::Boolean => matches!(ty, TypeAbt::Boolean),
+            Self::Unknown => true, // ignored too
+            Self::Unit => matches!(ty, TypeAbt::Unit),
+            Self::Number => matches!(ty, TypeAbt::Number),
+            Self::Boolean => matches!(ty, TypeAbt::Boolean),
         }
     }
 
     pub fn is_known(&self) -> bool {
-        !matches!(self, TypeAbt::Unknown)
+        !matches!(self, Self::Unknown)
     }
 }
 

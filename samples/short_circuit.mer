@@ -1,12 +1,12 @@
-func yes() -> bool {
+func yes() -> boolean {
     return 1 + 2 <= 3
 }
 
-func no() -> bool {
+func no() -> boolean {
     return true == false
 }
 
-func log(b: bool) -> bool {
+func log(b: boolean) -> boolean {
     b
     return b
 }

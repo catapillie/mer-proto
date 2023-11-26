@@ -1,4 +1,4 @@
-func is_prime(n: number) -> bool
+func is_prime(n: number) -> boolean
 {
     if n <= 1 then
         return false

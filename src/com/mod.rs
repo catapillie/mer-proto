@@ -1,9 +1,13 @@
 use self::{diagnostics::Diagnostic, parser::Parser};
 use crate::{
-    com::{analyser::Analyser, codegen::Codegen, diagnostics::{Diagnostics, Severity}},
+    com::{
+        analyser::Analyser,
+        codegen::Codegen,
+        diagnostics::{Diagnostics, Severity},
+    },
     msg,
 };
-use colored::{Colorize, Color};
+use colored::{Color, Colorize};
 use std::{
     fs,
     process::{self},
@@ -91,7 +95,7 @@ fn print_diagnostic(lines: &[&str], diagnostic: Diagnostic) {
         Severity::Error => {
             msg::error(msg);
             Color::BrightRed
-        },
+        }
         Severity::Warning => {
             msg::warn(msg);
             Color::BrightYellow

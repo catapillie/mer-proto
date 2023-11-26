@@ -124,12 +124,14 @@ pub enum DiagnosticKind {
 
     UnknownVariable(String),
     AssigneeMustBeVariable,
-    
+
     UnknownFunction(String),
     InvalidParameterCount {
         got: usize,
         expected: usize,
     },
+
+    UnknownType(String),
 
     TypeMismatch {
         found: TypeAbt,
@@ -196,6 +198,8 @@ impl DiagnosticKind {
                     expected.to_string().bold(),
                     got.to_string().bold()
                 ),
+            DiagnosticKind::UnknownType(id)
+                => format!("unkown type '{}'", id.bold()),
             DiagnosticKind::TypeMismatch { found, expected }
                 => format!("type mismatch of {} into {}",
                     found.to_string().bold(),
