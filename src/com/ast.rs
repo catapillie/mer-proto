@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use super::span::Span;
 
 pub type ProgramAst = Vec<StmtAst>;
@@ -82,7 +84,7 @@ pub enum UnaryOperator {
     Not,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum BinaryOperator {
     Plus,
     Minus,
@@ -101,6 +103,30 @@ pub enum BinaryOperator {
     And,
     Or,
     Equal,
+}
+
+impl Display for BinaryOperator {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BinaryOperator::Plus => write!(f, "+"),
+            BinaryOperator::Minus => write!(f, "-"),
+            BinaryOperator::Star => write!(f, "*"),
+            BinaryOperator::Slash => write!(f, "/"),
+            BinaryOperator::Percent => write!(f, "%"),
+            BinaryOperator::EqualEqual => write!(f, "=="),
+            BinaryOperator::NotEqual => write!(f, "!="),
+            BinaryOperator::LessEqual => write!(f, "<="),
+            BinaryOperator::LessThan => write!(f, "<"),
+            BinaryOperator::GreaterEqual => write!(f, ">="),
+            BinaryOperator::GreaterThan => write!(f, ">"),
+            BinaryOperator::Ampersand => write!(f, "&"),
+            BinaryOperator::Caret => write!(f, "^"),
+            BinaryOperator::Bar => write!(f, "|"),
+            BinaryOperator::And => write!(f, "and"),
+            BinaryOperator::Or => write!(f, "or"),
+            BinaryOperator::Equal => write!(f, "="),
+        }
+    }
 }
 
 pub type Precedence = u8;

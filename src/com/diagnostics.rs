@@ -4,7 +4,7 @@ use super::{
     abt::TypeAbt,
     pos::Pos,
     span::Span,
-    tokens::{Token, TokenKind},
+    tokens::{Token, TokenKind}, ast::BinaryOperator,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -122,6 +122,12 @@ pub enum DiagnosticKind {
     AssigneeMustBeVariable,
 
     TypeMismatch { found: TypeAbt, expected: TypeAbt },
+
+    InvalidBinaryOperation { 
+        op: BinaryOperator,
+        left: TypeAbt,
+        right: TypeAbt,
+    },
 }
 
 #[rustfmt::skip]
@@ -130,12 +136,12 @@ impl DiagnosticKind {
         match self {
             DiagnosticKind::IllegalCharacter(ill)
                 => format!("encountered illegal character {}",
-                    format!("{ill:?}").bold()
+                    format!("{ill:?}").bold(),
                 ),
             DiagnosticKind::ExpectedToken { found, expected }
                 => format!("expected {}, but found {}",
                     expected.to_string().bold(),
-                    found.to_string().bold()
+                    found.to_string().bold(),
                 ),
             DiagnosticKind::ExpectedExpression
                 => "expected an expression".to_string(),
@@ -166,7 +172,13 @@ impl DiagnosticKind {
             DiagnosticKind::TypeMismatch { found, expected }
                 => format!("type mismatch of {} into {}",
                     found.to_string().bold(),
-                    expected.to_string().bold()
+                    expected.to_string().bold(),
+                ),
+            DiagnosticKind::InvalidBinaryOperation { op, left, right }
+                => format!("invalid binary operation {} {} {}",
+                    left.to_string().bold(),
+                    op.to_string().bold(),
+                    right.to_string().bold(),
                 ),
         }
     }

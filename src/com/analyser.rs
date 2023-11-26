@@ -1,6 +1,6 @@
 use std::{collections::HashMap, mem};
 
-use crate::com::abt::TypeAbt;
+use crate::com::abt::{BinaryOp, TypeAbt};
 
 use super::{
     abt::{ExprAbt, StmtAbt},
@@ -14,6 +14,7 @@ struct Scope {
     parent: Option<Box<Scope>>,
 
     variables: HashMap<String, TypeAbt>,
+    binary_operations: HashMap<(BinaryOperator, TypeAbt, TypeAbt), (BinaryOp, TypeAbt)>,
 }
 
 impl Scope {
@@ -30,6 +31,32 @@ impl Scope {
             },
         }
     }
+
+    pub fn declare_binary_operation(
+        &mut self,
+        key: (BinaryOperator, TypeAbt, TypeAbt),
+        value: (BinaryOp, TypeAbt),
+    ) {
+        self.binary_operations.insert(key, value);
+    }
+
+    pub fn get_binary_operation(
+        &self,
+        op: BinaryOperator,
+        left: &TypeAbt,
+        right: &TypeAbt,
+    ) -> Option<(BinaryOp, TypeAbt)> {
+        match self
+            .binary_operations
+            .get(&(op, left.clone(), right.clone()))
+        {
+            Some(res) => Some(res.clone()),
+            None => match self.parent {
+                Some(ref parent) => parent.get_binary_operation(op, left, right),
+                None => None,
+            },
+        }
+    }
 }
 
 pub struct Analyser<'a> {
@@ -38,11 +65,39 @@ pub struct Analyser<'a> {
 }
 
 impl<'a> Analyser<'a> {
+    #[rustfmt::skip]
     pub fn new(diagnostics: &'a mut Diagnostics) -> Self {
-        Self {
-            diagnostics,
-            scope: Scope::default(),
-        }
+        let mut scope = Scope::default();
+
+        use BinaryOp as O;
+        use BinaryOperator as I;
+        use TypeAbt as Ty;
+        
+        // number <op> number -> number
+        scope.declare_binary_operation((I::Plus, Ty::Number, Ty::Number), (O::Plus, Ty::Number));
+        scope.declare_binary_operation((I::Minus, Ty::Number, Ty::Number), (O::Minus, Ty::Number));
+        scope.declare_binary_operation((I::Star, Ty::Number, Ty::Number), (O::Star, Ty::Number));
+        scope.declare_binary_operation((I::Slash, Ty::Number, Ty::Number), (O::Slash, Ty::Number));
+        scope.declare_binary_operation((I::Percent, Ty::Number, Ty::Number), (O::Percent, Ty::Number));
+
+        // number <op> number -> boolean
+        scope.declare_binary_operation((I::EqualEqual, Ty::Number, Ty::Number), (O::EqualEqual, Ty::Boolean));
+        scope.declare_binary_operation((I::NotEqual, Ty::Number, Ty::Number), (O::NotEqual, Ty::Boolean));
+        scope.declare_binary_operation((I::LessEqual, Ty::Number, Ty::Number), (O::LessEqual, Ty::Boolean));
+        scope.declare_binary_operation((I::LessThan, Ty::Number, Ty::Number), (O::LessThan, Ty::Boolean));
+        scope.declare_binary_operation((I::GreaterEqual, Ty::Number, Ty::Number), (O::GreaterEqual, Ty::Boolean));
+        scope.declare_binary_operation((I::GreaterThan, Ty::Number, Ty::Number), (O::GreaterThan, Ty::Boolean));
+
+        // boolean <op> boolean -> boolean
+        scope.declare_binary_operation((I::Ampersand, Ty::Boolean, Ty::Boolean), (O::Ampersand, Ty::Boolean));
+        scope.declare_binary_operation((I::Caret, Ty::Boolean, Ty::Boolean), (O::Caret, Ty::Boolean));
+        scope.declare_binary_operation((I::Bar, Ty::Boolean, Ty::Boolean), (O::Bar, Ty::Boolean));
+        scope.declare_binary_operation((I::And, Ty::Boolean, Ty::Boolean), (O::And, Ty::Boolean));
+        scope.declare_binary_operation((I::Or, Ty::Boolean, Ty::Boolean), (O::Or, Ty::Boolean));
+        scope.declare_binary_operation((I::EqualEqual, Ty::Boolean, Ty::Boolean), (O::EqualEqual, Ty::Boolean));
+        scope.declare_binary_operation((I::NotEqual, Ty::Boolean, Ty::Boolean), (O::NotEqual, Ty::Boolean));
+
+        Self { diagnostics, scope }
     }
 
     fn open_scope(&mut self) {
@@ -308,42 +363,41 @@ impl<'a> Analyser<'a> {
         left: &ExprAst,
         right: &ExprAst,
     ) -> ExprAbt {
+        if matches!(op, BinaryOperator::Equal) {
+            return self.analyse_assignment(left, right);
+        }
+
         let bound_left = self.analyse_expression(left);
         let bound_right = self.analyse_expression(right);
 
-        if !bound_left.ty().is_known() || !bound_right.ty().is_known() {
+        let ty_left = bound_left.ty();
+        let ty_right = bound_right.ty();
+
+        if !ty_left.is_known() || !ty_right.is_known() {
             return ExprAbt::Unknown;
         }
 
-        match op {
-            BinaryOperator::Equal => self.analyse_assignment(left, bound_left, right, bound_right),
+        let Some(bin_op) = self.scope.get_binary_operation(op, &ty_left, &ty_right) else {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::InvalidBinaryOperation {
+                    op,
+                    left: ty_left,
+                    right: ty_right,
+                })
+                .with_severity(Severity::Error)
+                .with_span(right.span.join(left.span))
+                .done();
+            self.diagnostics.push(d);
+            return ExprAbt::Unknown;
+        };
 
-            BinaryOperator::Plus => todo!(),
-            BinaryOperator::Minus => todo!(),
-            BinaryOperator::Star => todo!(),
-            BinaryOperator::Slash => todo!(),
-            BinaryOperator::Percent => todo!(),
-            BinaryOperator::EqualEqual => todo!(),
-            BinaryOperator::NotEqual => todo!(),
-            BinaryOperator::LessEqual => todo!(),
-            BinaryOperator::LessThan => todo!(),
-            BinaryOperator::GreaterEqual => todo!(),
-            BinaryOperator::GreaterThan => todo!(),
-            BinaryOperator::Ampersand => todo!(),
-            BinaryOperator::Caret => todo!(),
-            BinaryOperator::Bar => todo!(),
-            BinaryOperator::And => todo!(),
-            BinaryOperator::Or => todo!(),
-        }
+        ExprAbt::Binary(bin_op, Box::new(bound_left), Box::new(bound_right))
     }
 
-    fn analyse_assignment(
-        &mut self,
-        left: &ExprAst,
-        bound_left: ExprAbt,
-        right: &ExprAst,
-        bound_right: ExprAbt,
-    ) -> ExprAbt {
+    fn analyse_assignment(&mut self, left: &ExprAst, right: &ExprAst) -> ExprAbt {
+        let bound_left = self.analyse_expression(left);
+        let bound_right = self.analyse_expression(right);
+
         let ExprAbt::Variable(name, ty_left) = bound_left else {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::AssigneeMustBeVariable)
@@ -358,7 +412,7 @@ impl<'a> Analyser<'a> {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::TypeMismatch {
                     found: bound_right.ty(),
-                    expected: ty_left
+                    expected: ty_left,
                 })
                 .with_severity(Severity::Error)
                 .with_span(right.span)

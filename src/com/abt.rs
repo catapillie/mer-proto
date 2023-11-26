@@ -19,6 +19,7 @@ pub enum ExprAbt {
     Boolean(bool),
     Variable(String, TypeAbt),
     Assignment(String, TypeAbt, Box<ExprAbt>),
+    Binary((BinaryOp, TypeAbt), Box<ExprAbt>, Box<ExprAbt>)
 }
 
 impl ExprAbt {
@@ -29,11 +30,32 @@ impl ExprAbt {
             ExprAbt::Boolean(_) => TypeAbt::Boolean,
             ExprAbt::Variable(_, ty) => ty.clone(),
             ExprAbt::Assignment(_, ty, _) => ty.clone(),
+            ExprAbt::Binary((_, ty), _, _) => ty.clone(),
         }
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum BinaryOp {
+    Plus,
+    Minus,
+    Star,
+    Slash,
+    Percent,
+    EqualEqual,
+    NotEqual,
+    LessEqual,
+    LessThan,
+    GreaterEqual,
+    GreaterThan,
+    Ampersand,
+    Caret,
+    Bar,
+    And,
+    Or,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum TypeAbt {
     Unknown,
     Number,
