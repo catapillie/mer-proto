@@ -124,6 +124,12 @@ pub enum DiagnosticKind {
 
     UnknownVariable(String),
     AssigneeMustBeVariable,
+    
+    UnknownFunction(String),
+    InvalidParameterCount {
+        got: usize,
+        expected: usize,
+    },
 
     TypeMismatch {
         found: TypeAbt,
@@ -183,15 +189,20 @@ impl DiagnosticKind {
                 => format!("unknown variable '{}'", name.bold()),
             DiagnosticKind::AssigneeMustBeVariable
                 => "assignee must be a variable".to_string(),
+            DiagnosticKind::UnknownFunction(name)
+                => format!("unknown function '{}'", name.bold()),
+            DiagnosticKind::InvalidParameterCount { got, expected }
+                => format!("function takes in {} but was supplied {} parameters",
+                    expected.to_string().bold(),
+                    got.to_string().bold()
+                ),
             DiagnosticKind::TypeMismatch { found, expected }
                 => format!("type mismatch of {} into {}",
                     found.to_string().bold(),
                     expected.to_string().bold(),
                 ),
             DiagnosticKind::MustReturnValue { expected }
-                => format!("must return a {} value",
-                    expected.to_string().bold(),
-                ),
+                => format!("must return a value of type {}", expected.to_string().bold()),
             DiagnosticKind::InvalidUnaryOperation { op, ty }
                 => format!("invalid unary operation {} {}",
                     op.to_string().bold(),

@@ -23,6 +23,7 @@ pub enum ExprAbt {
     Assignment(String, TypeAbt, Box<ExprAbt>),
     Unary((UnaryOp, TypeAbt), Box<ExprAbt>),
     Binary((BinaryOp, TypeAbt), Box<ExprAbt>, Box<ExprAbt>),
+    Call(String, Vec<ExprAbt>, TypeAbt),
 }
 
 impl ExprAbt {
@@ -34,8 +35,9 @@ impl ExprAbt {
             ExprAbt::Boolean(_) => TypeAbt::Boolean,
             ExprAbt::Variable(_, ty) => ty.clone(),
             ExprAbt::Assignment(_, ty, _) => ty.clone(),
-            ExprAbt::Binary((_, ty), _, _) => ty.clone(),
             ExprAbt::Unary((_, ty), _) => ty.clone(),
+            ExprAbt::Binary((_, ty), _, _) => ty.clone(),
+            ExprAbt::Call(_, _, ty) => ty.clone(),
         }
     }
 }

@@ -13,6 +13,8 @@ struct Scope {
     parent: Option<Box<Scope>>,
 
     variables: HashMap<String, TypeAbt>,
+    function: HashMap<String, (Vec<TypeAbt>, TypeAbt)>,
+
     unary_operations: HashMap<(UnaryOperator, TypeAbt), (UnaryOp, TypeAbt)>,
     binary_operations: HashMap<(BinaryOperator, TypeAbt, TypeAbt), (BinaryOp, TypeAbt)>,
 
@@ -25,6 +27,8 @@ impl Default for Scope {
             parent: None,
 
             variables: Default::default(),
+            function: Default::default(),
+
             unary_operations: Default::default(),
             binary_operations: Default::default(),
 
@@ -43,6 +47,20 @@ impl Scope {
             Some(ty) => Some(ty.clone()),
             None => match self.parent {
                 Some(ref parent) => parent.get_variable(name),
+                None => None,
+            },
+        }
+    }
+
+    pub fn declare_function(&mut self, name: String, signature: (Vec<TypeAbt>, TypeAbt)) {
+        self.function.insert(name, signature);
+    }
+
+    pub fn get_function(&self, name: &str) -> Option<&(Vec<TypeAbt>, TypeAbt)> {
+        match self.function.get(name) {
+            Some(signature) => Some(signature),
+            None => match self.parent {
+                Some(ref parent) => parent.get_function(name),
                 None => None,
             },
         }
@@ -196,7 +214,8 @@ impl<'a> Analyser<'a> {
                 => self.analyse_do_while_statement(body, guard),
             StmtAstKind::Do(body)
                 => self.analyse_do_statement(body),
-            StmtAstKind::Func(_, _, _, _) => todo!(),
+            StmtAstKind::Func(_, _, _, _)
+                => todo!(),
             StmtAstKind::Return
                 => self.analyse_return_statement(stmt.span),
             StmtAstKind::ReturnWith(expr)
@@ -434,8 +453,8 @@ impl<'a> Analyser<'a> {
                 => self.analyse_binary_operation(*op, left, right),
             ExprAstKind::UnaryOp(op, operand)
                 => self.analyse_unary_operation(*op, operand, expr.span),
-            ExprAstKind::Call(_, _)
-                => todo!(),
+            ExprAstKind::Call(name, params)
+                => self.analyse_call(name, params, expr.span),
         }
     }
 
@@ -491,30 +510,6 @@ impl<'a> Analyser<'a> {
         ExprAbt::Binary(bin_op, Box::new(bound_left), Box::new(bound_right))
     }
 
-    fn analyse_unary_operation(&mut self, op: UnaryOperator, operand: &ExprAst, span: Span) -> ExprAbt {
-        let bound_operand = self.analyse_expression(operand);
-        let ty = bound_operand.ty();
-
-        if !ty.is_known() {
-            return ExprAbt::Unknown;
-        }
-
-        let Some(un_op) = self.scope.get_unary_operation(op, &ty) else {
-            let d = diagnostics::create_diagnostic()
-                .with_kind(DiagnosticKind::InvalidUnaryOperation {
-                    op,
-                    ty,
-                })
-                .with_severity(Severity::Error)
-                .with_span(span)
-                .done();
-            self.diagnostics.push(d);
-            return ExprAbt::Unknown;
-        };
-
-        ExprAbt::Unary(un_op, Box::new(bound_operand))
-    }
-
     fn analyse_assignment(&mut self, left: &ExprAst, right: &ExprAst) -> ExprAbt {
         let bound_left = self.analyse_expression(left);
         let bound_right = self.analyse_expression(right);
@@ -543,5 +538,78 @@ impl<'a> Analyser<'a> {
         }
 
         ExprAbt::Assignment(name, ty_left, Box::new(bound_right))
+    }
+
+    fn analyse_unary_operation(&mut self, op: UnaryOperator, operand: &ExprAst, span: Span) -> ExprAbt {
+        let bound_operand = self.analyse_expression(operand);
+        let ty = bound_operand.ty();
+
+        if !ty.is_known() {
+            return ExprAbt::Unknown;
+        }
+
+        let Some(un_op) = self.scope.get_unary_operation(op, &ty) else {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::InvalidUnaryOperation {
+                    op,
+                    ty,
+                })
+                .with_severity(Severity::Error)
+                .with_span(span)
+                .done();
+            self.diagnostics.push(d);
+            return ExprAbt::Unknown;
+        };
+
+        ExprAbt::Unary(un_op, Box::new(bound_operand))
+    }
+
+    fn analyse_call(&mut self, name: &str, params: &[ExprAst], span: Span) -> ExprAbt {
+        let bound_params = params.iter().map(|param| self.analyse_expression(param)).collect::<Vec<_>>();
+
+        let Some((expected_params, ty)) = self.scope.get_function(name) else {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::UnknownFunction(name.to_string()))
+                .with_severity(Severity::Error)
+                .with_span(span)
+                .done();
+            self.diagnostics.push(d);
+            return ExprAbt::Unknown
+        };
+
+        let mut invalid = false;
+        for ((bound_param, param), expected_ty) in bound_params.iter().zip(params).zip(expected_params) {
+            let ty_param = bound_param.ty();
+            if !ty_param.is(expected_ty) {
+                let d = diagnostics::create_diagnostic()
+                    .with_kind(DiagnosticKind::TypeMismatch {
+                        found: ty_param.clone(),
+                        expected: expected_ty.clone(),
+                    })
+                    .with_severity(Severity::Error)
+                    .with_span(param.span)
+                    .done();
+                self.diagnostics.push(d);
+                invalid = true;
+            }
+        }
+
+        if bound_params.len() != expected_params.len() {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::InvalidParameterCount {
+                    got: bound_params.len(), expected: bound_params.len()
+                })
+                .with_severity(Severity::Error)
+                .with_span(span)
+                .done();
+            self.diagnostics.push(d);
+            invalid = true;
+        }
+
+        if invalid {
+            ExprAbt::Unknown
+        } else {
+            ExprAbt::Call(name.to_string(), bound_params, ty.clone())
+        }
     }
 }
