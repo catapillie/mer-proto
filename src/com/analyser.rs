@@ -1,18 +1,58 @@
+use std::{collections::HashMap, mem};
+
 use crate::com::abt::TypeAbt;
 
 use super::{
     abt::{ExprAbt, StmtAbt},
     ast::{BinaryOperator, ExprAst, ExprAstKind, ProgramAst, StmtAst, StmtAstKind},
     diagnostics::{self, DiagnosticKind, Diagnostics, Severity},
+    span::Span,
 };
+
+#[derive(Default)]
+struct Scope {
+    parent: Option<Box<Scope>>,
+
+    variables: HashMap<String, TypeAbt>,
+}
+
+impl Scope {
+    pub fn declare_variable(&mut self, name: String, ty: TypeAbt) {
+        self.variables.insert(name, ty);
+    }
+
+    pub fn get_variable(&self, name: &str) -> Option<TypeAbt> {
+        match self.variables.get(name) {
+            Some(ty) => Some(ty.clone()),
+            None => match self.parent {
+                Some(ref parent) => parent.get_variable(name),
+                None => None,
+            },
+        }
+    }
+}
 
 pub struct Analyser<'a> {
     diagnostics: &'a mut Diagnostics,
+    scope: Scope,
 }
 
 impl<'a> Analyser<'a> {
     pub fn new(diagnostics: &'a mut Diagnostics) -> Self {
-        Self { diagnostics }
+        Self {
+            diagnostics,
+            scope: Scope::default(),
+        }
+    }
+
+    fn open_scope(&mut self) {
+        let parent = mem::take(&mut self.scope);
+        self.scope.parent = Some(Box::new(parent));
+    }
+
+    fn close_scope(&mut self) {
+        let parent = mem::take(&mut self.scope.parent);
+        self.scope = *parent.expect("attempted to close non-existing scope");
     }
 
     pub fn analyse_program(mut self, ast: &ProgramAst) {
@@ -25,7 +65,7 @@ impl<'a> Analyser<'a> {
     fn analyse_statement(&mut self, stmt: &StmtAst) -> StmtAbt {
         match &stmt.kind {
             StmtAstKind::Empty => StmtAbt::Empty,
-            StmtAstKind::VarDef(_, _) => todo!(),
+            StmtAstKind::VarDef(name, expr) => self.analyse_variable_definition(name, expr),
             StmtAstKind::Expr(expr)
                 => StmtAbt::Expr(Box::new(self.analyse_expression(expr))),
             StmtAstKind::Block(stmts)
@@ -50,11 +90,24 @@ impl<'a> Analyser<'a> {
         }
     }
 
+    fn analyse_variable_definition(&mut self, name: &Option<String>, expr: &ExprAst) -> StmtAbt {
+        let bound_expr = self.analyse_expression(expr);
+
+        let Some(name) = name else {
+            return StmtAbt::Empty;
+        };
+
+        self.scope.declare_variable(name.clone(), bound_expr.ty());
+        StmtAbt::VarDef(name.clone(), bound_expr)
+    }
+
     fn analyse_block_statement(&mut self, stmts: &[StmtAst]) -> StmtAbt {
+        self.open_scope();
         let bound_stmts = stmts
             .iter()
             .map(|s| self.analyse_statement(s))
             .collect::<Vec<_>>();
+        self.close_scope();
 
         match bound_stmts.first() {
             None => StmtAbt::Empty,
@@ -212,18 +265,40 @@ impl<'a> Analyser<'a> {
         StmtAbt::Empty
     }
 
+    #[rustfmt::skip]
     fn analyse_expression(&mut self, expr: &ExprAst) -> ExprAbt {
         match &expr.kind {
-            ExprAstKind::Bad => ExprAbt::Unknown,
-            ExprAstKind::Number(num) => ExprAbt::Number(*num),
-            ExprAstKind::Identifier(_) => todo!(),
-            ExprAstKind::Boolean(b) => ExprAbt::Boolean(*b),
-            ExprAstKind::Parenthesized(inner) => self.analyse_expression(inner),
-            ExprAstKind::BinaryOp(op, left, right) => {
-                self.analyse_binary_operation(*op, left, right)
+            ExprAstKind::Bad
+                => ExprAbt::Unknown,
+            ExprAstKind::Number(num)
+                => ExprAbt::Number(*num),
+            ExprAstKind::Identifier(id)
+                => self.analyse_variable_expression(id, expr.span),
+            ExprAstKind::Boolean(b)
+                => ExprAbt::Boolean(*b),
+            ExprAstKind::Parenthesized(inner)
+                => self.analyse_expression(inner),
+            ExprAstKind::BinaryOp(op, left, right)
+                => self.analyse_binary_operation(*op, left, right),
+            ExprAstKind::UnaryOp(_, _)
+                => todo!(),
+            ExprAstKind::Call(_, _)
+                => todo!(),
+        }
+    }
+
+    fn analyse_variable_expression(&mut self, id: &str, span: Span) -> ExprAbt {
+        match self.scope.get_variable(id) {
+            Some(ty) => ExprAbt::Variable(ty),
+            None => {
+                let d = diagnostics::create_diagnostic()
+                    .with_kind(DiagnosticKind::UnknownVariable(id.to_string()))
+                    .with_severity(Severity::Error)
+                    .with_span(span)
+                    .done();
+                self.diagnostics.push(d);
+                ExprAbt::Unknown
             }
-            ExprAstKind::UnaryOp(_, _) => todo!(),
-            ExprAstKind::Call(_, _) => todo!(),
         }
     }
 

@@ -114,6 +114,8 @@ pub enum DiagnosticKind {
     EmptyWhileDoStatement,
     EmptyDoWhileStatement,
     DoWithoutWhile,
+    
+    UnknownVariable(String),
 }
 
 #[rustfmt::skip]
@@ -146,6 +148,8 @@ impl DiagnosticKind {
                 => "empty do-while statement".to_string(),
             DiagnosticKind::DoWithoutWhile
                 => "do statement without while".to_string(),
+            DiagnosticKind::UnknownVariable(name)
+                => format!("unknown variable '{name}'"),
         }
     }
 }

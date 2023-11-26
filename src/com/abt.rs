@@ -1,6 +1,7 @@
 #[derive(Debug)]
 pub enum StmtAbt {
     Empty,
+    VarDef(String, ExprAbt),
     Block(Vec<StmtAbt>),
     Expr(Box<ExprAbt>),
     IfThen(Box<ExprAbt>, Box<StmtAbt>),
@@ -14,6 +15,7 @@ pub enum ExprAbt {
     Unknown,
     Number(f64),
     Boolean(bool),
+    Variable(TypeAbt),
 }
 
 impl ExprAbt {
@@ -22,11 +24,12 @@ impl ExprAbt {
             ExprAbt::Unknown => TypeAbt::Unknown,
             ExprAbt::Number(_) => TypeAbt::Number,
             ExprAbt::Boolean(_) => TypeAbt::Boolean,
+            ExprAbt::Variable(ty) => ty.clone(),
         }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum TypeAbt {
     Unknown,
     Number,
