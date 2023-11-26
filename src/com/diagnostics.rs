@@ -105,7 +105,15 @@ pub enum DiagnosticKind {
     ExpectedType,
 
     GuardNotBoolean,
-    EmptyIfThenStatement,
+    
+    EmptyThenStatement,
+    EmptyElseStatement,
+    ThenWithoutIf,
+    ElseWithoutIfThen,
+
+    EmptyWhileDoStatement,
+    EmptyDoWhileStatement,
+    DoWithoutWhile,
 }
 
 #[rustfmt::skip]
@@ -124,8 +132,20 @@ impl DiagnosticKind {
                 => "expected a type expression".to_string(),
             DiagnosticKind::GuardNotBoolean
                 => "guard is not a boolean".to_string(),
-            DiagnosticKind::EmptyIfThenStatement
-                => "empty if-then statement".to_string(),
+            DiagnosticKind::EmptyThenStatement
+                => "empty then statement".to_string(),
+            DiagnosticKind::EmptyElseStatement
+                => "empty else statement".to_string(),
+            DiagnosticKind::ThenWithoutIf
+                => "then statement without if".to_string(),
+            DiagnosticKind::ElseWithoutIfThen
+                => "else statement without if-then".to_string(),
+            DiagnosticKind::EmptyWhileDoStatement
+                => "empty while-do statement".to_string(),
+            DiagnosticKind::EmptyDoWhileStatement
+                => "empty do-while statement".to_string(),
+            DiagnosticKind::DoWithoutWhile
+                => "do statement without while".to_string(),
         }
     }
 }
