@@ -50,12 +50,17 @@ impl<'a> Analyser<'a> {
         }
     }
 
-    fn analyse_block_statement(&mut self, stmts: &Vec<StmtAst>) -> StmtAbt {
-        if stmts.is_empty() {
-            return StmtAbt::Empty;
-        }
+    fn analyse_block_statement(&mut self, stmts: &[StmtAst]) -> StmtAbt {
+        let bound_stmts = stmts
+            .iter()
+            .map(|s| self.analyse_statement(s))
+            .collect::<Vec<_>>();
 
-        StmtAbt::Block(stmts.iter().map(|s| self.analyse_statement(s)).collect())
+        match bound_stmts.first() {
+            None => StmtAbt::Empty,
+            Some(StmtAbt::Empty) => StmtAbt::Empty,
+            _ => StmtAbt::Block(bound_stmts),
+        }
     }
 
     fn analyse_if_then_statement(&mut self, guard: &ExprAst, body: &StmtAst) -> StmtAbt {
@@ -213,10 +218,10 @@ impl<'a> Analyser<'a> {
             ExprAstKind::Number(num) => ExprAbt::Number(*num),
             ExprAstKind::Identifier(_) => todo!(),
             ExprAstKind::Boolean(b) => ExprAbt::Boolean(*b),
-            ExprAstKind::Parenthesized(inner)
-                => self.analyse_expression(inner),
-            ExprAstKind::BinaryOp(op, left, right)
-                => self.analyse_binary_operation(*op, left, right),
+            ExprAstKind::Parenthesized(inner) => self.analyse_expression(inner),
+            ExprAstKind::BinaryOp(op, left, right) => {
+                self.analyse_binary_operation(*op, left, right)
+            }
             ExprAstKind::UnaryOp(_, _) => todo!(),
             ExprAstKind::Call(_, _) => todo!(),
         }

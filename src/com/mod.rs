@@ -3,7 +3,7 @@ use crate::{
     com::{analyser::Analyser, codegen::Codegen, diagnostics::{Diagnostics, Severity}},
     msg,
 };
-use colored::Colorize;
+use colored::{Colorize, Color};
 use std::{
     fs,
     process::{self},
@@ -87,10 +87,16 @@ fn print_diagnostic(lines: &[&str], diagnostic: Diagnostic) {
     let next_line = lines.get(line_index + 1);
     let chars = lines[line_index].chars();
 
-    match diagnostic.severity {
-        Severity::Error => msg::error(msg),
-        Severity::Warning => msg::warn(msg),
-    }
+    let color = match diagnostic.severity {
+        Severity::Error => {
+            msg::error(msg);
+            Color::BrightRed
+        },
+        Severity::Warning => {
+            msg::warn(msg);
+            Color::BrightYellow
+        }
+    };
 
     if let Some(line) = prev_line {
         println!("{:>4} │ {line}", line_index);
@@ -107,7 +113,7 @@ fn print_diagnostic(lines: &[&str], diagnostic: Diagnostic) {
                 .skip(from)
                 .take(to - from)
                 .collect::<String>()
-                .bright_red()
+                .color(color)
         );
         print!("{}", chars.clone().skip(to).collect::<String>());
     } else {
@@ -117,15 +123,15 @@ fn print_diagnostic(lines: &[&str], diagnostic: Diagnostic) {
 
     if width > 1 {
         print!("     │{}", " ".repeat(span.from.column));
-        print!("{}", "└".bright_red());
+        print!("{}", "└".color(color));
         print!(
             "{}",
-            "─".repeat(span.to.column - span.from.column).bright_red()
+            "─".repeat(span.to.column - span.from.column).color(color)
         );
-        print!("{}", "┘".bright_red());
+        print!("{}", "┘".color(color));
     } else {
         print!("     │{}", " ".repeat(span.from.column + 1));
-        print!("{}", "↑ here".bright_red());
+        print!("{}", "↑ here".color(color));
     }
     println!();
 
