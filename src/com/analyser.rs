@@ -190,7 +190,16 @@ impl<'a> Analyser<'a> {
     }
 
     pub fn analyse_program(mut self, ast: &ProgramAst) {
-        self.analyse_block_statement(ast);
+        let bound_program = self.analyse_block_statement(ast);
+        
+        if !Self::control_flow_returns(&bound_program) {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::TopLevelMustReturn)
+                .with_severity(Severity::Error)
+                .without_span()
+                .done();
+            self.diagnostics.push(d);
+        }
     }
 
     fn control_flow_returns(stmt: &StmtAbt) -> bool {

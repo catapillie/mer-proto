@@ -38,7 +38,7 @@ impl Diagnostics {
 pub struct Diagnostic {
     pub kind: DiagnosticKind,
     pub severity: Severity,
-    pub span: Span,
+    pub span: Option<Span>,
 }
 
 // type-state builder
@@ -77,20 +77,28 @@ impl<Ki, Sp> DiagnosticBuilder<Ki, (), Sp> {
 }
 
 impl<Ki, Sev> DiagnosticBuilder<Ki, Sev, ()> {
-    pub fn with_span(self, span: Span) -> DiagnosticBuilder<Ki, Sev, Span> {
+    pub fn without_span(self) -> DiagnosticBuilder<Ki, Sev, Option<Span>> {
         DiagnosticBuilder {
             kind: self.kind,
             severity: self.severity,
-            span,
+            span: None,
         }
     }
 
-    pub fn with_pos(self, pos: Pos) -> DiagnosticBuilder<Ki, Sev, Span> {
+    pub fn with_span(self, span: Span) -> DiagnosticBuilder<Ki, Sev, Option<Span>> {
+        DiagnosticBuilder {
+            kind: self.kind,
+            severity: self.severity,
+            span: Some(span),
+        }
+    }
+
+    pub fn with_pos(self, pos: Pos) -> DiagnosticBuilder<Ki, Sev, Option<Span>> {
         self.with_span(Span::at(pos))
     }
 }
 
-impl DiagnosticBuilder<DiagnosticKind, Severity, Span> {
+impl DiagnosticBuilder<DiagnosticKind, Severity, Option<Span>> {
     pub fn done(self) -> Diagnostic {
         Diagnostic {
             kind: self.kind,
@@ -152,6 +160,7 @@ pub enum DiagnosticKind {
         expected: TypeAbt,
     },
     NotAllPathsReturn,
+    TopLevelMustReturn,
 }
 
 #[rustfmt::skip]
@@ -222,6 +231,8 @@ impl DiagnosticKind {
                 => format!("must return a value of type {}", expected.to_string().bold()),
             DiagnosticKind::NotAllPathsReturn
                 => "not every path is guaranteed to return".to_string(),
+            DiagnosticKind::TopLevelMustReturn
+                => "the top level program must return unit".to_string(),
         }
     }
 }

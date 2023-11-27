@@ -25,3 +25,5 @@ while i <= 100 do
     is_prime(i)
     i = i + 1
 }
+
+return

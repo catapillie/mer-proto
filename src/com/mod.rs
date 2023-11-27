@@ -30,7 +30,7 @@ pub fn compile(source: String) {
     let mut diagnostics = Diagnostics::new();
 
     let ast = Parser::new(source.as_str(), &mut diagnostics).parse_program();
-    let _abt = Analyser::new(&mut diagnostics).analyse_program(&ast);
+    Analyser::new(&mut diagnostics).analyse_program(&ast);
 
     let diagnostics = diagnostics.done();
     if !diagnostics.is_empty() {
@@ -74,7 +74,20 @@ pub fn compile(source: String) {
 // TODO: make it work with TAB characters
 fn print_diagnostic(lines: &[&str], diagnostic: Diagnostic) {
     let msg = diagnostic.kind.msg();
-    let span = diagnostic.span;
+    let color = match diagnostic.severity {
+        Severity::Error => {
+            msg::error(msg);
+            Color::BrightRed
+        }
+        Severity::Warning => {
+            msg::warn(msg);
+            Color::BrightYellow
+        }
+    };
+
+    let Some(span) = diagnostic.span else {
+        return;
+    };
 
     assert!(span.from.line == span.to.line);
 
@@ -90,17 +103,6 @@ fn print_diagnostic(lines: &[&str], diagnostic: Diagnostic) {
     };
     let next_line = lines.get(line_index + 1);
     let chars = lines[line_index].chars();
-
-    let color = match diagnostic.severity {
-        Severity::Error => {
-            msg::error(msg);
-            Color::BrightRed
-        }
-        Severity::Warning => {
-            msg::warn(msg);
-            Color::BrightYellow
-        }
-    };
 
     if let Some(line) = prev_line {
         println!("{:>4} │ {line}", line_index);
