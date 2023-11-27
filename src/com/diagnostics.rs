@@ -172,7 +172,7 @@ impl DiagnosticKind {
                     format!("{ill:?}").bold(),
                 ),
             DiagnosticKind::ExpectedToken { found, expected }
-                => format!("expected {}, but found {}",
+                => format!("expected '{}', but found '{}'",
                     expected.to_string().bold(),
                     found.to_string().bold(),
                 ),
@@ -212,23 +212,23 @@ impl DiagnosticKind {
             DiagnosticKind::UnknownType(id)
                 => format!("unkown type '{}'", id.bold()),
             DiagnosticKind::TypeMismatch { found, expected }
-                => format!("type mismatch of {} into {}",
+                => format!("type mismatch of '{}' into '{}'",
                     found.to_string().bold(),
                     expected.to_string().bold(),
                 ),
             DiagnosticKind::InvalidUnaryOperation { op, ty }
-                => format!("invalid unary operation {} {}",
+                => format!("invalid unary operation '{}' '{}'",
                     op.to_string().bold(),
                     ty.to_string().bold(),
                 ),
             DiagnosticKind::InvalidBinaryOperation { op, left, right }
-                => format!("invalid binary operation {} {} {}",
+                => format!("invalid binary operation ('{}' {} '{}')",
                     left.to_string().bold(),
                     op.to_string().bold(),
                     right.to_string().bold(),
                 ),
             DiagnosticKind::MustReturnValue { expected }
-                => format!("must return a value of type {}", expected.to_string().bold()),
+                => format!("must return a value of type '{}'", expected.to_string().bold()),
             DiagnosticKind::NotAllPathsReturn
                 => "not every path is guaranteed to return".to_string(),
             DiagnosticKind::TopLevelMustReturn
