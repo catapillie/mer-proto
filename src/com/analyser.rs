@@ -491,7 +491,7 @@ impl<'a> Analyser<'a> {
                 .with_span(span)
                 .done();
             self.diagnostics.push(d);
-            return StmtAbt::Empty;
+            return StmtAbt::Return(Box::new(ExprAbt::Unknown));
         }
 
         StmtAbt::Return(Box::new(ExprAbt::Unit))
@@ -511,7 +511,7 @@ impl<'a> Analyser<'a> {
                 .with_span(expr.span)
                 .done();
             self.diagnostics.push(d);
-            return StmtAbt::Empty;
+            return StmtAbt::Return(Box::new(ExprAbt::Unknown));
         }
 
         StmtAbt::Return(Box::new(bound_expr))

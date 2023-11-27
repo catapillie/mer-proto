@@ -24,7 +24,7 @@ mod pos;
 mod span;
 mod tokens;
 
-pub fn compile(source: String) {
+pub fn compile(path: &str, source: String) {
     let lines = source.lines().collect::<Vec<_>>();
 
     let mut diagnostics = Diagnostics::new();
@@ -35,7 +35,7 @@ pub fn compile(source: String) {
     let diagnostics = diagnostics.done();
     if !diagnostics.is_empty() {
         for diagnostic in diagnostics {
-            print_diagnostic(lines.as_slice(), diagnostic);
+            print_diagnostic(path, lines.as_slice(), diagnostic);
         }
         process::exit(1);
     }
@@ -72,7 +72,7 @@ pub fn compile(source: String) {
 }
 
 // TODO: make it work with TAB characters
-fn print_diagnostic(lines: &[&str], diagnostic: Diagnostic) {
+fn print_diagnostic(path: &str, lines: &[&str], diagnostic: Diagnostic) {
     let msg = diagnostic.kind.msg();
     let color = match diagnostic.severity {
         Severity::Error => {
@@ -86,62 +86,90 @@ fn print_diagnostic(lines: &[&str], diagnostic: Diagnostic) {
     };
 
     let Some(span) = diagnostic.span else {
+        println!("{}", format!("    --> {}", path).cyan());
         return;
     };
 
-    assert!(span.from.line == span.to.line);
+    let first_line = span.from.line;
+    let last_line = span.to.line;
 
-    let from = span.from.column;
-    let to = span.to.column;
-    let width = to - from;
+    let max_line_num_len = (last_line + 2).to_string().len();
 
-    let line_index = span.from.line;
-    let prev_line = if line_index == 0 {
-        None
-    } else {
-        lines.get(line_index - 1)
-    };
-    let next_line = lines.get(line_index + 1);
-    let chars = lines[line_index].chars();
+    let is_one_line = first_line == last_line;
 
-    if let Some(line) = prev_line {
-        println!("{:>4} │ {line}", line_index);
+    println!(
+        "{}",
+        format!(" {:>max_line_num_len$}--> {}:{}", " ", path, span).cyan()
+    );
+    println!(" {:>max_line_num_len$} ╥", " ");
+
+    let display_line =
+        |line_index: usize, line: &str, color: Color| {
+            println!(
+                " {:>max_line_num_len$} {} {}",
+                line_index.to_string().color(color),
+                "║".color(color),
+                line.color(color)
+            );
+        };
+
+    if first_line > 0 {
+        if let Some(line) = lines.get(first_line - 1) {
+            if !line.trim().is_empty() {
+                display_line(first_line, line, Color::White);
+            }
+        }
     }
 
-    let current_line = lines[line_index];
-    if !current_line.is_empty() {
-        print!("{:>4} │ ", line_index + 1);
-        print!("{}", chars.clone().take(from).collect::<String>());
+    if is_one_line {
+        let index = first_line;
+        let line = lines[index];
+        let chars = line.chars();
+
+        let from = span.from.column;
+        let to = span.to.column;
+        let w = to - from;
+
+        let before: String = chars.clone().take(from).collect();
+        let at: String = chars.clone().skip(from).take(w).collect();
+        let after: String = chars.clone().skip(to).collect();
+
         print!(
-            "{}",
-            chars
-                .clone()
-                .skip(from)
-                .take(to - from)
-                .collect::<String>()
-                .color(color)
+            " {:>max_line_num_len$} {} ",
+            (index + 1).to_string().color(color),
+            "║".color(color)
         );
-        print!("{}", chars.clone().skip(to).collect::<String>());
-    } else {
-        println!("{:>4} │ {current_line}", line_index + 1);
-    }
-    println!();
+        print!("{before}{}{after}", at.color(color));
+        println!();
 
-    if width > 1 {
-        print!("     │{}", " ".repeat(span.from.column));
-        print!("{}", "└".color(color));
-        print!(
-            "{}",
-            "─".repeat(span.to.column - span.from.column).color(color)
-        );
-        print!("{}", "┘".color(color));
+        print!(" {:>max_line_num_len$} {}", " ", "║".color(color));
+        if w > 1 {
+            print!("{:>from$}", " ");
+            print!("{}", format!("└{}┘", "─".repeat(w)).color(color));
+        } else {
+            print!("{:>from$}", " ");
+            print!("{:>s$}{}", " ", "↑".color(color), s=2-w);
+            if w == 0 {
+                print!(" {}", "here".color(color))
+            }
+        }
+        println!();
     } else {
-        print!("     │{}", " ".repeat(span.from.column + 2 - width));
-        print!("{}", "↑ here".color(color));
-    }
-    println!();
+        for i in first_line..=last_line {
+            let Some(line) = lines.get(i) else {
+                continue;
+            };
 
-    if let Some(line) = next_line {
-        println!("{:>4} │ {line}", line_index + 2);
+            display_line(i + 1, line, color);
+        }
+        // println!(" {:>max_line_num_len$} {}", " ", "╟".color(color));
     }
+
+    if let Some(line) = lines.get(last_line + 1) {
+        if !line.trim().is_empty() {
+            display_line(last_line + 2, line, Color::White);
+        }
+    }
+
+    println!(" {:>max_line_num_len$} ╨", " ");
 }
