@@ -34,10 +34,17 @@ pub fn compile(path: &str, source: String) {
 
     let diagnostics = diagnostics.done();
     if !diagnostics.is_empty() {
+        let mut fatal = false;
         for diagnostic in diagnostics {
-            print_diagnostic(path, lines.as_slice(), diagnostic);
+            print_diagnostic(path, lines.as_slice(), &diagnostic);
+            if matches!(diagnostic.severity, Severity::Error) {
+                fatal = true;
+            }
         }
-        process::exit(1);
+
+        if fatal {
+            process::exit(1);
+        }
     }
     msg::ok("analysis finished successfully");
 
@@ -72,7 +79,7 @@ pub fn compile(path: &str, source: String) {
 }
 
 // TODO: make it work with TAB characters
-fn print_diagnostic(path: &str, lines: &[&str], diagnostic: Diagnostic) {
+fn print_diagnostic(path: &str, lines: &[&str], diagnostic: &Diagnostic) {
     let msg = diagnostic.kind.msg();
     let color = match diagnostic.severity {
         Severity::Error => {
