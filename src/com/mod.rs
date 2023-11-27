@@ -103,15 +103,14 @@ fn print_diagnostic(path: &str, lines: &[&str], diagnostic: Diagnostic) {
     );
     println!(" {:>max_line_num_len$} ╥", " ");
 
-    let display_line =
-        |line_index: usize, line: &str, color: Color| {
-            println!(
-                " {:>max_line_num_len$} {} {}",
-                line_index.to_string().color(color),
-                "║".color(color),
-                line.color(color)
-            );
-        };
+    let display_line = |line_index: usize, line: &str, color: Color| {
+        println!(
+            " {:>max_line_num_len$} {} {}",
+            line_index.to_string().color(color),
+            "║".color(color),
+            line.color(color)
+        );
+    };
 
     if first_line > 0 {
         if let Some(line) = lines.get(first_line - 1) {
@@ -148,7 +147,7 @@ fn print_diagnostic(path: &str, lines: &[&str], diagnostic: Diagnostic) {
             print!("{}", format!("└{}┘", "─".repeat(w)).color(color));
         } else {
             print!("{:>from$}", " ");
-            print!("{:>s$}{}", " ", "↑".color(color), s=2-w);
+            print!("{:>s$}{}", " ", "↑".color(color), s = 2 - w);
             if w == 0 {
                 print!(" {}", "here".color(color))
             }

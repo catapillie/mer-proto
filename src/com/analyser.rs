@@ -191,7 +191,7 @@ impl<'a> Analyser<'a> {
 
     pub fn analyse_program(mut self, ast: &ProgramAst) {
         let bound_program = self.analyse_block_statement(ast);
-        
+
         if !Self::control_flow_returns(&bound_program) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::TopLevelMustReturn)
