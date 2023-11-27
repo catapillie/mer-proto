@@ -454,7 +454,16 @@ impl<'a> Analyser<'a> {
         for (param_name, param_ty) in bound_params {
             self.scope.declare_variable(param_name.clone(), param_ty);
         }
-        self.analyse_statement(body);
+        let bound_body = self.analyse_statement(body);
+
+        if !Self::control_flow_returns(&bound_body) {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::NotAllPathsReturn)
+                .with_severity(Severity::Error)
+                .with_span(ty.span)
+                .done();
+            self.diagnostics.push(d);
+        }
 
         self.close_scope();
 

@@ -147,9 +147,11 @@ pub enum DiagnosticKind {
         left: TypeAbt,
         right: TypeAbt,
     },
+
     MustReturnValue {
         expected: TypeAbt,
     },
+    NotAllPathsReturn,
 }
 
 #[rustfmt::skip]
@@ -205,8 +207,6 @@ impl DiagnosticKind {
                     found.to_string().bold(),
                     expected.to_string().bold(),
                 ),
-            DiagnosticKind::MustReturnValue { expected }
-                => format!("must return a value of type {}", expected.to_string().bold()),
             DiagnosticKind::InvalidUnaryOperation { op, ty }
                 => format!("invalid unary operation {} {}",
                     op.to_string().bold(),
@@ -218,6 +218,10 @@ impl DiagnosticKind {
                     op.to_string().bold(),
                     right.to_string().bold(),
                 ),
+            DiagnosticKind::MustReturnValue { expected }
+                => format!("must return a value of type {}", expected.to_string().bold()),
+            DiagnosticKind::NotAllPathsReturn
+                => "not every path is guaranteed to return".to_string(),
         }
     }
 }
