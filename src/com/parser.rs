@@ -534,15 +534,25 @@ impl<'a> Parser<'a> {
         }
     }
 
+    fn parse_unit_type_expression(&mut self) -> Option<TypeAst> {
+        let (ty, span) = take_span!(self => {
+            if self.try_match_token::<LeftParen>().is_some() {
+                self.match_token::<RightParen>();
+                return Some(TypeAstKind::Unit);
+            }
+
+            None
+        });
+
+        ty.map(|ty| ty.wrap(span))
+    }
+
     fn parse_type_expression(&mut self) -> Option<TypeAst> {
         if let Some(id) = self.try_match_token::<Identifier>() {
             return Some(TypeAstKind::Declared(id.0).wrap(self.last_span()));
         }
 
-        if self.try_match_token::<LeftParen>().is_some() {
-            self.match_token::<RightParen>();
-            return Some(TypeAstKind::Unit.wrap(self.last_span()));
-        }
+        try_return_some!(self.parse_unit_type_expression());
 
         None
     }
