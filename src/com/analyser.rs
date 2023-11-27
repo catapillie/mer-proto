@@ -190,8 +190,30 @@ impl<'a> Analyser<'a> {
     }
 
     pub fn analyse_program(mut self, ast: &ProgramAst) {
-        for stmt in ast {
-            self.analyse_statement(stmt);
+        self.analyse_block_statement(ast);
+    }
+
+    fn control_flow_returns(stmt: &StmtAbt) -> bool {
+        match stmt {
+            StmtAbt::Block(stmts) => {
+                for stmt in stmts {
+                    if Self::control_flow_returns(stmt) {
+                        return true;
+                    }
+                }
+
+                false
+            }
+            StmtAbt::Empty => false,
+            StmtAbt::VarDef(_, _) => false,
+            StmtAbt::Expr(_) => false,
+            StmtAbt::IfThen(_, _) => false,
+            StmtAbt::IfThenElse(_, body_then, body_else) => {
+                Self::control_flow_returns(body_then) && Self::control_flow_returns(body_else)
+            }
+            StmtAbt::WhileDo(_, body) => Self::control_flow_returns(body),
+            StmtAbt::DoWhile(body, _) => Self::control_flow_returns(body),
+            StmtAbt::Return(_) => true,
         }
     }
 
@@ -248,7 +270,7 @@ impl<'a> Analyser<'a> {
 
         match bound_stmts.first() {
             None => StmtAbt::Empty,
-            Some(StmtAbt::Empty) => StmtAbt::Empty,
+            Some(StmtAbt::Empty) if bound_stmts.len() == 1 => StmtAbt::Empty,
             _ => StmtAbt::Block(bound_stmts),
         }
     }
