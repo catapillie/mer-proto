@@ -152,17 +152,16 @@ fn print_diagnostic(path: &str, lines: &[&str], diagnostic: &Diagnostic) {
         let from = span.from.column;
         let to = span.to.column;
         let w = to - from;
-
+        
         display_colored_span(first_line, Some(span.from.column), Some(span.to.column));
 
         print!(" {:>max_line_num_len$} {}", " ", "║".color(color));
+        if from > 0 {
+            print!("{:>from$}", " ");
+        }
         if w > 1 {
-            if from > 0 {
-                print!("{:>from$}", " ");
-            }
             print!("{}", format!("└{}┘", "─".repeat(w)).color(color));
         } else {
-            print!("{:>from$}", " ");
             print!("{:>s$}{}", " ", "↑".color(color), s = 2 - w);
             if w == 0 {
                 print!(" {}", "here".color(color))
