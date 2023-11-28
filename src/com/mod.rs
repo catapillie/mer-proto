@@ -119,21 +119,12 @@ fn print_diagnostic(path: &str, lines: &[&str], diagnostic: &Diagnostic) {
         );
     };
 
-    if first_line > 0 {
-        if let Some(line) = lines.get(first_line - 1) {
-            if !line.trim().is_empty() {
-                display_line(first_line, line, Color::White);
-            }
-        }
-    }
-
-    if is_one_line {
-        let index = first_line;
+    let display_colored_span = |index: usize, from: Option<usize>, to: Option<usize>| {
         let line = lines[index];
         let chars = line.chars();
 
-        let from = span.from.column;
-        let to = span.to.column;
+        let from = from.unwrap_or(0);
+        let to = to.unwrap_or(line.len());
         let w = to - from;
 
         let before: String = chars.clone().take(from).collect();
@@ -147,6 +138,22 @@ fn print_diagnostic(path: &str, lines: &[&str], diagnostic: &Diagnostic) {
         );
         print!("{before}{}{after}", at.color(color));
         println!();
+    };
+
+    if first_line > 0 {
+        if let Some(line) = lines.get(first_line - 1) {
+            if !line.trim().is_empty() {
+                display_line(first_line, line, Color::White);
+            }
+        }
+    }
+
+    if is_one_line {
+        let from = span.from.column;
+        let to = span.to.column;
+        let w = to - from;
+
+        display_colored_span(first_line, Some(span.from.column), Some(span.to.column));
 
         print!(" {:>max_line_num_len$} {}", " ", "║".color(color));
         if w > 1 {
@@ -161,13 +168,15 @@ fn print_diagnostic(path: &str, lines: &[&str], diagnostic: &Diagnostic) {
         }
         println!();
     } else {
-        for i in first_line..=last_line {
+        display_colored_span(first_line, Some(span.from.column), None);
+        for i in (first_line+1)..last_line {
             let Some(line) = lines.get(i) else {
                 continue;
             };
 
             display_line(i + 1, line, color);
         }
+        display_colored_span(last_line, None, Some(span.to.column));
         // println!(" {:>max_line_num_len$} {}", " ", "╟".color(color));
     }
 
