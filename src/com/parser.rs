@@ -25,8 +25,8 @@ impl<'a> Parser<'a> {
         let mut parser = Self {
             cursor: Cursor::new(source),
             last_boundary: Pos::MIN,
-            look_ahead: Token::Eof(Eof, Span::EOF),
-            last_token: Token::Eof(Eof, Span::EOF),
+            look_ahead: Token::Eof(Eof, Span::at(Pos::MIN)),
+            last_token: Token::Eof(Eof, Span::at(Pos::MIN)),
             diagnostics,
         };
         parser.look_ahead = parser.lex();
@@ -141,9 +141,12 @@ impl<'a> Parser<'a> {
             self.skip_newlines();
             self.match_token::<ThenKw>();
             self.skip_newlines();
+
+            // placeholder at this position
+            let stmt_then = self.empty_statement_here();
+
             if self.try_match_token::<ElseKw>().is_some() {
                 self.skip_newlines();
-                let stmt_then = self.empty_statement_here();
                 let stmt_else = self.parse_statement().unwrap_or(self.empty_statement_here());
                 return Some(StmtAstKind::IfThenElse(
                     Box::new(guard),
@@ -217,6 +220,14 @@ impl<'a> Parser<'a> {
             self.try_match_token::<DoKw>()?;
 
             self.skip_newlines();
+            let stmt_do = self.empty_statement_here();
+            
+            if self.try_match_token::<WhileKw>().is_some() {
+                self.skip_newlines();
+                let expr = self.expect_expression();
+                return Some(StmtAstKind::DoWhile(Box::new(stmt_do), Box::new(expr)));
+            }
+
             let stmt_do = self.parse_statement().unwrap_or(self.empty_statement_here());
             self.skip_newlines();
 
@@ -764,7 +775,7 @@ impl<'a> Parser<'a> {
         loop {
             loop {
                 let Some(c) = self.cursor.peek() else {
-                    return Eof.wrap(Span::EOF);
+                    return Eof.wrap(Span::at(self.last_boundary));
                 };
 
                 if c.is_whitespace() && !Self::is_newline_character(c) {
@@ -776,7 +787,7 @@ impl<'a> Parser<'a> {
             }
 
             if self.cursor.peek().is_none() {
-                return Eof.wrap(Span::EOF);
+                return Eof.wrap(Span::at(self.last_boundary));
             }
 
             let start_pos = self.cursor.pos();
@@ -845,7 +856,7 @@ impl<'a> Parser<'a> {
                     self.diagnostics.push(d);
                     continue;
                 }
-                None => return Eof.wrap(Span::EOF),
+                None => return Eof.wrap(Span::at(self.last_boundary)),
             }
         }
     }

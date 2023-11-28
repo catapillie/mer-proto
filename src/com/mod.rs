@@ -157,7 +157,9 @@ fn print_diagnostic(path: &str, lines: &[&str], diagnostic: &Diagnostic) {
 
         print!(" {:>max_line_num_len$} {}", " ", "║".color(color));
         if w > 1 {
-            print!("{:>from$}", " ");
+            if from > 0 {
+                print!("{:>from$}", " ");
+            }
             print!("{}", format!("└{}┘", "─".repeat(w)).color(color));
         } else {
             print!("{:>from$}", " ");
@@ -169,7 +171,7 @@ fn print_diagnostic(path: &str, lines: &[&str], diagnostic: &Diagnostic) {
         println!();
     } else {
         display_colored_span(first_line, Some(span.from.column), None);
-        for i in (first_line+1)..last_line {
+        for i in (first_line + 1)..last_line {
             let Some(line) = lines.get(i) else {
                 continue;
             };
