@@ -210,7 +210,7 @@ impl<'a> Analyser<'a> {
                 let mut does_return = false;
 
                 let mut iter = stmts.iter();
-                while let Some(stmt) = iter.next() {
+                for stmt in iter.by_ref() {
                     if self.analyse_control_flow(stmt) {
                         does_return = true;
                         break;
@@ -218,18 +218,11 @@ impl<'a> Analyser<'a> {
                 }
 
                 let remaining = iter.collect::<Vec<_>>();
-                if let Some(first) = remaining.first() {
-                    let first_span = first.span;
-                    let span = remaining
-                        .iter()
-                        .skip(1)
-                        .map(|s| s.span)
-                        .fold(first_span, Span::join);
-                    
+                if let (Some(first), Some(last)) = (remaining.first(), remaining.last()) {
                     let d = diagnostics::create_diagnostic()
                         .with_kind(DiagnosticKind::UnreachableCode)
                         .with_severity(Severity::Warning)
-                        .with_span(span)
+                        .with_span(Span::join(first.span, last.span))
                         .done();
                     self.diagnostics.push(d);
                 }
