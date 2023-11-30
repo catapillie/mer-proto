@@ -496,7 +496,7 @@ impl<'a> Analyser<'a> {
         }
         let bound_body = self.analyse_statement(body);
 
-        if self.analyse_control_flow(&bound_body) {
+        if !self.analyse_control_flow(&bound_body) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::NotAllPathsReturn)
                 .with_severity(Severity::Error)
