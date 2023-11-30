@@ -161,6 +161,8 @@ pub enum DiagnosticKind {
     },
     NotAllPathsReturn,
     TopLevelMustReturn,
+
+    UnreachableCode,
 }
 
 #[rustfmt::skip]
@@ -233,6 +235,8 @@ impl DiagnosticKind {
                 => "not every path is guaranteed to return".to_string(),
             DiagnosticKind::TopLevelMustReturn
                 => "the top level program must return unit".to_string(),
+            DiagnosticKind::UnreachableCode
+                => "this code is unreachable".to_string(),
         }
     }
 }

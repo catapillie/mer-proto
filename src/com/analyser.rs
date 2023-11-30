@@ -3,12 +3,13 @@ use std::{collections::HashMap, mem};
 use crate::com::abt::{BinaryOp, TypeAbt};
 
 use super::{
-    abt::{ExprAbt, StmtAbt, UnaryOp},
+    abt::{ExprAbt, StmtAbt, StmtAbtKind, UnaryOp},
     ast::{
         BinaryOperator, ExprAst, ExprAstKind, ProgramAst, StmtAst, StmtAstKind, TypeAst,
         TypeAstKind, UnaryOperator,
     },
     diagnostics::{self, DiagnosticKind, Diagnostics, Severity},
+    pos::Pos,
     span::Span,
 };
 
@@ -16,7 +17,7 @@ struct Scope {
     parent: Option<Box<Scope>>,
 
     variables: HashMap<String, TypeAbt>,
-    function: HashMap<String, (Vec<TypeAbt>, TypeAbt)>,
+    functions: HashMap<String, (Vec<TypeAbt>, TypeAbt)>,
 
     unary_operations: HashMap<(UnaryOperator, TypeAbt), (UnaryOp, TypeAbt)>,
     binary_operations: HashMap<(BinaryOperator, TypeAbt, TypeAbt), (BinaryOp, TypeAbt)>,
@@ -30,7 +31,7 @@ impl Default for Scope {
             parent: None,
 
             variables: Default::default(),
-            function: Default::default(),
+            functions: Default::default(),
 
             unary_operations: Default::default(),
             binary_operations: Default::default(),
@@ -56,11 +57,11 @@ impl Scope {
     }
 
     pub fn declare_function(&mut self, name: String, signature: (Vec<TypeAbt>, TypeAbt)) {
-        self.function.insert(name, signature);
+        self.functions.insert(name, signature);
     }
 
     pub fn get_function(&self, name: &str) -> Option<&(Vec<TypeAbt>, TypeAbt)> {
-        match self.function.get(name) {
+        match self.functions.get(name) {
             Some(signature) => Some(signature),
             None => match self.parent {
                 Some(ref parent) => parent.get_function(name),
@@ -192,7 +193,7 @@ impl<'a> Analyser<'a> {
     pub fn analyse_program(mut self, ast: &ProgramAst) {
         let bound_program = self.analyse_block_statement(ast);
 
-        if !Self::control_flow_returns(&bound_program) {
+        if !self.analyse_control_flow(&bound_program.wrap(Span::at(Pos::MIN))) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::TopLevelMustReturn)
                 .with_severity(Severity::Error)
@@ -202,37 +203,60 @@ impl<'a> Analyser<'a> {
         }
     }
 
-    fn control_flow_returns(stmt: &StmtAbt) -> bool {
-        match stmt {
-            StmtAbt::Block(stmts) => {
-                for stmt in stmts {
-                    if Self::control_flow_returns(stmt) {
-                        return true;
+    // returns whether the provided statement is guaranteed to return
+    fn analyse_control_flow(&mut self, stmt: &StmtAbt) -> bool {
+        match &stmt.kind {
+            StmtAbtKind::Block(stmts) => {
+                let mut does_return = false;
+
+                let mut iter = stmts.iter();
+                while let Some(stmt) = iter.next() {
+                    if self.analyse_control_flow(stmt) {
+                        does_return = true;
+                        break;
                     }
                 }
 
-                false
+                let remaining = iter.collect::<Vec<_>>();
+                if let Some(first) = remaining.first() {
+                    let first_span = first.span;
+                    let span = remaining
+                        .iter()
+                        .skip(1)
+                        .map(|s| s.span)
+                        .fold(first_span, Span::join);
+                    
+                    let d = diagnostics::create_diagnostic()
+                        .with_kind(DiagnosticKind::UnreachableCode)
+                        .with_severity(Severity::Warning)
+                        .with_span(span)
+                        .done();
+                    self.diagnostics.push(d);
+                }
+
+                does_return
             }
-            StmtAbt::Empty => false,
-            StmtAbt::VarDef(_, _) => false,
-            StmtAbt::Expr(_) => false,
-            StmtAbt::IfThen(_, _) => false,
-            StmtAbt::IfThenElse(_, body_then, body_else) => {
-                Self::control_flow_returns(body_then) && Self::control_flow_returns(body_else)
+            StmtAbtKind::Empty => false,
+            StmtAbtKind::VarDef(_, _) => false,
+            StmtAbtKind::Expr(_) => false,
+            StmtAbtKind::IfThen(_, _) => false,
+            StmtAbtKind::IfThenElse(_, body_then, body_else) => {
+                self.analyse_control_flow(body_then.as_ref())
+                    && self.analyse_control_flow(body_else.as_ref())
             }
-            StmtAbt::WhileDo(_, body) => Self::control_flow_returns(body),
-            StmtAbt::DoWhile(body, _) => Self::control_flow_returns(body),
-            StmtAbt::Return(_) => true,
+            StmtAbtKind::WhileDo(_, body) => self.analyse_control_flow(body.as_ref()),
+            StmtAbtKind::DoWhile(body, _) => self.analyse_control_flow(body.as_ref()),
+            StmtAbtKind::Return(_) => true,
         }
     }
 
     #[rustfmt::skip]
     fn analyse_statement(&mut self, stmt: &StmtAst) -> StmtAbt {
         match &stmt.kind {
-            StmtAstKind::Empty => StmtAbt::Empty,
+            StmtAstKind::Empty => StmtAbtKind::Empty,
             StmtAstKind::VarDef(name, expr) => self.analyse_variable_definition(name, expr),
             StmtAstKind::Expr(expr)
-                => StmtAbt::Expr(Box::new(self.analyse_expression(expr))),
+                => StmtAbtKind::Expr(Box::new(self.analyse_expression(expr))),
             StmtAstKind::Block(stmts)
                 => self.analyse_block_statement(stmts),
             StmtAstKind::IfThen(guard, body_then)
@@ -255,21 +279,25 @@ impl<'a> Analyser<'a> {
                 => self.analyse_return_statement(stmt.span),
             StmtAstKind::ReturnWith(expr)
                 => self.analyse_return_with_statement(expr),
-        }
+        }.wrap(stmt.span)
     }
 
-    fn analyse_variable_definition(&mut self, name: &Option<String>, expr: &ExprAst) -> StmtAbt {
+    fn analyse_variable_definition(
+        &mut self,
+        name: &Option<String>,
+        expr: &ExprAst,
+    ) -> StmtAbtKind {
         let bound_expr = self.analyse_expression(expr);
 
         let Some(name) = name else {
-            return StmtAbt::Empty;
+            return StmtAbtKind::Empty;
         };
 
         self.scope.declare_variable(name.clone(), bound_expr.ty());
-        StmtAbt::VarDef(name.clone(), bound_expr)
+        StmtAbtKind::VarDef(name.clone(), bound_expr)
     }
 
-    fn analyse_block_statement(&mut self, stmts: &[StmtAst]) -> StmtAbt {
+    fn analyse_block_statement(&mut self, stmts: &[StmtAst]) -> StmtAbtKind {
         self.open_scope();
         let bound_stmts = stmts
             .iter()
@@ -278,17 +306,20 @@ impl<'a> Analyser<'a> {
         self.close_scope();
 
         match bound_stmts.first() {
-            None => StmtAbt::Empty,
-            Some(StmtAbt::Empty) if bound_stmts.len() == 1 => StmtAbt::Empty,
-            _ => StmtAbt::Block(bound_stmts),
+            None => StmtAbtKind::Empty,
+            Some(StmtAbt {
+                kind: StmtAbtKind::Empty,
+                span: _,
+            }) if bound_stmts.len() == 1 => StmtAbtKind::Empty,
+            _ => StmtAbtKind::Block(bound_stmts),
         }
     }
 
-    fn analyse_if_then_statement(&mut self, guard: &ExprAst, body: &StmtAst) -> StmtAbt {
+    fn analyse_if_then_statement(&mut self, guard: &ExprAst, body: &StmtAst) -> StmtAbtKind {
         let bound_guard = self.analyse_expression(guard);
         let bound_body = self.analyse_statement(body);
 
-        if matches!(bound_body, StmtAbt::Empty) {
+        if matches!(bound_body.kind, StmtAbtKind::Empty) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::EmptyThenStatement)
                 .with_severity(Severity::Warning)
@@ -306,7 +337,7 @@ impl<'a> Analyser<'a> {
             self.diagnostics.push(d);
         }
 
-        StmtAbt::IfThen(Box::new(bound_guard), Box::new(bound_body))
+        StmtAbtKind::IfThen(Box::new(bound_guard), Box::new(bound_body))
     }
 
     fn analyse_if_then_else_statement(
@@ -314,12 +345,12 @@ impl<'a> Analyser<'a> {
         guard: &ExprAst,
         body_then: &StmtAst,
         body_else: &StmtAst,
-    ) -> StmtAbt {
+    ) -> StmtAbtKind {
         let bound_guard = self.analyse_expression(guard);
         let bound_body_then = self.analyse_statement(body_then);
         let bound_body_else = self.analyse_statement(body_else);
 
-        if matches!(bound_body_then, StmtAbt::Empty) {
+        if matches!(bound_body_then.kind, StmtAbtKind::Empty) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::EmptyThenStatement)
                 .with_severity(Severity::Warning)
@@ -328,7 +359,7 @@ impl<'a> Analyser<'a> {
             self.diagnostics.push(d);
         }
 
-        if matches!(bound_body_else, StmtAbt::Empty) {
+        if matches!(bound_body_else.kind, StmtAbtKind::Empty) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::EmptyElseStatement)
                 .with_severity(Severity::Warning)
@@ -346,38 +377,38 @@ impl<'a> Analyser<'a> {
             self.diagnostics.push(d);
         }
 
-        StmtAbt::IfThenElse(
+        StmtAbtKind::IfThenElse(
             Box::new(bound_guard),
             Box::new(bound_body_then),
             Box::new(bound_body_else),
         )
     }
 
-    fn analyse_then_statement(&mut self, body_then: &StmtAst) -> StmtAbt {
+    fn analyse_then_statement(&mut self, body_then: &StmtAst) -> StmtAbtKind {
         let d = diagnostics::create_diagnostic()
             .with_kind(DiagnosticKind::ThenWithoutIf)
             .with_severity(Severity::Error)
             .with_span(body_then.span)
             .done();
         self.diagnostics.push(d);
-        StmtAbt::Empty
+        StmtAbtKind::Empty
     }
 
-    fn analyse_else_statement(&mut self, body_else: &StmtAst) -> StmtAbt {
+    fn analyse_else_statement(&mut self, body_else: &StmtAst) -> StmtAbtKind {
         let d = diagnostics::create_diagnostic()
             .with_kind(DiagnosticKind::ElseWithoutIfThen)
             .with_severity(Severity::Error)
             .with_span(body_else.span)
             .done();
         self.diagnostics.push(d);
-        StmtAbt::Empty
+        StmtAbtKind::Empty
     }
 
-    fn analyse_while_do_statement(&mut self, guard: &ExprAst, body: &StmtAst) -> StmtAbt {
+    fn analyse_while_do_statement(&mut self, guard: &ExprAst, body: &StmtAst) -> StmtAbtKind {
         let bound_guard = self.analyse_expression(guard);
         let bound_body = self.analyse_statement(body);
 
-        if matches!(bound_body, StmtAbt::Empty) {
+        if matches!(bound_body.kind, StmtAbtKind::Empty) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::EmptyWhileDoStatement)
                 .with_severity(Severity::Warning)
@@ -395,14 +426,14 @@ impl<'a> Analyser<'a> {
             self.diagnostics.push(d);
         }
 
-        StmtAbt::WhileDo(Box::new(bound_guard), Box::new(bound_body))
+        StmtAbtKind::WhileDo(Box::new(bound_guard), Box::new(bound_body))
     }
 
-    fn analyse_do_while_statement(&mut self, body: &StmtAst, guard: &ExprAst) -> StmtAbt {
+    fn analyse_do_while_statement(&mut self, body: &StmtAst, guard: &ExprAst) -> StmtAbtKind {
         let bound_body = self.analyse_statement(body);
         let bound_guard = self.analyse_expression(guard);
 
-        if matches!(bound_body, StmtAbt::Empty) {
+        if matches!(bound_body.kind, StmtAbtKind::Empty) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::EmptyDoWhileStatement)
                 .with_severity(Severity::Warning)
@@ -420,17 +451,17 @@ impl<'a> Analyser<'a> {
             self.diagnostics.push(d);
         }
 
-        StmtAbt::DoWhile(Box::new(bound_body), Box::new(bound_guard))
+        StmtAbtKind::DoWhile(Box::new(bound_body), Box::new(bound_guard))
     }
 
-    fn analyse_do_statement(&mut self, body: &StmtAst) -> StmtAbt {
+    fn analyse_do_statement(&mut self, body: &StmtAst) -> StmtAbtKind {
         let d = diagnostics::create_diagnostic()
             .with_kind(DiagnosticKind::DoWithoutWhile)
             .with_severity(Severity::Error)
             .with_span(body.span)
             .done();
         self.diagnostics.push(d);
-        StmtAbt::Empty
+        StmtAbtKind::Empty
     }
 
     fn analyse_function_definition(
@@ -439,9 +470,9 @@ impl<'a> Analyser<'a> {
         params: &[(String, TypeAst)],
         body: &StmtAst,
         ty: &TypeAst,
-    ) -> StmtAbt {
+    ) -> StmtAbtKind {
         let Some(name) = name else {
-            return StmtAbt::Empty;
+            return StmtAbtKind::Empty;
         };
 
         let bound_params = params
@@ -465,7 +496,7 @@ impl<'a> Analyser<'a> {
         }
         let bound_body = self.analyse_statement(body);
 
-        if !Self::control_flow_returns(&bound_body) {
+        if self.analyse_control_flow(&bound_body) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::NotAllPathsReturn)
                 .with_severity(Severity::Error)
@@ -476,10 +507,10 @@ impl<'a> Analyser<'a> {
 
         self.close_scope();
 
-        StmtAbt::Empty
+        StmtAbtKind::Empty
     }
 
-    fn analyse_return_statement(&mut self, span: Span) -> StmtAbt {
+    fn analyse_return_statement(&mut self, span: Span) -> StmtAbtKind {
         let ty = TypeAbt::Unit;
 
         if !ty.is(&self.scope.return_type) {
@@ -491,13 +522,13 @@ impl<'a> Analyser<'a> {
                 .with_span(span)
                 .done();
             self.diagnostics.push(d);
-            return StmtAbt::Return(Box::new(ExprAbt::Unknown));
+            return StmtAbtKind::Return(Box::new(ExprAbt::Unknown));
         }
 
-        StmtAbt::Return(Box::new(ExprAbt::Unit))
+        StmtAbtKind::Return(Box::new(ExprAbt::Unit))
     }
 
-    fn analyse_return_with_statement(&mut self, expr: &ExprAst) -> StmtAbt {
+    fn analyse_return_with_statement(&mut self, expr: &ExprAst) -> StmtAbtKind {
         let bound_expr = self.analyse_expression(expr);
         let ty_expr = bound_expr.ty();
 
@@ -511,10 +542,10 @@ impl<'a> Analyser<'a> {
                 .with_span(expr.span)
                 .done();
             self.diagnostics.push(d);
-            return StmtAbt::Return(Box::new(ExprAbt::Unknown));
+            return StmtAbtKind::Return(Box::new(ExprAbt::Unknown));
         }
 
-        StmtAbt::Return(Box::new(bound_expr))
+        StmtAbtKind::Return(Box::new(bound_expr))
     }
 
     #[rustfmt::skip]

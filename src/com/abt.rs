@@ -1,7 +1,15 @@
 use std::fmt::Display;
 
+use super::span::Span;
+
 #[derive(Debug)]
-pub enum StmtAbt {
+pub struct StmtAbt {
+    pub kind: StmtAbtKind,
+    pub span: Span,
+}
+
+#[derive(Debug)]
+pub enum StmtAbtKind {
     Empty,
     VarDef(String, ExprAbt),
     Block(Vec<StmtAbt>),
@@ -11,6 +19,13 @@ pub enum StmtAbt {
     WhileDo(Box<ExprAbt>, Box<StmtAbt>),
     DoWhile(Box<StmtAbt>, Box<ExprAbt>),
     Return(Box<ExprAbt>),
+    
+}
+
+impl StmtAbtKind {
+    pub fn wrap(self, span: Span) -> StmtAbt {
+        StmtAbt { kind: self, span }
+    }
 }
 
 #[derive(Debug)]
