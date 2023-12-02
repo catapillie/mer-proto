@@ -2,21 +2,16 @@ use self::{diagnostics::Diagnostic, parser::Parser};
 use crate::{
     com::{
         analyser::Analyser,
-        codegen::Codegen,
         diagnostics::{Diagnostics, Severity},
     },
     msg,
 };
 use colored::{Color, Colorize};
-use std::{
-    fs,
-    process::{self},
-};
+use std::process::{self};
 
 mod abt;
 mod analyser;
 mod ast;
-mod codegen;
 mod cursor;
 mod diagnostics;
 mod parser;
@@ -47,33 +42,6 @@ pub fn compile(path: &str, source: String) {
         }
     }
     msg::ok("analysis finished successfully");
-
-    let result = Codegen::new().gen(&ast);
-
-    const PATH: &str = "a.out";
-
-    match result {
-        Ok(bytes) => {
-            match fs::write(PATH, bytes) {
-                Ok(_) => msg::ok(format!(
-                    "compilation to {} finished successfully",
-                    PATH.bold()
-                )),
-                Err(e) => {
-                    msg::error(format!(
-                        "compilation succeeded then failed when writing to {}:\n      {}",
-                        PATH,
-                        e.to_string().italic()
-                    ));
-                    process::exit(e.raw_os_error().unwrap_or(1));
-                }
-            };
-        }
-        _ => {
-            msg::error("compilation finished abnormally");
-            process::exit(1);
-        }
-    }
 
     process::exit(0);
 }
@@ -152,7 +120,7 @@ fn print_diagnostic(path: &str, lines: &[&str], diagnostic: &Diagnostic) {
         let from = span.from.column;
         let to = span.to.column;
         let w = to - from;
-        
+
         display_colored_span(first_line, Some(span.from.column), Some(span.to.column));
 
         print!(" {:>max_line_num_len$} {}", " ", "║".color(color));

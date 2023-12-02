@@ -34,8 +34,8 @@ pub enum ExprAbt {
     Unit,
     Number(f64),
     Boolean(bool),
-    Variable(String, TypeAbt),
-    Assignment(String, TypeAbt, Box<ExprAbt>),
+    Variable(Variable),
+    Assignment(Variable, Box<ExprAbt>),
     Unary((UnaryOp, TypeAbt), Box<ExprAbt>),
     Binary((BinaryOp, TypeAbt), Box<ExprAbt>, Box<ExprAbt>),
     Call(String, Vec<ExprAbt>, TypeAbt),
@@ -48,13 +48,19 @@ impl ExprAbt {
             ExprAbt::Unit => TypeAbt::Unit,
             ExprAbt::Number(_) => TypeAbt::Number,
             ExprAbt::Boolean(_) => TypeAbt::Boolean,
-            ExprAbt::Variable(_, ty) => ty.clone(),
-            ExprAbt::Assignment(_, ty, _) => ty.clone(),
+            ExprAbt::Variable(var) => var.ty.clone(),
+            ExprAbt::Assignment(var, _) => var.ty.clone(),
             ExprAbt::Unary((_, ty), _) => ty.clone(),
             ExprAbt::Binary((_, ty), _, _) => ty.clone(),
             ExprAbt::Call(_, _, ty) => ty.clone(),
         }
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct Variable {
+    pub id: u8,
+    pub ty: TypeAbt,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

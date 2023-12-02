@@ -3,7 +3,7 @@ use std::{collections::HashMap, mem};
 use crate::com::abt::{BinaryOp, TypeAbt};
 
 use super::{
-    abt::{ExprAbt, StmtAbt, StmtAbtKind, UnaryOp},
+    abt::{ExprAbt, StmtAbt, StmtAbtKind, UnaryOp, Variable},
     ast::{
         BinaryOperator, ExprAst, ExprAstKind, ProgramAst, StmtAst, StmtAstKind, TypeAst,
         TypeAstKind, UnaryOperator,
@@ -16,7 +16,9 @@ use super::{
 struct Scope {
     parent: Option<Box<Scope>>,
 
-    variables: HashMap<String, TypeAbt>,
+    variables: HashMap<String, Variable>,
+    variable_count: u8,
+
     functions: HashMap<String, (Vec<TypeAbt>, TypeAbt)>,
 
     unary_operations: HashMap<(UnaryOperator, TypeAbt), (UnaryOp, TypeAbt)>,
@@ -31,6 +33,8 @@ impl Default for Scope {
             parent: None,
 
             variables: Default::default(),
+            variable_count: 0,
+
             functions: Default::default(),
 
             unary_operations: Default::default(),
@@ -43,12 +47,13 @@ impl Default for Scope {
 
 impl Scope {
     pub fn declare_variable(&mut self, name: String, ty: TypeAbt) {
-        self.variables.insert(name, ty);
+        self.variables.insert(name, Variable { id: self.variable_count, ty });
+        self.variable_count += 1;
     }
 
-    pub fn get_variable(&self, name: &str) -> Option<TypeAbt> {
+    pub fn get_variable(&self, name: &str) -> Option<&Variable> {
         match self.variables.get(name) {
-            Some(ty) => Some(ty.clone()),
+            Some(var) => Some(var),
             None => match self.parent {
                 Some(ref parent) => parent.get_variable(name),
                 None => None,
@@ -565,7 +570,7 @@ impl<'a> Analyser<'a> {
 
     fn analyse_variable_expression(&mut self, id: &str, span: Span) -> ExprAbt {
         match self.scope.get_variable(id) {
-            Some(ty) => ExprAbt::Variable(id.to_string(), ty),
+            Some(var) => ExprAbt::Variable(var.clone()),
             None => {
                 let d = diagnostics::create_diagnostic()
                     .with_kind(DiagnosticKind::UnknownVariable(id.to_string()))
@@ -619,7 +624,7 @@ impl<'a> Analyser<'a> {
         let bound_left = self.analyse_expression(left);
         let bound_right = self.analyse_expression(right);
 
-        let ExprAbt::Variable(name, ty_left) = bound_left else {
+        let ExprAbt::Variable(var) = bound_left else {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::AssigneeMustBeVariable)
                 .with_severity(Severity::Error)
@@ -629,11 +634,11 @@ impl<'a> Analyser<'a> {
             return ExprAbt::Unknown;
         };
 
-        if !bound_right.ty().is(&ty_left) {
+        if !bound_right.ty().is(&var.ty) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::TypeMismatch {
                     found: bound_right.ty(),
-                    expected: ty_left,
+                    expected: var.ty,
                 })
                 .with_severity(Severity::Error)
                 .with_span(right.span)
@@ -642,7 +647,7 @@ impl<'a> Analyser<'a> {
             return ExprAbt::Unknown;
         }
 
-        ExprAbt::Assignment(name, ty_left, Box::new(bound_right))
+        ExprAbt::Assignment(var, Box::new(bound_right))
     }
 
     fn analyse_unary_operation(
