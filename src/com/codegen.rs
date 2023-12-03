@@ -1,90 +1,119 @@
-use std::io::Cursor;
+use std::{
+    collections::HashMap,
+    io::{self, Cursor},
+};
 
 use crate::{
-    com::abt::{BinOpAbtKind, TypeAbt, UnOpAbtKind, StmtAbtKind},
+    com::abt::{BinOpAbtKind, StmtAbtKind, TypeAbt, UnOpAbtKind},
     run::opcode::Opcode,
 };
 
 use super::abt::{ExprAbt, Function, ProgramAbt, StmtAbt};
 
 pub struct Codegen {
-    code: Vec<Opcode>,
+    cursor: Cursor<Vec<u8>>,
+    function_positions: HashMap<u32, u32>,
 }
 
 impl Codegen {
     pub fn new() -> Self {
-        Self { code: Vec::new() }
+        Self {
+            cursor: Cursor::new(Vec::new()),
+            function_positions: HashMap::new(),
+        }
     }
 
-    pub fn gen(&mut self, abt: &ProgramAbt) -> Vec<u8> {
-        for (_id, (name, func)) in abt.functions_by_id.iter() {
-            self.gen_function(name.clone(), func);
-        }
-
-        let program = Vec::new();
-        let mut cursor = Cursor::new(program);
-        for opcode in &self.code {
-            opcode.write_bytes(&mut cursor).unwrap();
-        }
-
-        cursor.into_inner()
+    fn position(&self) -> u32 {
+        self.cursor.position().try_into().unwrap()
     }
 
-    fn gen_function(&mut self, name: String, func: &Function) {
+    pub fn gen(mut self, abt: &ProgramAbt) -> io::Result<Vec<u8>> {
+        Opcode::entry_point(0).write_bytes(&mut self.cursor)?;
+
+        for (id, (name, func)) in abt.functions_by_id.iter() {
+            let position = self.position();
+            self.function_positions.insert(*id, position);
+            self.gen_function(name.clone(), func)?;
+        }
+
+        Ok(self.cursor.into_inner())
+    }
+
+    fn gen_function(&mut self, name: String, func: &Function) -> io::Result<()> {
         let param_count = func.param_types.len() as u8;
         let local_count = func.local_count;
-        self.code.push(Opcode::function(name, param_count, local_count));
-        self.gen_statement(&func.code);
+        let opcode = Opcode::function(name, param_count, local_count);
+        opcode.write_bytes(&mut self.cursor)?;
+
+        self.gen_statement(&func.code)?;
+        Ok(())
     }
 
-    fn gen_statement(&mut self, stmt: &StmtAbt) {
+    fn gen_statement(&mut self, stmt: &StmtAbt) -> io::Result<()> {
         use StmtAbtKind as S;
         match &stmt.kind {
             S::Empty => {}
-            S::Block(stmts) => self.gen_block(stmts),
+            S::Block(stmts) => self.gen_block(stmts)?,
             S::Expr(expr) => {
-                self.gen_expression(expr);
-                self.code.push(Opcode::pop)
-            },
+                self.gen_expression(expr)?;
+                Opcode::pop.write_bytes(&mut self.cursor)?;
+            }
             S::IfThen(_, _) => todo!(),
             S::IfThenElse(_, _, _) => todo!(),
             S::WhileDo(_, _) => todo!(),
             S::DoWhile(_, _) => todo!(),
-            S::Return(expr) => self.gen_return(expr),
+            S::Return(expr) => self.gen_return(expr)?,
         }
+
+        Ok(())
     }
 
-    fn gen_block(&mut self, stmts: &Vec<StmtAbt>) {
+    fn gen_block(&mut self, stmts: &Vec<StmtAbt>) -> io::Result<()> {
         for stmt in stmts {
-            self.gen_statement(stmt);
+            self.gen_statement(stmt)?;
         }
+
+        Ok(())
     }
 
-    fn gen_return(&mut self, expr: &ExprAbt) {
-        self.gen_expression(expr);
-        self.code.push(Opcode::ret);
+    fn gen_return(&mut self, expr: &ExprAbt) -> io::Result<()> {
+        self.gen_expression(expr)?;
+        Opcode::ret.write_bytes(&mut self.cursor)?;
+        Ok(())
     }
 
-    fn gen_expression(&mut self, expr: &ExprAbt) {
+    fn gen_expression(&mut self, expr: &ExprAbt) -> io::Result<()> {
         use super::abt::ExprAbt as E;
         match expr {
             E::Unknown => unreachable!(),
-            E::Unit => self.code.push(Opcode::ld_unit),
-            E::Number(num) => self.code.push(Opcode::ld_f64(*num)),
-            E::Boolean(b) => self.code.push(match b {
-                true => Opcode::ld_bool_true,
-                false => Opcode::ld_bool_false,
-            }),
-            E::Variable(var) => self.code.push(Opcode::ld_loc(var.id)),
-            E::Assignment(var, expr) => {
-                self.gen_expression(expr);
-                self.code.push(Opcode::st_loc(var.id));
-                self.code.push(Opcode::ld_loc(var.id));
+            E::Unit => Opcode::ld_unit.write_bytes(&mut self.cursor),
+            E::Number(num) => Opcode::ld_f64(*num).write_bytes(&mut self.cursor),
+            E::Boolean(b) => {
+                let opcode = match b {
+                    true => Opcode::ld_bool_true,
+                    false => Opcode::ld_bool_false,
+                };
+                opcode.write_bytes(&mut self.cursor)?;
+                Ok(())
             }
-            E::Call(_, _, _) => todo!(),
+            E::Variable(var) => Opcode::ld_loc(var.id).write_bytes(&mut self.cursor),
+            E::Assignment(var, expr) => {
+                self.gen_expression(expr)?;
+                Opcode::st_loc(var.id).write_bytes(&mut self.cursor)?;
+                Opcode::ld_loc(var.id).write_bytes(&mut self.cursor)?;
+                Ok(())
+            }
+            E::Call(id, params, _) => {
+                for param in params {
+                    self.gen_expression(param)?;
+                }
+
+                let to = self.function_positions.get(id).cloned().unwrap();
+                Opcode::call(to).write_bytes(&mut self.cursor)
+            }
             E::Binary(op, left, right) => {
-                self.gen_expression(left);
-                self.gen_expression(right);
+                self.gen_expression(left)?;
+                self.gen_expression(right)?;
 
                 use BinOpAbtKind as K;
                 use TypeAbt as Ty;
@@ -233,36 +262,36 @@ impl Codegen {
                     (Ty::Bool, K::Xor) => todo!(),
                     _ => unreachable!("{:?}", op),
                 };
-                self.code.push(opcode);
+                opcode.write_bytes(&mut self.cursor)
             }
             E::Unary(op, expr) => {
-                self.gen_expression(expr);
+                self.gen_expression(expr)?;
 
                 use TypeAbt as Ty;
                 use UnOpAbtKind as K;
                 let opcode = match (&op.ty, &op.kind) {
-                    (Ty::U8, K::Pos) => return,
-                    (Ty::U16, K::Pos) => return,
-                    (Ty::U32, K::Pos) => return,
-                    (Ty::U64, K::Pos) => return,
-                    (Ty::I8, K::Pos) => return,
+                    (Ty::U8, K::Pos) => return Ok(()),
+                    (Ty::U16, K::Pos) => return Ok(()),
+                    (Ty::U32, K::Pos) => return Ok(()),
+                    (Ty::U64, K::Pos) => return Ok(()),
+                    (Ty::I8, K::Pos) => return Ok(()),
                     (Ty::I8, K::Neg) => Opcode::neg_i8,
-                    (Ty::I16, K::Pos) => return,
+                    (Ty::I16, K::Pos) => return Ok(()),
                     (Ty::I16, K::Neg) => Opcode::neg_i16,
-                    (Ty::I32, K::Pos) => return,
+                    (Ty::I32, K::Pos) => return Ok(()),
                     (Ty::I32, K::Neg) => Opcode::neg_i32,
-                    (Ty::I64, K::Pos) => return,
+                    (Ty::I64, K::Pos) => return Ok(()),
                     (Ty::I64, K::Neg) => Opcode::neg_i64,
-                    (Ty::F32, K::Pos) => return,
+                    (Ty::F32, K::Pos) => return Ok(()),
                     (Ty::F32, K::Neg) => Opcode::neg_f32,
-                    (Ty::F64, K::Pos) => return,
+                    (Ty::F64, K::Pos) => return Ok(()),
                     (Ty::F64, K::Neg) => Opcode::neg_f64,
-                    (Ty::Bool, K::Pos) => return,
+                    (Ty::Bool, K::Pos) => return Ok(()),
                     (Ty::Bool, K::Not) => Opcode::not_bool,
                     _ => unreachable!(),
                 };
 
-                self.code.push(opcode);
+                opcode.write_bytes(&mut self.cursor)
             }
         }
     }

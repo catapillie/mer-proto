@@ -39,13 +39,13 @@ pub fn compile(path: &str, source: String) {
         }
 
         if fatal {
-            msg::error("cannot compile with errors; aborting");
+            msg::error("cannot compile with errors -- aborting");
             process::exit(1);
         }
     }
     msg::ok("analysis finished successfully");
 
-    let program = Codegen::new().gen(&abt);
+    let program = Codegen::new().gen(&abt).unwrap();
     run::disassemble(&program); // wip
 
     process::exit(0);

@@ -184,8 +184,6 @@ impl<'a> Analyser<'a> {
         self.scope
             .declare_function("@".to_string(), signature, local_count, bound_program);
 
-        println!("{}", self.scope.local_count);
-
         let mut functions_by_id = BTreeMap::new();
         for (name, func) in self.scope.functions.into_iter() {
             functions_by_id.insert(func.id, (name, func));
