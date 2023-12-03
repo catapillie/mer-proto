@@ -1,7 +1,7 @@
 use std::io::Cursor;
 
 use crate::{
-    com::abt::{BinOpAbtKind, TypeAbt, UnOpAbtKind},
+    com::abt::{BinOpAbtKind, TypeAbt, UnOpAbtKind, StmtAbtKind},
     run::opcode::Opcode,
 };
 
@@ -31,17 +31,20 @@ impl Codegen {
     }
 
     fn gen_function(&mut self, name: String, func: &Function) {
-        self.code
-            .push(Opcode::function(name, func.param_types.len() as u8, 0));
+        let param_count = func.param_types.len() as u8;
+        self.code.push(Opcode::function(name, param_count, 0));
         self.gen_statement(&func.code);
     }
 
     fn gen_statement(&mut self, stmt: &StmtAbt) {
-        use super::abt::StmtAbtKind as S;
+        use StmtAbtKind as S;
         match &stmt.kind {
             S::Empty => {}
             S::Block(stmts) => self.gen_block(stmts),
-            S::Expr(_) => todo!(),
+            S::Expr(expr) => {
+                self.gen_expression(expr);
+                self.code.push(Opcode::pop)
+            },
             S::IfThen(_, _) => todo!(),
             S::IfThenElse(_, _, _) => todo!(),
             S::WhileDo(_, _) => todo!(),
@@ -74,7 +77,8 @@ impl Codegen {
             E::Variable(var) => self.code.push(Opcode::ld_loc(var.id)),
             E::Assignment(var, expr) => {
                 self.gen_expression(expr);
-                self.code.push(Opcode::st_loc(var.id))
+                self.code.push(Opcode::st_loc(var.id));
+                self.code.push(Opcode::ld_loc(var.id));
             }
             E::Call(_, _, _) => todo!(),
             E::Binary(op, left, right) => {
