@@ -1,25 +1,27 @@
-use std::{collections::HashMap, mem};
-
-use crate::com::abt::{BinaryOp, TypeAbt};
+use std::{
+    collections::{BTreeMap, HashMap},
+    mem,
+};
 
 use super::{
-    abt::{ExprAbt, StmtAbt, StmtAbtKind, UnaryOp, Variable},
-    ast::{
-        BinaryOperator, ExprAst, ExprAstKind, ProgramAst, StmtAst, StmtAstKind, TypeAst,
-        TypeAstKind, UnaryOperator,
-    },
-    diagnostics::{self, DiagnosticKind, Diagnostics, Severity},
+    abt::*,
+    ast::*,
+    diagnostics::{self, *},
     pos::Pos,
-    span::Span,
+    span::*,
 };
 
 struct Scope {
+    name: String,
+    quiet: bool,
     parent: Option<Box<Scope>>,
+    blocking: bool,
 
     variables: HashMap<String, Variable>,
-    variable_count: u8,
+    variable_count: u16,
 
-    functions: HashMap<String, (Vec<TypeAbt>, TypeAbt)>,
+    functions: HashMap<String, Function>,
+    function_count: u32,
 
     unary_operations: HashMap<(UnaryOperator, TypeAbt), (UnaryOp, TypeAbt)>,
     binary_operations: HashMap<(BinaryOperator, TypeAbt, TypeAbt), (BinaryOp, TypeAbt)>,
@@ -30,12 +32,16 @@ struct Scope {
 impl Default for Scope {
     fn default() -> Self {
         Self {
+            name: Default::default(),
+            quiet: false,
             parent: None,
+            blocking: false,
 
             variables: Default::default(),
             variable_count: 0,
 
             functions: Default::default(),
+            function_count: 0,
 
             unary_operations: Default::default(),
             binary_operations: Default::default(),
@@ -46,32 +52,54 @@ impl Default for Scope {
 }
 
 impl Scope {
-    pub fn declare_variable(&mut self, name: String, ty: TypeAbt) {
-        self.variables.insert(
-            name,
-            Variable {
-                id: self.variable_count,
-                ty,
-            },
-        );
+    pub fn declare_variable(&mut self, name: String, ty: TypeAbt) -> bool {
+        let id = self
+            .variables
+            .get(name.as_str())
+            .map(|v| v.id as u16)
+            .unwrap_or(self.variable_count);
+
+        self.variables.insert(name, Variable { id: id as u8, ty });
         self.variable_count += 1;
+
+        self.variable_count <= 256
     }
 
     pub fn get_variable(&self, name: &str) -> Option<&Variable> {
         match self.variables.get(name) {
             Some(var) => Some(var),
-            None => match self.parent {
+            None if !self.blocking => match self.parent {
                 Some(ref parent) => parent.get_variable(name),
                 None => None,
             },
+            None => None,
         }
     }
 
-    pub fn declare_function(&mut self, name: String, signature: (Vec<TypeAbt>, TypeAbt)) {
-        self.functions.insert(name, signature);
+    pub fn declare_function(
+        &mut self,
+        name: String,
+        signature: (Vec<TypeAbt>, TypeAbt),
+        code: StmtAbt,
+    ) {
+        let id = self.function_count;
+        self.function_count += 1;
+        self.functions.insert(
+            name,
+            Function {
+                id,
+                param_types: signature.0,
+                return_type: signature.1,
+                code,
+            },
+        );
     }
 
-    pub fn get_function(&self, name: &str) -> Option<&(Vec<TypeAbt>, TypeAbt)> {
+    pub fn update_function_code(&mut self, name: String, code: StmtAbt) {
+        self.functions.entry(name).and_modify(|s| s.code = code);
+    }
+
+    pub fn get_function(&self, name: &str) -> Option<&Function> {
         match self.functions.get(name) {
             Some(signature) => Some(signature),
             None => match self.parent {
@@ -138,38 +166,38 @@ fn hardcode_native_features(scope: &mut Scope) {
     use BinaryOperator as BI;
 
     // number <op> number -> number
-    scope.declare_binary_operation((BI::Plus, Ty::Number, Ty::Number), (BO::Plus, Ty::Number));
-    scope.declare_binary_operation((BI::Minus, Ty::Number, Ty::Number), (BO::Minus, Ty::Number));
-    scope.declare_binary_operation((BI::Star, Ty::Number, Ty::Number), (BO::Star, Ty::Number));
-    scope.declare_binary_operation((BI::Slash, Ty::Number, Ty::Number), (BO::Slash, Ty::Number));
-    scope.declare_binary_operation((BI::Percent, Ty::Number, Ty::Number), (BO::Percent, Ty::Number));
+    scope.declare_binary_operation((BI::Plus, Ty::F64, Ty::F64), (BO::Plus, Ty::F64));
+    scope.declare_binary_operation((BI::Minus, Ty::F64, Ty::F64), (BO::Minus, Ty::F64));
+    scope.declare_binary_operation((BI::Star, Ty::F64, Ty::F64), (BO::Star, Ty::F64));
+    scope.declare_binary_operation((BI::Slash, Ty::F64, Ty::F64), (BO::Slash, Ty::F64));
+    scope.declare_binary_operation((BI::Percent, Ty::F64, Ty::F64), (BO::Percent, Ty::F64));
 
     // number <op> number -> boolean
-    scope.declare_binary_operation((BI::EqualEqual, Ty::Number, Ty::Number), (BO::EqualEqual, Ty::Boolean));
-    scope.declare_binary_operation((BI::NotEqual, Ty::Number, Ty::Number), (BO::NotEqual, Ty::Boolean));
-    scope.declare_binary_operation((BI::LessEqual, Ty::Number, Ty::Number), (BO::LessEqual, Ty::Boolean));
-    scope.declare_binary_operation((BI::LessThan, Ty::Number, Ty::Number), (BO::LessThan, Ty::Boolean));
-    scope.declare_binary_operation((BI::GreaterEqual, Ty::Number, Ty::Number), (BO::GreaterEqual, Ty::Boolean));
-    scope.declare_binary_operation((BI::GreaterThan, Ty::Number, Ty::Number), (BO::GreaterThan, Ty::Boolean));
+    scope.declare_binary_operation((BI::EqualEqual, Ty::F64, Ty::F64), (BO::EqualEqual, Ty::Bool));
+    scope.declare_binary_operation((BI::NotEqual, Ty::F64, Ty::F64), (BO::NotEqual, Ty::Bool));
+    scope.declare_binary_operation((BI::LessEqual, Ty::F64, Ty::F64), (BO::LessEqual, Ty::Bool));
+    scope.declare_binary_operation((BI::LessThan, Ty::F64, Ty::F64), (BO::LessThan, Ty::Bool));
+    scope.declare_binary_operation((BI::GreaterEqual, Ty::F64, Ty::F64), (BO::GreaterEqual, Ty::Bool));
+    scope.declare_binary_operation((BI::GreaterThan, Ty::F64, Ty::F64), (BO::GreaterThan, Ty::Bool));
 
     // boolean <op> boolean -> boolean
-    scope.declare_binary_operation((BI::Ampersand, Ty::Boolean, Ty::Boolean), (BO::Ampersand, Ty::Boolean));
-    scope.declare_binary_operation((BI::Caret, Ty::Boolean, Ty::Boolean), (BO::Caret, Ty::Boolean));
-    scope.declare_binary_operation((BI::Bar, Ty::Boolean, Ty::Boolean), (BO::Bar, Ty::Boolean));
-    scope.declare_binary_operation((BI::And, Ty::Boolean, Ty::Boolean), (BO::And, Ty::Boolean));
-    scope.declare_binary_operation((BI::Or, Ty::Boolean, Ty::Boolean), (BO::Or, Ty::Boolean));
-    scope.declare_binary_operation((BI::EqualEqual, Ty::Boolean, Ty::Boolean), (BO::EqualEqual, Ty::Boolean));
-    scope.declare_binary_operation((BI::NotEqual, Ty::Boolean, Ty::Boolean), (BO::NotEqual, Ty::Boolean));
+    scope.declare_binary_operation((BI::Ampersand, Ty::Bool, Ty::Bool), (BO::Ampersand, Ty::Bool));
+    scope.declare_binary_operation((BI::Caret, Ty::Bool, Ty::Bool), (BO::Caret, Ty::Bool));
+    scope.declare_binary_operation((BI::Bar, Ty::Bool, Ty::Bool), (BO::Bar, Ty::Bool));
+    scope.declare_binary_operation((BI::And, Ty::Bool, Ty::Bool), (BO::And, Ty::Bool));
+    scope.declare_binary_operation((BI::Or, Ty::Bool, Ty::Bool), (BO::Or, Ty::Bool));
+    scope.declare_binary_operation((BI::EqualEqual, Ty::Bool, Ty::Bool), (BO::EqualEqual, Ty::Bool));
+    scope.declare_binary_operation((BI::NotEqual, Ty::Bool, Ty::Bool), (BO::NotEqual, Ty::Bool));
 
     use UnaryOp as UO;
     use UnaryOperator as UI;
 
     // <op> number -> number
-    scope.declare_unary_operation((UI::Pos, Ty::Number), (UO::Pos, Ty::Number));
-    scope.declare_unary_operation((UI::Neg, Ty::Number), (UO::Neg, Ty::Number));
+    scope.declare_unary_operation((UI::Pos, Ty::F64), (UO::Pos, Ty::F64));
+    scope.declare_unary_operation((UI::Neg, Ty::F64), (UO::Neg, Ty::F64));
 
     // <op> boolean -> boolean
-    scope.declare_unary_operation((UI::Not, Ty::Boolean), (UO::Not, Ty::Boolean));
+    scope.declare_unary_operation((UI::Not, Ty::Bool), (UO::Not, Ty::Bool));
 }
 
 pub struct Analyser<'a> {
@@ -180,11 +208,7 @@ pub struct Analyser<'a> {
 impl<'a> Analyser<'a> {
     pub fn new(diagnostics: &'a mut Diagnostics) -> Self {
         let mut scope = Scope::default();
-
         hardcode_native_features(&mut scope);
-
-        // the main scope must return unit
-        scope.return_type = TypeAbt::Unit;
 
         Self { diagnostics, scope }
     }
@@ -192,19 +216,38 @@ impl<'a> Analyser<'a> {
     fn open_scope(&mut self) {
         let parent = mem::take(&mut self.scope);
         let return_type = parent.return_type.clone();
+        let variable_count = parent.variable_count;
+        let function_count = parent.function_count;
         self.scope.parent = Some(Box::new(parent));
         self.scope.return_type = return_type;
+        self.scope.variable_count = variable_count;
+        self.scope.function_count = function_count;
     }
 
     fn close_scope(&mut self) {
-        let parent = mem::take(&mut self.scope.parent);
-        self.scope = *parent.expect("attempted to close non-existing scope");
+        let mut parent =
+            mem::take(&mut self.scope.parent).expect("attempted to close non-existing scope");
+        let functions = mem::take(&mut self.scope.functions);
+        parent.function_count = self.scope.function_count;
+        for (name, func) in functions.into_iter() {
+            let new_name = if self.scope.quiet {
+                name
+            } else {
+                format!("{}.{name}", parent.name)
+            };
+            parent.functions.insert(new_name, func);
+        }
+        self.scope = *parent;
     }
 
-    pub fn analyse_program(mut self, ast: &ProgramAst) {
-        let bound_program = self.analyse_block_statement(ast);
+    pub fn analyse_program(mut self, ast: &StmtAst) -> ProgramAbt {
+        self.scope.return_type = TypeAbt::Unit;
+        self.scope.name = "@".to_string();
+        self.scope.blocking = true;
 
-        if !self.analyse_control_flow(&bound_program.wrap(Span::at(Pos::MIN))) {
+        let bound_program = self.analyse_statement(ast);
+
+        if !self.analyse_control_flow(&bound_program) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::TopLevelMustReturn)
                 .with_severity(Severity::Error)
@@ -212,6 +255,17 @@ impl<'a> Analyser<'a> {
                 .done();
             self.diagnostics.push(d);
         }
+
+        let signature = (vec![], TypeAbt::Unit);
+        self.scope
+            .declare_function("@".to_string(), signature, bound_program);
+
+        let mut functions_by_id = BTreeMap::new();
+        for (name, func) in self.scope.functions.into_iter() {
+            functions_by_id.insert(func.id, (name, func));
+        }
+
+        ProgramAbt { functions_by_id }
     }
 
     // returns whether the provided statement is guaranteed to return
@@ -258,7 +312,8 @@ impl<'a> Analyser<'a> {
     fn analyse_statement(&mut self, stmt: &StmtAst) -> StmtAbt {
         match &stmt.kind {
             StmtAstKind::Empty => StmtAbtKind::Empty,
-            StmtAstKind::VarDef(name, expr) => self.analyse_variable_definition(name, expr),
+            StmtAstKind::VarDef(id, expr)
+                => self.analyse_variable_definition(id, expr),
             StmtAstKind::Expr(expr)
                 => StmtAbtKind::Expr(Box::new(self.analyse_expression(expr))),
             StmtAstKind::Block(stmts)
@@ -288,16 +343,25 @@ impl<'a> Analyser<'a> {
 
     fn analyse_variable_definition(
         &mut self,
-        name: &Option<String>,
+        id: &Option<(String, Span)>,
         expr: &ExprAst,
     ) -> StmtAbtKind {
         let bound_expr = self.analyse_expression(expr);
 
-        let Some(name) = name else {
+        let Some((name, span)) = id else {
             return StmtAbtKind::Empty;
         };
 
-        self.scope.declare_variable(name.clone(), bound_expr.ty());
+        let ok = self.scope.declare_variable(name.clone(), bound_expr.ty());
+        if !ok {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::TooManyVariables)
+                .with_severity(Severity::Error)
+                .with_span(*span)
+                .done();
+            self.diagnostics.push(d);
+        }
+
         StmtAbtKind::VarDef(name.clone(), bound_expr)
     }
 
@@ -332,7 +396,7 @@ impl<'a> Analyser<'a> {
             self.diagnostics.push(d);
         }
 
-        if !bound_guard.ty().is(&TypeAbt::Boolean) {
+        if !bound_guard.ty().is(&TypeAbt::Bool) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::GuardNotBoolean)
                 .with_severity(Severity::Error)
@@ -372,7 +436,7 @@ impl<'a> Analyser<'a> {
             self.diagnostics.push(d);
         }
 
-        if !bound_guard.ty().is(&TypeAbt::Boolean) {
+        if !bound_guard.ty().is(&TypeAbt::Bool) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::GuardNotBoolean)
                 .with_severity(Severity::Error)
@@ -421,7 +485,7 @@ impl<'a> Analyser<'a> {
             self.diagnostics.push(d);
         }
 
-        if !bound_guard.ty().is(&TypeAbt::Boolean) {
+        if !bound_guard.ty().is(&TypeAbt::Bool) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::GuardNotBoolean)
                 .with_severity(Severity::Error)
@@ -446,7 +510,7 @@ impl<'a> Analyser<'a> {
             self.diagnostics.push(d);
         }
 
-        if !bound_guard.ty().is(&TypeAbt::Boolean) {
+        if !bound_guard.ty().is(&TypeAbt::Bool) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::GuardNotBoolean)
                 .with_severity(Severity::Error)
@@ -489,17 +553,28 @@ impl<'a> Analyser<'a> {
             .iter()
             .map(|(_, ty)| ty.clone())
             .collect::<Vec<_>>();
-        self.scope
-            .declare_function(name.clone(), (bound_params_ty, bound_ty.clone()));
+
+        let signature = (bound_params_ty, bound_ty.clone());
+        self.scope.declare_function(
+            name.clone(),
+            signature,
+            StmtAbtKind::Empty.wrap(Span::at(Pos::MIN)),
+        );
 
         self.open_scope();
+        self.scope.name = name.clone();
+        self.scope.quiet = true; // don't nest
         self.scope.return_type = bound_ty;
+        self.scope.variable_count = 0; // reset local counter
+        self.scope.blocking = true; // prevent from accessing variables from outside the function
+
+        // this will have to be changed at some point so that it is possible for functions to capture variables
 
         for (param_name, param_ty) in bound_params {
             self.scope.declare_variable(param_name.clone(), param_ty);
         }
-        let bound_body = self.analyse_statement(body);
 
+        let bound_body = self.analyse_statement(body);
         if !self.analyse_control_flow(&bound_body) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::NotAllPathsReturn)
@@ -508,6 +583,8 @@ impl<'a> Analyser<'a> {
                 .done();
             self.diagnostics.push(d);
         }
+
+        self.scope.update_function_code(name.clone(), bound_body);
 
         self.close_scope();
 
@@ -688,7 +765,7 @@ impl<'a> Analyser<'a> {
             .map(|param| self.analyse_expression(param))
             .collect::<Vec<_>>();
 
-        let Some((expected_params, ty)) = self.scope.get_function(name) else {
+        let Some(func) = self.scope.get_function(name) else {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::UnknownFunction(name.to_string()))
                 .with_severity(Severity::Error)
@@ -700,7 +777,7 @@ impl<'a> Analyser<'a> {
 
         let mut invalid = false;
         for ((bound_param, param), expected_ty) in
-            bound_params.iter().zip(params).zip(expected_params)
+            bound_params.iter().zip(params).zip(&func.param_types)
         {
             let ty_param = bound_param.ty();
             if !ty_param.is(expected_ty) {
@@ -717,7 +794,7 @@ impl<'a> Analyser<'a> {
             }
         }
 
-        if bound_params.len() != expected_params.len() {
+        if bound_params.len() != func.param_types.len() {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::InvalidParameterCount {
                     got: bound_params.len(),
@@ -733,7 +810,7 @@ impl<'a> Analyser<'a> {
         if invalid {
             ExprAbt::Unknown
         } else {
-            ExprAbt::Call(name.to_string(), bound_params, ty.clone())
+            ExprAbt::Call(func.id, bound_params, func.return_type.clone())
         }
     }
 
@@ -743,8 +820,17 @@ impl<'a> Analyser<'a> {
             TypeAstKind::Unit => TypeAbt::Unit,
             TypeAstKind::Declared(id) => {
                 match id.as_str() {
-                    "number" => return TypeAbt::Number,
-                    "boolean" => return TypeAbt::Boolean,
+                    "u8" => return TypeAbt::U8,
+                    "u16" => return TypeAbt::U16,
+                    "u32" => return TypeAbt::U32,
+                    "u64" => return TypeAbt::U64,
+                    "i8" => return TypeAbt::I8,
+                    "i16" => return TypeAbt::I16,
+                    "i32" => return TypeAbt::I32,
+                    "i64" => return TypeAbt::I64,
+                    "f32" => return TypeAbt::F32,
+                    "f64" => return TypeAbt::F64,
+                    "bool" => return TypeAbt::Bool,
                     _ => {}
                 };
 

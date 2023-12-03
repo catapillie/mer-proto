@@ -2,8 +2,8 @@ use crate::com::diagnostics::Severity;
 
 use super::{
     ast::{
-        Associativity, BinaryOperator, ExprAst, ExprAstKind, Precedence, ProgramAst, StmtAst,
-        StmtAstKind, TypeAst, TypeAstKind, UnaryOperator,
+        Associativity, BinaryOperator, ExprAst, ExprAstKind, Precedence, StmtAst, StmtAstKind,
+        TypeAst, TypeAstKind, UnaryOperator,
     },
     cursor::Cursor,
     diagnostics::{self, DiagnosticKind, Diagnostics},
@@ -33,32 +33,36 @@ impl<'a> Parser<'a> {
         parser
     }
 
-    pub fn parse_program(mut self) -> ProgramAst {
-        let mut program = Vec::new();
+    pub fn parse_program(mut self) -> StmtAst {
+        let (stmts, span) = take_span!(self => {
+            let mut program = Vec::new();
 
-        loop {
-            while let Some(stmt) = self.parse_statement() {
-                program.push(stmt);
-                if !self.expect_newlines_or_eof() {
-                    self.recover_to_next_statement();
+            loop {
+                while let Some(stmt) = self.parse_statement() {
+                    program.push(stmt);
+                    if !self.expect_newlines_or_eof() {
+                        self.recover_to_next_statement();
+                    }
+                }
+
+                match self.try_match_token::<Eof>() {
+                    Some(_) => break,
+                    None => {
+                        let d = diagnostics::create_diagnostic()
+                            .with_kind(DiagnosticKind::ExpectedStatement)
+                            .with_severity(Severity::Error)
+                            .with_pos(self.last_boundary)
+                            .done();
+                        self.diagnostics.push(d);
+                        self.recover_to_next_statement();
+                    }
                 }
             }
 
-            match self.try_match_token::<Eof>() {
-                Some(_) => break,
-                None => {
-                    let d = diagnostics::create_diagnostic()
-                        .with_kind(DiagnosticKind::ExpectedStatement)
-                        .with_severity(Severity::Error)
-                        .with_pos(self.last_boundary)
-                        .done();
-                    self.diagnostics.push(d);
-                    self.recover_to_next_statement();
-                }
-            }
-        }
+            program
+        });
 
-        program
+        StmtAstKind::Block(stmts).wrap(span)
     }
 
     fn recover_to_next_statement(&mut self) {
@@ -123,7 +127,7 @@ impl<'a> Parser<'a> {
         let (stmt, span) = take_span!(self => {
             self.try_match_token::<VarKw>()?;
 
-            let id = self.match_token::<Identifier>().map(|tok| tok.0);
+            let id = self.match_token::<Identifier>().map(|tok| (tok.0, self.last_span()));
             self.match_token::<Equal>();
             let expr = self.expect_expression();
             Some(StmtAstKind::VarDef(id, Box::new(expr)))

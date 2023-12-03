@@ -1,4 +1,4 @@
-func collatz(n: number) -> number
+func collatz(n: f64) -> f64
 {
     var i = 0
     while n != 1 do

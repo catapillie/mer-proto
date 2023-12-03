@@ -132,6 +132,7 @@ pub enum DiagnosticKind {
 
     UnknownVariable(String),
     AssigneeMustBeVariable,
+    TooManyVariables,
 
     UnknownFunction(String),
     InvalidParameterCount {
@@ -204,6 +205,8 @@ impl DiagnosticKind {
                 => format!("unknown variable '{}'", name.bold()),
             DiagnosticKind::AssigneeMustBeVariable
                 => "assignee must be a variable".to_string(),
+            DiagnosticKind::TooManyVariables
+                => "too many local variables".to_string(),
             DiagnosticKind::UnknownFunction(name)
                 => format!("unknown function '{}'", name.bold()),
             DiagnosticKind::InvalidParameterCount { got, expected }

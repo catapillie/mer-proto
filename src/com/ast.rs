@@ -2,8 +2,6 @@ use std::fmt::Display;
 
 use super::span::Span;
 
-pub type ProgramAst = Vec<StmtAst>;
-
 #[derive(Debug)]
 pub struct StmtAst {
     pub kind: StmtAstKind,
@@ -31,7 +29,7 @@ impl StmtAstKind {
 #[derive(Debug)]
 pub enum StmtAstKind {
     Empty,
-    VarDef(Option<String>, Box<ExprAst>),
+    VarDef(Option<(String, Span)>, Box<ExprAst>),
     Expr(Box<ExprAst>),
     Block(Vec<StmtAst>),
     IfThen(Box<ExprAst>, Box<StmtAst>),

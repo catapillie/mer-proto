@@ -1,4 +1,4 @@
-func fib(n: number) -> number
+func fib(n: f64) -> f64
 {
     if n <= 0 then return 0
     else if n == 1 then return 1
