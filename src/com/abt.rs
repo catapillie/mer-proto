@@ -41,8 +41,8 @@ pub enum ExprAbt {
     Boolean(bool),
     Variable(Variable),
     Assignment(Variable, Box<ExprAbt>),
-    Unary(UnOpAbt, Box<ExprAbt>),
     Binary(BinOpAbt, Box<ExprAbt>, Box<ExprAbt>),
+    Unary(UnOpAbt, Box<ExprAbt>),
     Call(u32, Vec<ExprAbt>, TypeAbt),
 }
 
