@@ -9,6 +9,8 @@ mod com;
 mod msg;
 mod run;
 
+mod tests;
+
 fn main() {
     match cli::parse_command() {
         Command::Compile(command) => run_compile(command),
