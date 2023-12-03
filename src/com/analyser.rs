@@ -295,7 +295,6 @@ impl<'a> Analyser<'a> {
                 does_return
             }
             StmtAbtKind::Empty => false,
-            StmtAbtKind::VarDef(_, _) => false,
             StmtAbtKind::Expr(_) => false,
             StmtAbtKind::IfThen(_, _) => false,
             StmtAbtKind::IfThenElse(_, body_then, body_else) => {
@@ -362,7 +361,10 @@ impl<'a> Analyser<'a> {
             self.diagnostics.push(d);
         }
 
-        StmtAbtKind::VarDef(name.clone(), bound_expr)
+        let var = self.scope.get_variable(name).unwrap().clone();
+
+        // variable definitions are just (the first) assignment
+        StmtAbtKind::Expr(Box::new(ExprAbt::Assignment(var, Box::new(bound_expr))))
     }
 
     fn analyse_block_statement(&mut self, stmts: &[StmtAst]) -> StmtAbtKind {

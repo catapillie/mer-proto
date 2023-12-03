@@ -18,7 +18,6 @@ pub struct StmtAbt {
 #[derive(Debug)]
 pub enum StmtAbtKind {
     Empty,
-    VarDef(String, ExprAbt),
     Block(Vec<StmtAbt>),
     Expr(Box<ExprAbt>),
     IfThen(Box<ExprAbt>, Box<StmtAbt>),

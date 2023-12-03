@@ -1,10 +1,10 @@
-use self::{diagnostics::Diagnostic, parser::Parser};
+use self::{diagnostics::Diagnostic, parser::Parser, codegen::Codegen};
 use crate::{
     com::{
         analyser::Analyser,
         diagnostics::{Diagnostics, Severity},
     },
-    msg,
+    msg, run,
 };
 use colored::{Color, Colorize};
 use std::process::{self};
@@ -12,6 +12,7 @@ use std::process::{self};
 mod abt;
 mod analyser;
 mod ast;
+mod codegen;
 mod cursor;
 mod diagnostics;
 mod parser;
@@ -25,7 +26,7 @@ pub fn compile(path: &str, source: String) {
     let mut diagnostics = Diagnostics::new();
 
     let ast = Parser::new(source.as_str(), &mut diagnostics).parse_program();
-    Analyser::new(&mut diagnostics).analyse_program(&ast);
+    let abt = Analyser::new(&mut diagnostics).analyse_program(&ast);
 
     let diagnostics = diagnostics.done();
     if !diagnostics.is_empty() {
@@ -38,10 +39,14 @@ pub fn compile(path: &str, source: String) {
         }
 
         if fatal {
+            msg::ok("cannot compile with errors; aborting");
             process::exit(1);
         }
     }
     msg::ok("analysis finished successfully");
+
+    let program = Codegen::new().gen(&abt);
+    run::disassemble(&program); // wip
 
     process::exit(0);
 }

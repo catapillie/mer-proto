@@ -84,6 +84,8 @@ impl<'a> VM<'a> {
                 opcode::ld_loc => self.ld_loc(),
                 opcode::st_loc => self.st_loc(),
 
+                opcode::ld_unit => self.push(Value::make_unit(())),
+
                 opcode::ld_u8 => push_value!(self => read_u8, make_u8),
                 opcode::add_u8 => binary_op!(self => get_u8, make_u8, ops::Add::add),
                 opcode::sub_u8 => binary_op!(self => get_u8, make_u8, ops::Sub::sub),

@@ -1,5 +1,6 @@
 #[derive(Copy, Clone)]
 pub union Value {
+    unit: (),
     bool: bool,
     u8: u8,
     u16: u16,
@@ -14,6 +15,7 @@ pub union Value {
 }
 
 impl Value {
+    init_fn! { make_unit(unit: ()) }
     init_fn! { make_bool(bool: bool) }
     init_fn! { make_u8(u8: u8) }
     init_fn! { make_u16(u16: u16) }
@@ -26,6 +28,7 @@ impl Value {
     init_fn! { make_f32(f32: f32) }
     init_fn! { make_f64(f64: f64) }
 
+    // getter_fn! { get_unit(unit: ()) }
     getter_fn! { get_bool(bool: bool) }
     getter_fn! { get_u8(u8: u8) }
     getter_fn! { get_u16(u16: u16) }

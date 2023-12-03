@@ -19,6 +19,8 @@ opcodes! {
     0xf0 entry_point(u32)
     0xf1 function(String, u8, u8)
 
+    0xfe ld_unit
+
     0x10 ld_u8(u8)
     0x11 add_u8
     0x12 sub_u8
