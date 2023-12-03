@@ -32,7 +32,8 @@ impl Codegen {
 
     fn gen_function(&mut self, name: String, func: &Function) {
         let param_count = func.param_types.len() as u8;
-        self.code.push(Opcode::function(name, param_count, 0));
+        let local_count = func.local_count;
+        self.code.push(Opcode::function(name, param_count, local_count));
         self.gen_statement(&func.code);
     }
 

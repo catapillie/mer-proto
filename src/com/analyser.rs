@@ -18,7 +18,8 @@ struct Scope {
     blocking: bool,
 
     variables: HashMap<String, Variable>,
-    variable_count: u16,
+    variable_counter: u16,
+    local_count: u16,
 
     functions: HashMap<String, Function>,
     function_count: u32,
@@ -35,7 +36,8 @@ impl Default for Scope {
             blocking: false,
 
             variables: Default::default(),
-            variable_count: 0,
+            variable_counter: 0,
+            local_count: 0,
 
             functions: Default::default(),
             function_count: 0,
@@ -51,12 +53,14 @@ impl Scope {
             .variables
             .get(name.as_str())
             .map(|v| v.id as u16)
-            .unwrap_or(self.variable_count);
+            .unwrap_or(self.variable_counter);
 
         self.variables.insert(name, Variable { id: id as u8, ty });
-        self.variable_count += 1;
+        if id >= self.variable_counter {
+            self.variable_counter += 1;
+        }
 
-        self.variable_count <= 256
+        self.variable_counter <= 256
     }
 
     pub fn get_variable(&self, name: &str) -> Option<&Variable> {
@@ -74,6 +78,7 @@ impl Scope {
         &mut self,
         name: String,
         signature: (Vec<TypeAbt>, TypeAbt),
+        local_count: u8,
         code: StmtAbt,
     ) {
         let id = self.function_count;
@@ -84,13 +89,17 @@ impl Scope {
                 id,
                 param_types: signature.0,
                 return_type: signature.1,
+                local_count,
                 code,
             },
         );
     }
 
-    pub fn update_function_code(&mut self, name: String, code: StmtAbt) {
-        self.functions.entry(name).and_modify(|s| s.code = code);
+    pub fn update_function_declaration(&mut self, name: String, code: StmtAbt, local_count: u8) {
+        self.functions.entry(name).and_modify(|s| {
+            s.code = code;
+            s.local_count = local_count;
+        });
     }
 
     pub fn get_function(&self, name: &str) -> Option<&Function> {
@@ -120,19 +129,27 @@ impl<'a> Analyser<'a> {
     fn open_scope(&mut self) {
         let parent = mem::take(&mut self.scope);
         let return_type = parent.return_type.clone();
-        let variable_count = parent.variable_count;
+        let variable_count = parent.variable_counter;
         let function_count = parent.function_count;
         self.scope.parent = Some(Box::new(parent));
         self.scope.return_type = return_type;
-        self.scope.variable_count = variable_count;
+        self.scope.variable_counter = variable_count;
         self.scope.function_count = function_count;
     }
 
-    fn close_scope(&mut self) {
+    fn close_scope(&mut self) -> u16 {
         let mut parent =
             mem::take(&mut self.scope.parent).expect("attempted to close non-existing scope");
+
+        let final_local_count =
+            self.scope.local_count + self.scope.variable_counter - parent.variable_counter;
+        if !self.scope.blocking {
+            parent.local_count = final_local_count;
+        }
+
         let functions = mem::take(&mut self.scope.functions);
         parent.function_count = self.scope.function_count;
+
         for (name, func) in functions.into_iter() {
             let new_name = if self.scope.quiet {
                 name
@@ -141,7 +158,9 @@ impl<'a> Analyser<'a> {
             };
             parent.functions.insert(new_name, func);
         }
+
         self.scope = *parent;
+        final_local_count
     }
 
     pub fn analyse_program(mut self, ast: &StmtAst) -> ProgramAbt {
@@ -161,8 +180,11 @@ impl<'a> Analyser<'a> {
         }
 
         let signature = (vec![], TypeAbt::Unit);
+        let local_count = self.scope.local_count as u8;
         self.scope
-            .declare_function("@".to_string(), signature, bound_program);
+            .declare_function("@".to_string(), signature, local_count, bound_program);
+
+        println!("{}", self.scope.local_count);
 
         let mut functions_by_id = BTreeMap::new();
         for (name, func) in self.scope.functions.into_iter() {
@@ -464,14 +486,15 @@ impl<'a> Analyser<'a> {
         self.scope.declare_function(
             name.clone(),
             signature,
+            0,
             StmtAbtKind::Empty.wrap(Span::at(Pos::MIN)),
         );
 
         self.open_scope();
         self.scope.name = name.clone();
-        self.scope.quiet = true; // don't nest
+        self.scope.quiet = true; // don't nest name
         self.scope.return_type = bound_ty;
-        self.scope.variable_count = 0; // reset local counter
+        self.scope.variable_counter = 0; // reset local counter
         self.scope.blocking = true; // prevent from accessing variables from outside the function
 
         // this will have to be changed at some point so that it is possible for functions to capture variables
@@ -488,10 +511,11 @@ impl<'a> Analyser<'a> {
                 .with_span(ty.span)
                 .done();
             self.diagnostics.push(d);
-        }        
+        }
 
-        self.close_scope();
-        self.scope.update_function_code(name.clone(), bound_body);
+        let local_count = self.close_scope() as u8;
+        self.scope
+            .update_function_declaration(name.clone(), bound_body, local_count);
 
         StmtAbtKind::Empty
     }

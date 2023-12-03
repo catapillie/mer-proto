@@ -73,6 +73,7 @@ pub struct Function {
     pub id: u32,
     pub param_types: Vec<TypeAbt>,
     pub return_type: TypeAbt,
+    pub local_count: u8,
     pub code: StmtAbt,
 }
 
