@@ -39,7 +39,7 @@ pub fn compile(path: &str, source: String) {
         }
 
         if fatal {
-            msg::ok("cannot compile with errors; aborting");
+            msg::error("cannot compile with errors; aborting");
             process::exit(1);
         }
     }

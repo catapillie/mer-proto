@@ -23,9 +23,6 @@ struct Scope {
     functions: HashMap<String, Function>,
     function_count: u32,
 
-    unary_operations: HashMap<(UnaryOperator, TypeAbt), (UnaryOp, TypeAbt)>,
-    binary_operations: HashMap<(BinaryOperator, TypeAbt, TypeAbt), (BinaryOp, TypeAbt)>,
-
     return_type: TypeAbt,
 }
 
@@ -42,9 +39,6 @@ impl Default for Scope {
 
             functions: Default::default(),
             function_count: 0,
-
-            unary_operations: Default::default(),
-            binary_operations: Default::default(),
 
             return_type: TypeAbt::Unknown,
         }
@@ -108,96 +102,6 @@ impl Scope {
             },
         }
     }
-
-    pub fn declare_unary_operation(
-        &mut self,
-        key: (UnaryOperator, TypeAbt),
-        value: (UnaryOp, TypeAbt),
-    ) {
-        self.unary_operations.insert(key, value);
-    }
-
-    pub fn get_unary_operation(
-        &self,
-        op: UnaryOperator,
-        ty: &TypeAbt,
-    ) -> Option<(UnaryOp, TypeAbt)> {
-        match self.unary_operations.get(&(op, ty.clone())) {
-            Some(res) => Some(res.clone()),
-            None => match self.parent {
-                Some(ref parent) => parent.get_unary_operation(op, ty),
-                None => None,
-            },
-        }
-    }
-
-    pub fn declare_binary_operation(
-        &mut self,
-        key: (BinaryOperator, TypeAbt, TypeAbt),
-        value: (BinaryOp, TypeAbt),
-    ) {
-        self.binary_operations.insert(key, value);
-    }
-
-    pub fn get_binary_operation(
-        &self,
-        op: BinaryOperator,
-        left: &TypeAbt,
-        right: &TypeAbt,
-    ) -> Option<(BinaryOp, TypeAbt)> {
-        match self
-            .binary_operations
-            .get(&(op, left.clone(), right.clone()))
-        {
-            Some(res) => Some(res.clone()),
-            None => match self.parent {
-                Some(ref parent) => parent.get_binary_operation(op, left, right),
-                None => None,
-            },
-        }
-    }
-}
-
-#[rustfmt::skip]
-fn hardcode_native_features(scope: &mut Scope) {
-    use TypeAbt as Ty;
-
-    use BinaryOp as BO;
-    use BinaryOperator as BI;
-
-    // number <op> number -> number
-    scope.declare_binary_operation((BI::Plus, Ty::F64, Ty::F64), (BO::Plus, Ty::F64));
-    scope.declare_binary_operation((BI::Minus, Ty::F64, Ty::F64), (BO::Minus, Ty::F64));
-    scope.declare_binary_operation((BI::Star, Ty::F64, Ty::F64), (BO::Star, Ty::F64));
-    scope.declare_binary_operation((BI::Slash, Ty::F64, Ty::F64), (BO::Slash, Ty::F64));
-    scope.declare_binary_operation((BI::Percent, Ty::F64, Ty::F64), (BO::Percent, Ty::F64));
-
-    // number <op> number -> boolean
-    scope.declare_binary_operation((BI::EqualEqual, Ty::F64, Ty::F64), (BO::EqualEqual, Ty::Bool));
-    scope.declare_binary_operation((BI::NotEqual, Ty::F64, Ty::F64), (BO::NotEqual, Ty::Bool));
-    scope.declare_binary_operation((BI::LessEqual, Ty::F64, Ty::F64), (BO::LessEqual, Ty::Bool));
-    scope.declare_binary_operation((BI::LessThan, Ty::F64, Ty::F64), (BO::LessThan, Ty::Bool));
-    scope.declare_binary_operation((BI::GreaterEqual, Ty::F64, Ty::F64), (BO::GreaterEqual, Ty::Bool));
-    scope.declare_binary_operation((BI::GreaterThan, Ty::F64, Ty::F64), (BO::GreaterThan, Ty::Bool));
-
-    // boolean <op> boolean -> boolean
-    scope.declare_binary_operation((BI::Ampersand, Ty::Bool, Ty::Bool), (BO::Ampersand, Ty::Bool));
-    scope.declare_binary_operation((BI::Caret, Ty::Bool, Ty::Bool), (BO::Caret, Ty::Bool));
-    scope.declare_binary_operation((BI::Bar, Ty::Bool, Ty::Bool), (BO::Bar, Ty::Bool));
-    scope.declare_binary_operation((BI::And, Ty::Bool, Ty::Bool), (BO::And, Ty::Bool));
-    scope.declare_binary_operation((BI::Or, Ty::Bool, Ty::Bool), (BO::Or, Ty::Bool));
-    scope.declare_binary_operation((BI::EqualEqual, Ty::Bool, Ty::Bool), (BO::EqualEqual, Ty::Bool));
-    scope.declare_binary_operation((BI::NotEqual, Ty::Bool, Ty::Bool), (BO::NotEqual, Ty::Bool));
-
-    use UnaryOp as UO;
-    use UnaryOperator as UI;
-
-    // <op> number -> number
-    scope.declare_unary_operation((UI::Pos, Ty::F64), (UO::Pos, Ty::F64));
-    scope.declare_unary_operation((UI::Neg, Ty::F64), (UO::Neg, Ty::F64));
-
-    // <op> boolean -> boolean
-    scope.declare_unary_operation((UI::Not, Ty::Bool), (UO::Not, Ty::Bool));
 }
 
 pub struct Analyser<'a> {
@@ -207,10 +111,10 @@ pub struct Analyser<'a> {
 
 impl<'a> Analyser<'a> {
     pub fn new(diagnostics: &'a mut Diagnostics) -> Self {
-        let mut scope = Scope::default();
-        hardcode_native_features(&mut scope);
-
-        Self { diagnostics, scope }
+        Self {
+            diagnostics,
+            scope: Scope::default(),
+        }
     }
 
     fn open_scope(&mut self) {
@@ -584,11 +488,10 @@ impl<'a> Analyser<'a> {
                 .with_span(ty.span)
                 .done();
             self.diagnostics.push(d);
-        }
-
-        self.scope.update_function_code(name.clone(), bound_body);
+        }        
 
         self.close_scope();
+        self.scope.update_function_code(name.clone(), bound_body);
 
         StmtAbtKind::Empty
     }
@@ -670,11 +573,11 @@ impl<'a> Analyser<'a> {
 
     fn analyse_binary_operation(
         &mut self,
-        op: BinaryOperator,
+        op: BinOpAst,
         left: &ExprAst,
         right: &ExprAst,
     ) -> ExprAbt {
-        if matches!(op, BinaryOperator::Equal) {
+        if matches!(op, BinOpAst::Assign) {
             return self.analyse_assignment(left, right);
         }
 
@@ -688,21 +591,91 @@ impl<'a> Analyser<'a> {
             return ExprAbt::Unknown;
         }
 
-        let Some(bin_op) = self.scope.get_binary_operation(op, &ty_left, &ty_right) else {
-            let d = diagnostics::create_diagnostic()
-                .with_kind(DiagnosticKind::InvalidBinaryOperation {
-                    op,
-                    left: ty_left,
-                    right: ty_right,
-                })
-                .with_severity(Severity::Error)
-                .with_span(right.span.join(left.span))
-                .done();
-            self.diagnostics.push(d);
-            return ExprAbt::Unknown;
-        };
+        if ty_left == ty_right {
+            use TypeAbt as Ty;
+            let ty = ty_left.clone();
+            let bound_op = match ty {
+                Ty::U8 => Self::integer_binary_operation(op, ty),
+                Ty::U16 => Self::integer_binary_operation(op, ty),
+                Ty::U32 => Self::integer_binary_operation(op, ty),
+                Ty::U64 => Self::integer_binary_operation(op, ty),
+                Ty::I8 => Self::integer_binary_operation(op, ty),
+                Ty::I16 => Self::integer_binary_operation(op, ty),
+                Ty::I32 => Self::integer_binary_operation(op, ty),
+                Ty::I64 => Self::integer_binary_operation(op, ty),
+                Ty::F32 => Self::decimal_binary_operation(op, ty),
+                Ty::F64 => Self::decimal_binary_operation(op, ty),
+                Ty::Bool => Self::boolean_binary_operation(op),
+                _ => None,
+            };
 
-        ExprAbt::Binary(bin_op, Box::new(bound_left), Box::new(bound_right))
+            if let Some(op) = bound_op {
+                return ExprAbt::Binary(op, Box::new(bound_left), Box::new(bound_right));
+            }
+        }
+
+        let d = diagnostics::create_diagnostic()
+            .with_kind(DiagnosticKind::InvalidBinaryOperation {
+                op,
+                left: ty_left,
+                right: ty_right,
+            })
+            .with_severity(Severity::Error)
+            .with_span(right.span.join(left.span))
+            .done();
+        self.diagnostics.push(d);
+        ExprAbt::Unknown
+    }
+
+    fn integer_binary_operation(op: BinOpAst, ty: TypeAbt) -> Option<BinOpAbt> {
+        match op {
+            BinOpAst::Add => Some(BinOpAbtKind::Add.wrap(ty.clone(), ty)),
+            BinOpAst::Sub => Some(BinOpAbtKind::Sub.wrap(ty.clone(), ty)),
+            BinOpAst::Mul => Some(BinOpAbtKind::Mul.wrap(ty.clone(), ty)),
+            BinOpAst::Div => Some(BinOpAbtKind::Div.wrap(ty.clone(), ty)),
+            BinOpAst::Rem => Some(BinOpAbtKind::Rem.wrap(ty.clone(), ty)),
+            BinOpAst::Eq => Some(BinOpAbtKind::Eq.wrap(ty, TypeAbt::Bool)),
+            BinOpAst::Ne => Some(BinOpAbtKind::Ne.wrap(ty, TypeAbt::Bool)),
+            BinOpAst::Le => Some(BinOpAbtKind::Le.wrap(ty, TypeAbt::Bool)),
+            BinOpAst::Lt => Some(BinOpAbtKind::Lt.wrap(ty, TypeAbt::Bool)),
+            BinOpAst::Ge => Some(BinOpAbtKind::Ge.wrap(ty, TypeAbt::Bool)),
+            BinOpAst::Gt => Some(BinOpAbtKind::Gt.wrap(ty, TypeAbt::Bool)),
+            BinOpAst::BitAnd => Some(BinOpAbtKind::BitAnd.wrap(ty.clone(), ty)),
+            BinOpAst::BitXor => Some(BinOpAbtKind::BitXor.wrap(ty.clone(), ty)),
+            BinOpAst::BitOr => Some(BinOpAbtKind::BitOr.wrap(ty.clone(), ty)),
+            _ => None,
+        }
+    }
+
+    fn decimal_binary_operation(op: BinOpAst, ty: TypeAbt) -> Option<BinOpAbt> {
+        match op {
+            BinOpAst::Add => Some(BinOpAbtKind::Add.wrap(ty.clone(), ty)),
+            BinOpAst::Sub => Some(BinOpAbtKind::Sub.wrap(ty.clone(), ty)),
+            BinOpAst::Mul => Some(BinOpAbtKind::Mul.wrap(ty.clone(), ty)),
+            BinOpAst::Div => Some(BinOpAbtKind::Div.wrap(ty.clone(), ty)),
+            BinOpAst::Rem => Some(BinOpAbtKind::Rem.wrap(ty.clone(), ty)),
+            BinOpAst::Eq => Some(BinOpAbtKind::Eq.wrap(ty, TypeAbt::Bool)),
+            BinOpAst::Ne => Some(BinOpAbtKind::Ne.wrap(ty, TypeAbt::Bool)),
+            BinOpAst::Le => Some(BinOpAbtKind::Le.wrap(ty, TypeAbt::Bool)),
+            BinOpAst::Lt => Some(BinOpAbtKind::Lt.wrap(ty, TypeAbt::Bool)),
+            BinOpAst::Ge => Some(BinOpAbtKind::Ge.wrap(ty, TypeAbt::Bool)),
+            BinOpAst::Gt => Some(BinOpAbtKind::Gt.wrap(ty, TypeAbt::Bool)),
+            _ => None,
+        }
+    }
+
+    fn boolean_binary_operation(op: BinOpAst) -> Option<BinOpAbt> {
+        match op {
+            BinOpAst::Eq => Some(BinOpAbtKind::Eq.wrap(TypeAbt::Bool, TypeAbt::Bool)),
+            BinOpAst::Ne => Some(BinOpAbtKind::Ne.wrap(TypeAbt::Bool, TypeAbt::Bool)),
+            BinOpAst::BitAnd => Some(BinOpAbtKind::BitAnd.wrap(TypeAbt::Bool, TypeAbt::Bool)),
+            BinOpAst::BitXor => Some(BinOpAbtKind::BitXor.wrap(TypeAbt::Bool, TypeAbt::Bool)),
+            BinOpAst::BitOr => Some(BinOpAbtKind::BitOr.wrap(TypeAbt::Bool, TypeAbt::Bool)),
+            BinOpAst::And => Some(BinOpAbtKind::And.wrap(TypeAbt::Bool, TypeAbt::Bool)),
+            BinOpAst::Or => Some(BinOpAbtKind::Or.wrap(TypeAbt::Bool, TypeAbt::Bool)),
+            BinOpAst::Xor => Some(BinOpAbtKind::Xor.wrap(TypeAbt::Bool, TypeAbt::Bool)),
+            _ => None,
+        }
     }
 
     fn analyse_assignment(&mut self, left: &ExprAst, right: &ExprAst) -> ExprAbt {
@@ -735,12 +708,7 @@ impl<'a> Analyser<'a> {
         ExprAbt::Assignment(var, Box::new(bound_right))
     }
 
-    fn analyse_unary_operation(
-        &mut self,
-        op: UnaryOperator,
-        operand: &ExprAst,
-        span: Span,
-    ) -> ExprAbt {
+    fn analyse_unary_operation(&mut self, op: UnOpAst, operand: &ExprAst, span: Span) -> ExprAbt {
         let bound_operand = self.analyse_expression(operand);
         let ty = bound_operand.ty();
 
@@ -748,17 +716,46 @@ impl<'a> Analyser<'a> {
             return ExprAbt::Unknown;
         }
 
-        let Some(un_op) = self.scope.get_unary_operation(op, &ty) else {
-            let d = diagnostics::create_diagnostic()
-                .with_kind(DiagnosticKind::InvalidUnaryOperation { op, ty })
-                .with_severity(Severity::Error)
-                .with_span(span)
-                .done();
-            self.diagnostics.push(d);
-            return ExprAbt::Unknown;
+        let bound_op = match ty {
+            TypeAbt::U8 | TypeAbt::U16 | TypeAbt::U32 | TypeAbt::U64 => {
+                Self::number_unary_operation(false, op, ty.clone())
+            }
+            TypeAbt::I8
+            | TypeAbt::I16
+            | TypeAbt::I32
+            | TypeAbt::I64
+            | TypeAbt::F32
+            | TypeAbt::F64 => Self::number_unary_operation(true, op, ty.clone()),
+            TypeAbt::Bool => Self::boolean_unary_operation(op),
+            _ => None,
         };
 
-        ExprAbt::Unary(un_op, Box::new(bound_operand))
+        if let Some(op) = bound_op {
+            return ExprAbt::Unary(op, Box::new(bound_operand));
+        }
+
+        let d = diagnostics::create_diagnostic()
+            .with_kind(DiagnosticKind::InvalidUnaryOperation { op, ty })
+            .with_severity(Severity::Error)
+            .with_span(span)
+            .done();
+        self.diagnostics.push(d);
+        ExprAbt::Unknown
+    }
+
+    fn number_unary_operation(signed: bool, op: UnOpAst, ty: TypeAbt) -> Option<UnOpAbt> {
+        match op {
+            UnOpAst::Pos => Some(UnOpAbtKind::Pos.wrap(ty)),
+            UnOpAst::Neg if signed => Some(UnOpAbtKind::Neg.wrap(ty)),
+            _ => None,
+        }
+    }
+
+    fn boolean_unary_operation(op: UnOpAst) -> Option<UnOpAbt> {
+        match op {
+            UnOpAst::Not => Some(UnOpAbtKind::Not.wrap(TypeAbt::Bool)),
+            _ => None,
+        }
     }
 
     fn analyse_call(&mut self, name: &str, params: &[ExprAst], span: Span) -> ExprAbt {

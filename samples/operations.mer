@@ -1,0 +1,171 @@
+func u8_add(x: u8, y: u8) -> u8 = x + y
+func u8_sub(x: u8, y: u8) -> u8 = x - y
+func u8_mul(x: u8, y: u8) -> u8 = x * y
+func u8_div(x: u8, y: u8) -> u8 = x / y
+func u8_rem(x: u8, y: u8) -> u8 = x % y
+func u8_bit_and(x: u8, y: u8) -> u8 = x & y
+func u8_bit_xor(x: u8, y: u8) -> u8 = x ^ y
+func u8_bit_or(x: u8, y: u8) -> u8 = x | y
+func u8_eq(x: u8, y: u8) -> bool = x == y
+func u8_ne(x: u8, y: u8) -> bool = x != y
+func u8_ge(x: u8, y: u8) -> bool = x >= y
+func u8_gt(x: u8, y: u8) -> bool = x > y
+func u8_le(x: u8, y: u8) -> bool = x <= y
+func u8_lt(x: u8, y: u8) -> bool = x < y
+func u8_pos(x: u8) -> u8 = +x
+
+func u16_add(x: u16, y: u16) -> u16 = x + y
+func u16_sub(x: u16, y: u16) -> u16 = x - y
+func u16_mul(x: u16, y: u16) -> u16 = x * y
+func u16_div(x: u16, y: u16) -> u16 = x / y
+func u16_rem(x: u16, y: u16) -> u16 = x % y
+func u16_bit_and(x: u16, y: u16) -> u16 = x & y
+func u16_bit_xor(x: u16, y: u16) -> u16 = x ^ y
+func u16_bit_or(x: u16, y: u16) -> u16 = x | y
+func u16_eq(x: u16, y: u16) -> bool = x == y
+func u16_ne(x: u16, y: u16) -> bool = x != y
+func u16_ge(x: u16, y: u16) -> bool = x >= y
+func u16_gt(x: u16, y: u16) -> bool = x > y
+func u16_le(x: u16, y: u16) -> bool = x <= y
+func u16_lt(x: u16, y: u16) -> bool = x < y
+func u16_pos(x: i16) -> i16 = +x
+
+func u32_add(x: u32, y: u32) -> u32 = x + y
+func u32_sub(x: u32, y: u32) -> u32 = x - y
+func u32_mul(x: u32, y: u32) -> u32 = x * y
+func u32_div(x: u32, y: u32) -> u32 = x / y
+func u32_rem(x: u32, y: u32) -> u32 = x % y
+func u32_bit_and(x: u32, y: u32) -> u32 = x & y
+func u32_bit_xor(x: u32, y: u32) -> u32 = x ^ y
+func u32_bit_or(x: u32, y: u32) -> u32 = x | y
+func u32_eq(x: u32, y: u32) -> bool = x == y
+func u32_ne(x: u32, y: u32) -> bool = x != y
+func u32_ge(x: u32, y: u32) -> bool = x >= y
+func u32_gt(x: u32, y: u32) -> bool = x > y
+func u32_le(x: u32, y: u32) -> bool = x <= y
+func u32_lt(x: u32, y: u32) -> bool = x < y
+func u32_pos(x: u32) -> u32 = +x
+
+func u64_add(x: u64, y: u64) -> u64 = x + y
+func u64_sub(x: u64, y: u64) -> u64 = x - y
+func u64_mul(x: u64, y: u64) -> u64 = x * y
+func u64_div(x: u64, y: u64) -> u64 = x / y
+func u64_rem(x: u64, y: u64) -> u64 = x % y
+func u64_bit_and(x: u64, y: u64) -> u64 = x & y
+func u64_bit_xor(x: u64, y: u64) -> u64 = x ^ y
+func u64_bit_or(x: u64, y: u64) -> u64 = x | y
+func u64_eq(x: u64, y: u64) -> bool = x == y
+func u64_ne(x: u64, y: u64) -> bool = x != y
+func u64_ge(x: u64, y: u64) -> bool = x >= y
+func u64_gt(x: u64, y: u64) -> bool = x > y
+func u64_le(x: u64, y: u64) -> bool = x <= y
+func u64_lt(x: u64, y: u64) -> bool = x < y
+func u64_pos(x: u64) -> u64 = +x
+
+func i8_add(x: i8, y: i8) -> i8 = x + y
+func i8_sub(x: i8, y: i8) -> i8 = x - y
+func i8_mul(x: i8, y: i8) -> i8 = x * y
+func i8_div(x: i8, y: i8) -> i8 = x / y
+func i8_rem(x: i8, y: i8) -> i8 = x % y
+func i8_bit_and(x: i8, y: i8) -> i8 = x & y
+func i8_bit_xor(x: i8, y: i8) -> i8 = x ^ y
+func i8_bit_or(x: i8, y: i8) -> i8 = x | y
+func i8_eq(x: i8, y: i8) -> bool = x == y
+func i8_ne(x: i8, y: i8) -> bool = x != y
+func i8_ge(x: i8, y: i8) -> bool = x >= y
+func i8_gt(x: i8, y: i8) -> bool = x > y
+func i8_le(x: i8, y: i8) -> bool = x <= y
+func i8_lt(x: i8, y: i8) -> bool = x < y
+func i8_pos(x: i8) -> i8 = +x
+func i8_neg(x: i8) -> i8 = -x
+
+func i16_add(x: i16, y: i16) -> i16 = x + y
+func i16_sub(x: i16, y: i16) -> i16 = x - y
+func i16_mul(x: i16, y: i16) -> i16 = x * y
+func i16_div(x: i16, y: i16) -> i16 = x / y
+func i16_rem(x: i16, y: i16) -> i16 = x % y
+func i16_bit_and(x: i16, y: i16) -> i16 = x & y
+func i16_bit_xor(x: i16, y: i16) -> i16 = x ^ y
+func i16_bit_or(x: i16, y: i16) -> i16 = x | y
+func i16_eq(x: i16, y: i16) -> bool = x == y
+func i16_ne(x: i16, y: i16) -> bool = x != y
+func i16_ge(x: i16, y: i16) -> bool = x >= y
+func i16_gt(x: i16, y: i16) -> bool = x > y
+func i16_le(x: i16, y: i16) -> bool = x <= y
+func i16_lt(x: i16, y: i16) -> bool = x < y
+func i16_pos(x: i16) -> i16 = +x
+func i16_neg(x: i16) -> i16 = -x
+
+func i32_add(x: i32, y: i32) -> i32 = x + y
+func i32_sub(x: i32, y: i32) -> i32 = x - y
+func i32_mul(x: i32, y: i32) -> i32 = x * y
+func i32_div(x: i32, y: i32) -> i32 = x / y
+func i32_rem(x: i32, y: i32) -> i32 = x % y
+func i32_bit_and(x: i32, y: i32) -> i32 = x & y
+func i32_bit_xor(x: i32, y: i32) -> i32 = x ^ y
+func i32_bit_or(x: i32, y: i32) -> i32 = x | y
+func i32_eq(x: i32, y: i32) -> bool = x == y
+func i32_ne(x: i32, y: i32) -> bool = x != y
+func i32_ge(x: i32, y: i32) -> bool = x >= y
+func i32_gt(x: i32, y: i32) -> bool = x > y
+func i32_le(x: i32, y: i32) -> bool = x <= y
+func i32_lt(x: i32, y: i32) -> bool = x < y
+func i32_pos(x: i32) -> i32 = +x
+func i32_neg(x: i32) -> i32 = -x
+
+func i64_add(x: i64, y: i64) -> i64 = x + y
+func i64_sub(x: i64, y: i64) -> i64 = x - y
+func i64_mul(x: i64, y: i64) -> i64 = x * y
+func i64_div(x: i64, y: i64) -> i64 = x / y
+func i64_rem(x: i64, y: i64) -> i64 = x % y
+func i64_bit_and(x: i64, y: i64) -> i64 = x & y
+func i64_bit_xor(x: i64, y: i64) -> i64 = x ^ y
+func i64_bit_or(x: i64, y: i64) -> i64 = x | y
+func i64_eq(x: i64, y: i64) -> bool = x == y
+func i64_ne(x: i64, y: i64) -> bool = x != y
+func i64_ge(x: i64, y: i64) -> bool = x >= y
+func i64_gt(x: i64, y: i64) -> bool = x > y
+func i64_le(x: i64, y: i64) -> bool = x <= y
+func i64_lt(x: i64, y: i64) -> bool = x < y
+func i64_pos(x: i64) -> i64 = +x
+func i64_neg(x: i64) -> i64 = -x
+
+func f32_add(x: f32, y: f32) -> f32 = x + y
+func f32_sub(x: f32, y: f32) -> f32 = x - y
+func f32_mul(x: f32, y: f32) -> f32 = x * y
+func f32_div(x: f32, y: f32) -> f32 = x / y
+func f32_rem(x: f32, y: f32) -> f32 = x % y
+func f32_eq(x: f32, y: f32) -> bool = x == y
+func f32_ne(x: f32, y: f32) -> bool = x != y
+func f32_ge(x: f32, y: f32) -> bool = x >= y
+func f32_gt(x: f32, y: f32) -> bool = x > y
+func f32_le(x: f32, y: f32) -> bool = x <= y
+func f32_lt(x: f32, y: f32) -> bool = x < y
+func f32_pos(x: f32) -> f32 = +x
+func f32_neg(x: f32) -> f32 = -x
+
+func f64_add(x: f64, y: f64) -> f64 = x + y
+func f64_sub(x: f64, y: f64) -> f64 = x - y
+func f64_mul(x: f64, y: f64) -> f64 = x * y
+func f64_div(x: f64, y: f64) -> f64 = x / y
+func f64_rem(x: f64, y: f64) -> f64 = x % y
+func f64_eq(x: f64, y: f64) -> bool = x == y
+func f64_ne(x: f64, y: f64) -> bool = x != y
+func f64_ge(x: f64, y: f64) -> bool = x >= y
+func f64_gt(x: f64, y: f64) -> bool = x > y
+func f64_le(x: f64, y: f64) -> bool = x <= y
+func f64_lt(x: f64, y: f64) -> bool = x < y
+func f64_pos(x: f64) -> f64 = +x
+func f64_neg(x: f64) -> f64 = -x
+
+func bool_eq(a: bool, b: bool) -> bool = a == b
+func bool_ne(a: bool, b: bool) -> bool = a != b
+func bool_bit_and(a: bool, b: bool) -> bool = a & b
+func bool_bit_or(a: bool, b: bool) -> bool = a | b
+func bool_bit_xor(a: bool, b: bool) -> bool = a ^ b
+func bool_and(a: bool, b: bool) -> bool = a and b
+func bool_or(a: bool, b: bool) -> bool = a or b
+func bool_xor(a: bool, b: bool) -> bool = a xor b
+func bool_not(b: bool) -> bool = not b
+
+return

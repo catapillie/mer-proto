@@ -16,8 +16,8 @@ impl Codegen {
     }
 
     pub fn gen(&mut self, abt: &ProgramAbt) -> Vec<u8> {
-        for (id, (name, func)) in abt.functions_by_id.iter() {
-            self.gen_function(*id, name.clone(), func);
+        for (_id, (name, func)) in abt.functions_by_id.iter() {
+            self.gen_function(name.clone(), func);
         }
 
         let program = Vec::new();
@@ -29,7 +29,7 @@ impl Codegen {
         cursor.into_inner()
     }
 
-    fn gen_function(&mut self, id: u32, name: String, func: &Function) {
+    fn gen_function(&mut self, name: String, func: &Function) {
         self.code.push(Opcode::function(name, func.param_types.len() as u8, 0));
         self.gen_statement(&func.code);
     }

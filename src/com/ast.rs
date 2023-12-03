@@ -62,8 +62,8 @@ pub enum ExprAstKind {
     Identifier(String),
     Boolean(bool),
     Parenthesized(Box<ExprAst>),
-    BinaryOp(BinaryOperator, Box<ExprAst>, Box<ExprAst>),
-    UnaryOp(UnaryOperator, Box<ExprAst>),
+    BinaryOp(BinOpAst, Box<ExprAst>, Box<ExprAst>),
+    UnaryOp(UnOpAst, Box<ExprAst>),
     Call(String, Vec<ExprAst>),
 }
 
@@ -81,63 +81,65 @@ pub enum TypeAstKind {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum UnaryOperator {
+pub enum UnOpAst {
     Pos,
     Neg,
     Not,
 }
 
-impl Display for UnaryOperator {
+impl Display for UnOpAst {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            UnaryOperator::Pos => write!(f, "+"),
-            UnaryOperator::Neg => write!(f, "-"),
-            UnaryOperator::Not => write!(f, "not"),
+            UnOpAst::Pos => write!(f, "+"),
+            UnOpAst::Neg => write!(f, "-"),
+            UnOpAst::Not => write!(f, "not"),
         }
     }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum BinaryOperator {
-    Plus,
-    Minus,
-    Star,
-    Slash,
-    Percent,
-    EqualEqual,
-    NotEqual,
-    LessEqual,
-    LessThan,
-    GreaterEqual,
-    GreaterThan,
-    Ampersand,
-    Caret,
-    Bar,
+pub enum BinOpAst {
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Rem,
+    Eq,
+    Ne,
+    Le,
+    Lt,
+    Ge,
+    Gt,
+    BitAnd,
+    BitXor,
+    BitOr,
     And,
     Or,
-    Equal,
+    Xor,
+    Assign,
 }
 
-impl Display for BinaryOperator {
+impl Display for BinOpAst {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            BinaryOperator::Plus => write!(f, "+"),
-            BinaryOperator::Minus => write!(f, "-"),
-            BinaryOperator::Star => write!(f, "*"),
-            BinaryOperator::Slash => write!(f, "/"),
-            BinaryOperator::Percent => write!(f, "%"),
-            BinaryOperator::EqualEqual => write!(f, "=="),
-            BinaryOperator::NotEqual => write!(f, "!="),
-            BinaryOperator::LessEqual => write!(f, "<="),
-            BinaryOperator::LessThan => write!(f, "<"),
-            BinaryOperator::GreaterEqual => write!(f, ">="),
-            BinaryOperator::GreaterThan => write!(f, ">"),
-            BinaryOperator::Ampersand => write!(f, "&"),
-            BinaryOperator::Caret => write!(f, "^"),
-            BinaryOperator::Bar => write!(f, "|"),
-            BinaryOperator::And => write!(f, "and"),
-            BinaryOperator::Or => write!(f, "or"),
-            BinaryOperator::Equal => write!(f, "="),
+            BinOpAst::Add => write!(f, "+"),
+            BinOpAst::Sub => write!(f, "-"),
+            BinOpAst::Mul => write!(f, "*"),
+            BinOpAst::Div => write!(f, "/"),
+            BinOpAst::Rem => write!(f, "%"),
+            BinOpAst::Eq => write!(f, "=="),
+            BinOpAst::Ne => write!(f, "!="),
+            BinOpAst::Le => write!(f, "<="),
+            BinOpAst::Lt => write!(f, "<"),
+            BinOpAst::Ge => write!(f, ">="),
+            BinOpAst::Gt => write!(f, ">"),
+            BinOpAst::BitAnd => write!(f, "&"),
+            BinOpAst::BitXor => write!(f, "^"),
+            BinOpAst::BitOr => write!(f, "|"),
+            BinOpAst::And => write!(f, "and"),
+            BinOpAst::Or => write!(f, "or"),
+            BinOpAst::Xor => write!(f, "xor"),
+            BinOpAst::Assign => write!(f, "="),
         }
     }
 }

@@ -2,8 +2,8 @@ use crate::com::diagnostics::Severity;
 
 use super::{
     ast::{
-        Associativity, BinaryOperator, ExprAst, ExprAstKind, Precedence, StmtAst, StmtAstKind,
-        TypeAst, TypeAstKind, UnaryOperator,
+        Associativity, BinOpAst, ExprAst, ExprAstKind, Precedence, StmtAst, StmtAstKind,
+        TypeAst, TypeAstKind, UnOpAst,
     },
     cursor::Cursor,
     diagnostics::{self, DiagnosticKind, Diagnostics},
@@ -379,34 +379,35 @@ impl<'a> Parser<'a> {
     }
 
     #[rustfmt::skip]
-    fn is_binary_operator(&mut self) -> Option<(BinaryOperator, Precedence, Associativity)> {
+    fn is_binary_operator(&mut self) -> Option<(BinOpAst, Precedence, Associativity)> {
         match self.look_ahead {
-            Token::Star(_, _) => Some((BinaryOperator::Star, 90, Associativity::Left)),
-            Token::Slash(_, _) => Some((BinaryOperator::Slash, 90, Associativity::Left)),
-            Token::Percent(_, _) => Some((BinaryOperator::Percent, 90, Associativity::Left)),
-            Token::Plus(_, _) => Some((BinaryOperator::Plus, 80, Associativity::Left)),
-            Token::Minus(_, _) => Some((BinaryOperator::Minus, 80, Associativity::Left)),
-            Token::Ampersand(_, _) => Some((BinaryOperator::Ampersand, 70, Associativity::Left)),
-            Token::Caret(_, _) => Some((BinaryOperator::Caret, 60, Associativity::Left)),
-            Token::Bar(_, _) => Some((BinaryOperator::Bar, 50, Associativity::Left)),
-            Token::EqualEqual(_, _) => Some((BinaryOperator::EqualEqual, 40, Associativity::Left)),
-            Token::NotEqual(_, _) => Some((BinaryOperator::NotEqual, 40, Associativity::Left)),
-            Token::LessEqual(_, _) => Some((BinaryOperator::LessEqual, 40, Associativity::Left)),
-            Token::LessThan(_, _) => Some((BinaryOperator::LessThan, 40, Associativity::Left)),
-            Token::GreaterEqual(_, _) => Some((BinaryOperator::GreaterEqual, 40, Associativity::Left)),
-            Token::GreaterThan(_, _) => Some((BinaryOperator::GreaterThan, 40, Associativity::Left)),
-            Token::AndKw(_, _) => Some((BinaryOperator::And, 30, Associativity::Left)),
-            Token::OrKw(_, _) => Some((BinaryOperator::Or, 20, Associativity::Left)),
-            Token::Equal(_, _) => Some((BinaryOperator::Equal, 10, Associativity::Right)),
+            Token::Star(_, _) => Some((BinOpAst::Mul, 90, Associativity::Left)),
+            Token::Slash(_, _) => Some((BinOpAst::Div, 90, Associativity::Left)),
+            Token::Percent(_, _) => Some((BinOpAst::Rem, 90, Associativity::Left)),
+            Token::Plus(_, _) => Some((BinOpAst::Add, 80, Associativity::Left)),
+            Token::Minus(_, _) => Some((BinOpAst::Sub, 80, Associativity::Left)),
+            Token::Ampersand(_, _) => Some((BinOpAst::BitAnd, 70, Associativity::Left)),
+            Token::Caret(_, _) => Some((BinOpAst::BitXor, 60, Associativity::Left)),
+            Token::Bar(_, _) => Some((BinOpAst::BitOr, 50, Associativity::Left)),
+            Token::EqualEqual(_, _) => Some((BinOpAst::Eq, 40, Associativity::Left)),
+            Token::NotEqual(_, _) => Some((BinOpAst::Ne, 40, Associativity::Left)),
+            Token::LessEqual(_, _) => Some((BinOpAst::Le, 40, Associativity::Left)),
+            Token::LessThan(_, _) => Some((BinOpAst::Lt, 40, Associativity::Left)),
+            Token::GreaterEqual(_, _) => Some((BinOpAst::Ge, 40, Associativity::Left)),
+            Token::GreaterThan(_, _) => Some((BinOpAst::Gt, 40, Associativity::Left)),
+            Token::AndKw(_, _) => Some((BinOpAst::And, 30, Associativity::Left)),
+            Token::XorKw(_, _) => Some((BinOpAst::Xor, 25, Associativity::Left)),
+            Token::OrKw(_, _) => Some((BinOpAst::Or, 20, Associativity::Left)),
+            Token::Equal(_, _) => Some((BinOpAst::Assign, 10, Associativity::Right)),
             _ => None,
         }
     }
 
-    fn is_unary_operator(&mut self) -> Option<UnaryOperator> {
+    fn is_unary_operator(&mut self) -> Option<UnOpAst> {
         match self.look_ahead {
-            Token::Plus(_, _) => Some(UnaryOperator::Pos),
-            Token::Minus(_, _) => Some(UnaryOperator::Neg),
-            Token::NotKw(_, _) => Some(UnaryOperator::Not),
+            Token::Plus(_, _) => Some(UnOpAst::Pos),
+            Token::Minus(_, _) => Some(UnOpAst::Neg),
+            Token::NotKw(_, _) => Some(UnOpAst::Not),
             _ => None,
         }
     }
@@ -841,6 +842,7 @@ impl<'a> Parser<'a> {
                     "false" => FalseKw.wrap(span),
                     "and" => AndKw.wrap(span),
                     "or" => OrKw.wrap(span),
+                    "xor" => XorKw.wrap(span),
                     "not" => NotKw.wrap(span),
                     _ => Identifier(id).wrap(span),
                 };

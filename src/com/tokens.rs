@@ -85,6 +85,8 @@ gen_tokens! {
         self => ("'and' keyword"),
     OrKw "'or' keyword"
         self => ("'or' keyword"),
+    XorKw "'xor' keyword"
+        self => ("'xor' keyword"),
     NotKw "'not' keyword"
         self => ("'not' keyword"),
     TrueKw "'true' literal"

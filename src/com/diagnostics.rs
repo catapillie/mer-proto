@@ -2,7 +2,7 @@ use colored::Colorize;
 
 use super::{
     abt::TypeAbt,
-    ast::{BinaryOperator, UnaryOperator},
+    ast::{BinOpAst, UnOpAst},
     pos::Pos,
     span::Span,
     tokens::{Token, TokenKind},
@@ -148,11 +148,11 @@ pub enum DiagnosticKind {
     },
 
     InvalidUnaryOperation {
-        op: UnaryOperator,
+        op: UnOpAst,
         ty: TypeAbt,
     },
     InvalidBinaryOperation {
-        op: BinaryOperator,
+        op: BinOpAst,
         left: TypeAbt,
         right: TypeAbt,
     },

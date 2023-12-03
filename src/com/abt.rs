@@ -1,4 +1,4 @@
-use std::{fmt::Display, collections::BTreeMap};
+use std::{collections::BTreeMap, fmt::Display};
 
 use super::span::Span;
 
@@ -41,8 +41,8 @@ pub enum ExprAbt {
     Boolean(bool),
     Variable(Variable),
     Assignment(Variable, Box<ExprAbt>),
-    Unary((UnaryOp, TypeAbt), Box<ExprAbt>),
-    Binary((BinaryOp, TypeAbt), Box<ExprAbt>, Box<ExprAbt>),
+    Unary(UnOpAbt, Box<ExprAbt>),
+    Binary(BinOpAbt, Box<ExprAbt>, Box<ExprAbt>),
     Call(u32, Vec<ExprAbt>, TypeAbt),
 }
 
@@ -55,8 +55,8 @@ impl ExprAbt {
             ExprAbt::Boolean(_) => TypeAbt::Bool,
             ExprAbt::Variable(var) => var.ty.clone(),
             ExprAbt::Assignment(var, _) => var.ty.clone(),
-            ExprAbt::Unary((_, ty), _) => ty.clone(),
-            ExprAbt::Binary((_, ty), _, _) => ty.clone(),
+            ExprAbt::Unary(op, _) => op.ty.clone(),
+            ExprAbt::Binary(op, _, _) => op.out_ty.clone(),
             ExprAbt::Call(_, _, ty) => ty.clone(),
         }
     }
@@ -76,31 +76,61 @@ pub struct Function {
     pub code: StmtAbt,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum BinaryOp {
-    Plus,
-    Minus,
-    Star,
-    Slash,
-    Percent,
-    EqualEqual,
-    NotEqual,
-    LessEqual,
-    LessThan,
-    GreaterEqual,
-    GreaterThan,
-    Ampersand,
-    Caret,
-    Bar,
-    And,
-    Or,
+#[derive(Debug)]
+pub struct BinOpAbt {
+    pub kind: BinOpAbtKind,
+    pub in_ty: TypeAbt,
+    pub out_ty: TypeAbt,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum UnaryOp {
+#[derive(Debug, Clone)]
+pub enum BinOpAbtKind {
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Rem,
+    Eq,
+    Ne,
+    Le,
+    Lt,
+    Ge,
+    Gt,
+    BitAnd,
+    BitXor,
+    BitOr,
+    And,
+    Or,
+    Xor,
+}
+
+impl BinOpAbtKind {
+    pub fn wrap(self, in_ty: TypeAbt, out_ty: TypeAbt) -> BinOpAbt {
+        BinOpAbt {
+            kind: self,
+            in_ty,
+            out_ty,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct UnOpAbt {
+    pub kind: UnOpAbtKind,
+    pub ty: TypeAbt,
+}
+
+#[derive(Debug, Clone)]
+pub enum UnOpAbtKind {
     Pos,
     Neg,
     Not,
+}
+
+impl UnOpAbtKind {
+    pub fn wrap(self, ty: TypeAbt) -> UnOpAbt {
+        UnOpAbt { kind: self, ty }
+    }
 }
 
 #[rustfmt::skip]
