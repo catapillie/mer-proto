@@ -47,7 +47,13 @@ impl Default for Scope {
 
 impl Scope {
     pub fn declare_variable(&mut self, name: String, ty: TypeAbt) {
-        self.variables.insert(name, Variable { id: self.variable_count, ty });
+        self.variables.insert(
+            name,
+            Variable {
+                id: self.variable_count,
+                ty,
+            },
+        );
         self.variable_count += 1;
     }
 

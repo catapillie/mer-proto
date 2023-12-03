@@ -3,19 +3,18 @@ use std::io::{Cursor, Read};
 use byteorder::ReadBytesExt;
 use colored::Colorize;
 
-use crate::run::opcode::Opcode;
-
 use self::vm::VM;
 
 pub mod opcode;
+mod value;
 mod vm;
 
-pub fn run(program: Vec<Opcode>) {
+pub fn run(program: Vec<u8>) {
     let mut vm = VM::new(program.as_slice());
     vm.run();
 }
 
-pub fn disassemble(program: Vec<Opcode>) -> Option<()> {
+pub fn disassemble(program: &Vec<u8>) -> Option<()> {
     let mut cursor = Cursor::new(program.as_slice());
 
     loop {
@@ -34,10 +33,82 @@ pub fn disassemble(program: Vec<Opcode>) -> Option<()> {
         };
 
         match byte {
-            opcode::ld_num_const => {
+            opcode::ld_u8 => {
+                let value = cursor.read_u8().ok()?;
+                println!(
+                    "{offset:0width$} | {byte:02x} {:>16} {value:+}",
+                    opcode.bold(),
+                    width = 8
+                );
+            }
+            opcode::ld_u16 => {
+                let value = cursor.read_u16::<byteorder::LE>().ok()?;
+                println!(
+                    "{offset:0width$} | {byte:02x} {:>16} {value:+}",
+                    opcode.bold(),
+                    width = 8
+                );
+            }
+            opcode::ld_u32 => {
+                let value = cursor.read_u32::<byteorder::LE>().ok()?;
+                println!(
+                    "{offset:0width$} | {byte:02x} {:>16} {value:+}",
+                    opcode.bold(),
+                    width = 8
+                );
+            }
+            opcode::ld_u64 => {
+                let value = cursor.read_u64::<byteorder::LE>().ok()?;
+                println!(
+                    "{offset:0width$} | {byte:02x} {:>16} {value:+}",
+                    opcode.bold(),
+                    width = 8
+                );
+            }
+            opcode::ld_i8 => {
+                let value = cursor.read_i8().ok()?;
+                println!(
+                    "{offset:0width$} | {byte:02x} {:>16} {value:+}",
+                    opcode.bold(),
+                    width = 8
+                );
+            }
+            opcode::ld_i16 => {
+                let value = cursor.read_i16::<byteorder::LE>().ok()?;
+                println!(
+                    "{offset:0width$} | {byte:02x} {:>16} {value:+}",
+                    opcode.bold(),
+                    width = 8
+                );
+            }
+            opcode::ld_i32 => {
+                let value = cursor.read_i32::<byteorder::LE>().ok()?;
+                println!(
+                    "{offset:0width$} | {byte:02x} {:>16} {value:+}",
+                    opcode.bold(),
+                    width = 8
+                );
+            }
+            opcode::ld_i64 => {
+                let value = cursor.read_i64::<byteorder::LE>().ok()?;
+                println!(
+                    "{offset:0width$} | {byte:02x} {:>16} {value:+}",
+                    opcode.bold(),
+                    width = 8
+                );
+            }
+            opcode::ld_f32 => {
+                let value = cursor.read_f32::<byteorder::LE>().ok()?;
+                println!(
+                    "{offset:0width$} | {byte:02x} {:>16} {value:+.16}",
+                    opcode.bold(),
+                    width = 8
+                );
+            }
+            opcode::ld_f64 => {
                 let value = cursor.read_f64::<byteorder::LE>().ok()?;
                 println!(
-                    "{offset:0width$} | {byte:02x} {:>16} {value:+.10e}",
+                    "{offset:0width$} | {byte:02x} {:>16} {value:+.16}",
                     opcode.bold(),
                     width = 8
                 );

@@ -1,47 +1,16 @@
 use std::{
-    fmt::Display,
+    cmp,
     io::{Cursor, Seek, SeekFrom},
+    ops::{self},
     process::{self},
 };
 
-use byteorder::ReadBytesExt;
-
+use super::{opcode, value::Value};
 use crate::msg;
-
-use super::opcode::{self, Opcode};
+use byteorder::ReadBytesExt;
 
 const INITIAL_STACK_CAPACITY: usize = 512;
 const INITIAL_CALLSTACK_CAPACITY: usize = 64;
-
-#[derive(Debug, Clone)]
-pub enum Value {
-    Uninitialized,
-    Unit,
-    Num(f64),
-    Bool(bool),
-}
-
-impl Value {
-    fn type_name(&self) -> &str {
-        match self {
-            Value::Uninitialized => "uninitialized",
-            Value::Unit => "unit",
-            Value::Num(_) => "number",
-            Value::Bool(_) => "boolean",
-        }
-    }
-}
-
-impl Display for Value {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Value::Uninitialized => unreachable!(),
-            Value::Unit => write!(f, "()"),
-            Value::Num(num) => write!(f, "{num}"),
-            Value::Bool(b) => write!(f, "{b}"),
-        }
-    }
-}
 
 struct Frame {
     back: Option<u64>,
@@ -101,46 +70,164 @@ impl<'a> VM<'a> {
         self.call_fn(entry_point, None);
 
         while !self.done {
-            let opcode = self.next_opcode();
-            match opcode {
+            match self.next_opcode() {
                 opcode::nop => continue,
-
-                opcode::dbg => println!("{}", self.pop()),
                 opcode::pop => _ = self.pop(),
                 opcode::dup => self.dup(),
+                opcode::dbg => todo!(),
 
-                opcode::ld_num_const => self.ld_num_const(),
-                opcode::ld_true_const => self.ld_true_const(),
-                opcode::ld_false_const => self.ld_false_const(),
-
-                opcode::op_add => self.op_add(),
-                opcode::op_sub => self.op_sub(),
-                opcode::op_mul => self.op_mul(),
-                opcode::op_div => self.op_div(),
-                opcode::op_mod => self.op_mod(),
-                opcode::op_eq => self.op_eq(),
-                opcode::op_ne => self.op_ne(),
-                opcode::op_le => self.op_le(),
-                opcode::op_lt => self.op_lt(),
-                opcode::op_ge => self.op_ge(),
-                opcode::op_gt => self.op_gt(),
-                opcode::or_and => self.op_and(),
-                opcode::or_or => self.op_or(),
-                opcode::op_xor => self.op_xor(),
-
-                opcode::op_neg => self.op_neg(),
-                opcode::op_not => self.op_not(),
+                opcode::jmp => self.jmp(),
+                opcode::jmp_if => self.jmp_if(),
+                opcode::ret => self.ret(),
+                opcode::call => self.call(),
 
                 opcode::ld_loc => self.ld_loc(),
                 opcode::st_loc => self.st_loc(),
 
-                opcode::jmp => self.jmp(),
-                opcode::jmp_if => self.jmp_if(),
+                opcode::ld_u8 => push_value!(self => read_u8, make_u8),
+                opcode::add_u8 => binary_op!(self => get_u8, make_u8, ops::Add::add),
+                opcode::sub_u8 => binary_op!(self => get_u8, make_u8, ops::Sub::sub),
+                opcode::mul_u8 => binary_op!(self => get_u8, make_u8, ops::Mul::mul),
+                opcode::div_u8 => binary_op!(self => get_u8, make_u8, ops::Div::div),
+                opcode::rem_u8 => binary_op!(self => get_u8, make_u8, ops::Rem::rem),
+                opcode::eq_u8 => binary_op!(self => get_u8, make_bool, cmp::PartialEq::eq),
+                opcode::ne_u8 => binary_op!(self => get_u8, make_bool, cmp::PartialEq::ne),
+                opcode::le_u8 => binary_op!(self => get_u8, make_bool, cmp::PartialOrd::le),
+                opcode::lt_u8 => binary_op!(self => get_u8, make_bool, cmp::PartialOrd::lt),
+                opcode::ge_u8 => binary_op!(self => get_u8, make_bool, cmp::PartialOrd::ge),
+                opcode::gt_u8 => binary_op!(self => get_u8, make_bool, cmp::PartialOrd::gt),
 
-                opcode::ret => self.ret(),
-                opcode::ret_val => self.ret_val(),
+                opcode::ld_u16 => push_value!(self => read_u16, make_u16),
+                opcode::add_u16 => binary_op!(self => get_u16, make_u16, ops::Add::add),
+                opcode::sub_u16 => binary_op!(self => get_u16, make_u16, ops::Sub::sub),
+                opcode::mul_u16 => binary_op!(self => get_u16, make_u16, ops::Mul::mul),
+                opcode::div_u16 => binary_op!(self => get_u16, make_u16, ops::Div::div),
+                opcode::rem_u16 => binary_op!(self => get_u16, make_u16, ops::Rem::rem),
+                opcode::eq_u16 => binary_op!(self => get_u16, make_bool, cmp::PartialEq::eq),
+                opcode::ne_u16 => binary_op!(self => get_u16, make_bool, cmp::PartialEq::ne),
+                opcode::le_u16 => binary_op!(self => get_u16, make_bool, cmp::PartialOrd::le),
+                opcode::lt_u16 => binary_op!(self => get_u16, make_bool, cmp::PartialOrd::lt),
+                opcode::ge_u16 => binary_op!(self => get_u16, make_bool, cmp::PartialOrd::ge),
+                opcode::gt_u16 => binary_op!(self => get_u16, make_bool, cmp::PartialOrd::gt),
 
-                opcode::call => self.call(),
+                opcode::ld_u32 => push_value!(self => read_u32, make_u32),
+                opcode::add_u32 => binary_op!(self => get_u32, make_u32, ops::Add::add),
+                opcode::sub_u32 => binary_op!(self => get_u32, make_u32, ops::Sub::sub),
+                opcode::mul_u32 => binary_op!(self => get_u32, make_u32, ops::Mul::mul),
+                opcode::div_u32 => binary_op!(self => get_u32, make_u32, ops::Div::div),
+                opcode::rem_u32 => binary_op!(self => get_u32, make_u32, ops::Rem::rem),
+                opcode::eq_u32 => binary_op!(self => get_u32, make_bool, cmp::PartialEq::eq),
+                opcode::ne_u32 => binary_op!(self => get_u32, make_bool, cmp::PartialEq::ne),
+                opcode::le_u32 => binary_op!(self => get_u32, make_bool, cmp::PartialOrd::le),
+                opcode::lt_u32 => binary_op!(self => get_u32, make_bool, cmp::PartialOrd::lt),
+                opcode::ge_u32 => binary_op!(self => get_u32, make_bool, cmp::PartialOrd::ge),
+                opcode::gt_u32 => binary_op!(self => get_u32, make_bool, cmp::PartialOrd::gt),
+
+                opcode::ld_u64 => push_value!(self => read_u64, make_u64),
+                opcode::add_u64 => binary_op!(self => get_u64, make_u64, ops::Add::add),
+                opcode::sub_u64 => binary_op!(self => get_u64, make_u64, ops::Sub::sub),
+                opcode::mul_u64 => binary_op!(self => get_u64, make_u64, ops::Mul::mul),
+                opcode::div_u64 => binary_op!(self => get_u64, make_u64, ops::Div::div),
+                opcode::rem_u64 => binary_op!(self => get_u64, make_u64, ops::Rem::rem),
+                opcode::eq_u64 => binary_op!(self => get_u64, make_bool, cmp::PartialEq::eq),
+                opcode::ne_u64 => binary_op!(self => get_u64, make_bool, cmp::PartialEq::ne),
+                opcode::le_u64 => binary_op!(self => get_u64, make_bool, cmp::PartialOrd::le),
+                opcode::lt_u64 => binary_op!(self => get_u64, make_bool, cmp::PartialOrd::lt),
+                opcode::ge_u64 => binary_op!(self => get_u64, make_bool, cmp::PartialOrd::ge),
+                opcode::gt_u64 => binary_op!(self => get_u64, make_bool, cmp::PartialOrd::gt),
+
+                opcode::ld_i8 => push_value!(self => read_i8, make_i8),
+                opcode::add_i8 => binary_op!(self => get_i8, make_i8, ops::Add::add),
+                opcode::sub_i8 => binary_op!(self => get_i8, make_i8, ops::Sub::sub),
+                opcode::mul_i8 => binary_op!(self => get_i8, make_i8, ops::Mul::mul),
+                opcode::div_i8 => binary_op!(self => get_i8, make_i8, ops::Div::div),
+                opcode::rem_i8 => binary_op!(self => get_i8, make_i8, ops::Rem::rem),
+                opcode::eq_i8 => binary_op!(self => get_i8, make_bool, cmp::PartialEq::eq),
+                opcode::ne_i8 => binary_op!(self => get_i8, make_bool, cmp::PartialEq::ne),
+                opcode::le_i8 => binary_op!(self => get_i8, make_bool, cmp::PartialOrd::le),
+                opcode::lt_i8 => binary_op!(self => get_i8, make_bool, cmp::PartialOrd::lt),
+                opcode::ge_i8 => binary_op!(self => get_i8, make_bool, cmp::PartialOrd::ge),
+                opcode::gt_i8 => binary_op!(self => get_i8, make_bool, cmp::PartialOrd::gt),
+                opcode::neg_i8 => unary_op!(self => get_i8, make_i8, ops::Neg::neg),
+
+                opcode::ld_i16 => push_value!(self => read_i16, make_i16),
+                opcode::add_i16 => binary_op!(self => get_i16, make_i16, ops::Add::add),
+                opcode::sub_i16 => binary_op!(self => get_i16, make_i16, ops::Sub::sub),
+                opcode::mul_i16 => binary_op!(self => get_i16, make_i16, ops::Mul::mul),
+                opcode::div_i16 => binary_op!(self => get_i16, make_i16, ops::Div::div),
+                opcode::rem_i16 => binary_op!(self => get_i16, make_i16, ops::Rem::rem),
+                opcode::eq_i16 => binary_op!(self => get_i16, make_bool, cmp::PartialEq::eq),
+                opcode::ne_i16 => binary_op!(self => get_i16, make_bool, cmp::PartialEq::ne),
+                opcode::le_i16 => binary_op!(self => get_i16, make_bool, cmp::PartialOrd::le),
+                opcode::lt_i16 => binary_op!(self => get_i16, make_bool, cmp::PartialOrd::lt),
+                opcode::ge_i16 => binary_op!(self => get_i16, make_bool, cmp::PartialOrd::ge),
+                opcode::gt_i16 => binary_op!(self => get_i16, make_bool, cmp::PartialOrd::gt),
+                opcode::neg_i16 => unary_op!(self => get_i16, make_i16, ops::Neg::neg),
+
+                opcode::ld_i32 => push_value!(self => read_i32, make_i32),
+                opcode::add_i32 => binary_op!(self => get_i32, make_i32, ops::Add::add),
+                opcode::sub_i32 => binary_op!(self => get_i32, make_i32, ops::Sub::sub),
+                opcode::mul_i32 => binary_op!(self => get_i32, make_i32, ops::Mul::mul),
+                opcode::div_i32 => binary_op!(self => get_i32, make_i32, ops::Div::div),
+                opcode::rem_i32 => binary_op!(self => get_i32, make_i32, ops::Rem::rem),
+                opcode::eq_i32 => binary_op!(self => get_i32, make_bool, cmp::PartialEq::eq),
+                opcode::ne_i32 => binary_op!(self => get_i32, make_bool, cmp::PartialEq::ne),
+                opcode::le_i32 => binary_op!(self => get_i32, make_bool, cmp::PartialOrd::le),
+                opcode::lt_i32 => binary_op!(self => get_i32, make_bool, cmp::PartialOrd::lt),
+                opcode::ge_i32 => binary_op!(self => get_i32, make_bool, cmp::PartialOrd::ge),
+                opcode::gt_i32 => binary_op!(self => get_i32, make_bool, cmp::PartialOrd::gt),
+                opcode::neg_i32 => unary_op!(self => get_i32, make_i32, ops::Neg::neg),
+
+                opcode::ld_i64 => push_value!(self => read_i64, make_i64),
+                opcode::add_i64 => binary_op!(self => get_i64, make_i64, ops::Add::add),
+                opcode::sub_i64 => binary_op!(self => get_i64, make_i64, ops::Sub::sub),
+                opcode::mul_i64 => binary_op!(self => get_i64, make_i64, ops::Mul::mul),
+                opcode::div_i64 => binary_op!(self => get_i64, make_i64, ops::Div::div),
+                opcode::rem_i64 => binary_op!(self => get_i64, make_i64, ops::Rem::rem),
+                opcode::eq_i64 => binary_op!(self => get_i64, make_bool, cmp::PartialEq::eq),
+                opcode::ne_i64 => binary_op!(self => get_i64, make_bool, cmp::PartialEq::ne),
+                opcode::le_i64 => binary_op!(self => get_i64, make_bool, cmp::PartialOrd::le),
+                opcode::lt_i64 => binary_op!(self => get_i64, make_bool, cmp::PartialOrd::lt),
+                opcode::ge_i64 => binary_op!(self => get_i64, make_bool, cmp::PartialOrd::ge),
+                opcode::gt_i64 => binary_op!(self => get_i64, make_bool, cmp::PartialOrd::gt),
+                opcode::neg_i64 => unary_op!(self => get_i64, make_i64, ops::Neg::neg),
+
+                opcode::ld_f32 => push_value!(self => read_f32, make_f32),
+                opcode::add_f32 => binary_op!(self => get_f32, make_f32, ops::Add::add),
+                opcode::sub_f32 => binary_op!(self => get_f32, make_f32, ops::Sub::sub),
+                opcode::mul_f32 => binary_op!(self => get_f32, make_f32, ops::Mul::mul),
+                opcode::div_f32 => binary_op!(self => get_f32, make_f32, ops::Div::div),
+                opcode::rem_f32 => binary_op!(self => get_f32, make_f32, ops::Rem::rem),
+                opcode::eq_f32 => binary_op!(self => get_f32, make_bool, cmp::PartialEq::eq),
+                opcode::ne_f32 => binary_op!(self => get_f32, make_bool, cmp::PartialEq::ne),
+                opcode::le_f32 => binary_op!(self => get_f32, make_bool, cmp::PartialOrd::le),
+                opcode::lt_f32 => binary_op!(self => get_f32, make_bool, cmp::PartialOrd::lt),
+                opcode::ge_f32 => binary_op!(self => get_f32, make_bool, cmp::PartialOrd::ge),
+                opcode::gt_f32 => binary_op!(self => get_f32, make_bool, cmp::PartialOrd::gt),
+                opcode::neg_f32 => unary_op!(self => get_f32, make_f32, ops::Neg::neg),
+
+                opcode::ld_f64 => push_value!(self => read_f64, make_f64),
+                opcode::add_f64 => binary_op!(self => get_f64, make_f64, ops::Add::add),
+                opcode::sub_f64 => binary_op!(self => get_f64, make_f64, ops::Sub::sub),
+                opcode::mul_f64 => binary_op!(self => get_f64, make_f64, ops::Mul::mul),
+                opcode::div_f64 => binary_op!(self => get_f64, make_f64, ops::Div::div),
+                opcode::rem_f64 => binary_op!(self => get_f64, make_f64, ops::Rem::rem),
+                opcode::eq_f64 => binary_op!(self => get_f64, make_bool, cmp::PartialEq::eq),
+                opcode::ne_f64 => binary_op!(self => get_f64, make_bool, cmp::PartialEq::ne),
+                opcode::le_f64 => binary_op!(self => get_f64, make_bool, cmp::PartialOrd::le),
+                opcode::lt_f64 => binary_op!(self => get_f64, make_bool, cmp::PartialOrd::lt),
+                opcode::ge_f64 => binary_op!(self => get_f64, make_bool, cmp::PartialOrd::ge),
+                opcode::gt_f64 => binary_op!(self => get_f64, make_bool, cmp::PartialOrd::gt),
+                opcode::neg_f64 => unary_op!(self => get_f64, make_f64, ops::Neg::neg),
+
+                opcode::ld_bool_false => self.push(Value::make_bool(false)),
+                opcode::ld_bool_true => self.push(Value::make_bool(true)),
+                opcode::eq_bool => binary_op!(self => get_bool, make_bool, cmp::PartialEq::eq),
+                opcode::ne_bool => binary_op!(self => get_bool, make_bool, cmp::PartialEq::ne),
+                opcode::and_bool => binary_op!(self => get_bool, make_bool, ops::BitAnd::bitand),
+                opcode::or_bool => binary_op!(self => get_bool, make_bool, ops::BitOr::bitor),
+                opcode::xor_bool => binary_op!(self => get_bool, make_bool, ops::BitXor::bitxor),
+                opcode::not_bool => unary_op!(self => get_bool, make_bool, ops::Not::not),
 
                 _ => {
                     msg::error("encountered illegal opcode");
@@ -148,6 +235,9 @@ impl<'a> VM<'a> {
                 }
             }
         }
+
+        // a properly-compiled program should have a remaining return value here
+        // we may want to return it in the future
     }
 
     fn halt(&mut self) {
@@ -176,54 +266,12 @@ impl<'a> VM<'a> {
 
     fn dup(&mut self) {
         match self.stack.last() {
-            Some(last) => self.push(last.clone()),
+            Some(last) => self.push(*last),
             None => {
                 msg::error("stack underflow");
                 process::exit(1);
             }
         }
-    }
-
-    fn ld_num_const(&mut self) {
-        let num = self.read_f64();
-        self.push(Value::Num(num))
-    }
-
-    fn ld_true_const(&mut self) {
-        self.push(Value::Bool(true))
-    }
-
-    fn ld_false_const(&mut self) {
-        self.push(Value::Bool(false))
-    }
-
-    fn ld_loc(&mut self) {
-        let index = self.read_u8() as usize;
-        let offset = self.frames.last().unwrap().local_offset;
-        self.push(self.stack[offset + index].clone());
-    }
-
-    fn st_loc(&mut self) {
-        let index = self.read_u8() as usize;
-        let offset = self.frames.last().unwrap().local_offset;
-        self.stack[offset + index] = self.pop();
-    }
-
-    fn call(&mut self) {
-        let fp = self.read_u32() as u64;
-        let back = self.cursor.position();
-        self.call_fn(fp, Some(back));
-    }
-
-    fn ret(&mut self) {
-        self.destroy_frame();
-        self.push(Value::Unit);
-    }
-
-    fn ret_val(&mut self) {
-        let val = self.pop();
-        self.destroy_frame();
-        self.push(val);
     }
 
     fn jmp(&mut self) {
@@ -233,15 +281,28 @@ impl<'a> VM<'a> {
 
     fn jmp_if(&mut self) {
         let to = self.read_u32();
-        let guard = self.pop();
-        match guard {
-            Value::Bool(true) => self.cursor.set_position(to as u64),
-            Value::Bool(false) => (),
-            _ => {
-                msg::error(format!("invalid jump condition: {}", guard.type_name()));
-                process::exit(1);
-            }
+        let guard = self.pop().get_bool();
+        if guard {
+            self.cursor.set_position(to as u64);
         }
+    }
+
+    fn ret(&mut self) {
+        let val = self.pop();
+        self.destroy_frame();
+        self.push(val);
+    }
+
+    fn ld_loc(&mut self) {
+        let index = self.read_u8() as usize;
+        let offset = self.frames.last().unwrap().local_offset;
+        self.push(self.stack[offset + index]);
+    }
+
+    fn call(&mut self) {
+        let fp = self.read_u32() as u64;
+        let back = self.cursor.position();
+        self.call_fn(fp, Some(back));
     }
 
     fn call_fn(&mut self, fp: u64, back: Option<u64>) {
@@ -251,7 +312,7 @@ impl<'a> VM<'a> {
 
         // push non-parameter locals
         for _ in 0..(local_count - param_count) {
-            self.push(Value::Uninitialized);
+            self.push(Value::make_u8(0)); // uninitialized
         }
     }
 
@@ -271,89 +332,13 @@ impl<'a> VM<'a> {
         (param_count, local_count)
     }
 
-    binary_op! {
-        self op_add "+"
-        Value::Num(a), Value::Num(b) => Value::Num(a + b)
+    fn st_loc(&mut self) {
+        let index = self.read_u8() as usize;
+        let offset = self.frames.last().unwrap().local_offset;
+        self.stack[offset + index] = self.pop();
     }
 
-    binary_op! {
-        self op_sub "-"
-        Value::Num(a), Value::Num(b) => Value::Num(a - b)
-    }
-
-    binary_op! {
-        self op_mul "*"
-        Value::Num(a), Value::Num(b) => Value::Num(a * b)
-    }
-
-    binary_op! {
-        self op_div "/"
-        Value::Num(a), Value::Num(b) => Value::Num(a / b)
-    }
-
-    binary_op! {
-        self op_mod "%"
-        Value::Num(a), Value::Num(b) => Value::Num(a % b)
-    }
-
-    binary_op! {
-        self op_eq "=="
-        Value::Num(a), Value::Num(b) => Value::Bool(a == b)
-        Value::Bool(a), Value::Bool(b) => Value::Bool(a == b)
-    }
-
-    binary_op! {
-        self op_ne "!="
-        Value::Num(a), Value::Num(b) => Value::Bool(a != b)
-        Value::Bool(a), Value::Bool(b) => Value::Bool(a != b)
-    }
-
-    binary_op! {
-        self op_le "<="
-        Value::Num(a), Value::Num(b) => Value::Bool(a <= b)
-    }
-
-    binary_op! {
-        self op_lt "<"
-        Value::Num(a), Value::Num(b) => Value::Bool(a < b)
-    }
-
-    binary_op! {
-        self op_ge ">="
-        Value::Num(a), Value::Num(b) => Value::Bool(a >= b)
-    }
-
-    binary_op! {
-        self op_gt ">"
-        Value::Num(a), Value::Num(b) => Value::Bool(a > b)
-    }
-
-    binary_op! {
-        self op_and "&"
-        Value::Bool(a), Value::Bool(b) => Value::Bool(a & b)
-    }
-
-    binary_op! {
-        self op_or "|"
-        Value::Bool(a), Value::Bool(b) => Value::Bool(a | b)
-    }
-
-    binary_op! {
-        self op_xor "^"
-        Value::Bool(a), Value::Bool(b) => Value::Bool(a ^ b)
-    }
-
-    unary_op! {
-        self op_neg "-"
-        Value::Num(f) => Value::Num(-*f)
-    }
-
-    unary_op! {
-        self op_not "not"
-        Value::Bool(b) => Value::Bool(!*b)
-    }
-
-    fn next_opcode(&mut self) -> Opcode {
+    fn next_opcode(&mut self) -> u8 {
         self.read_u8()
     }
 
@@ -369,63 +354,57 @@ impl<'a> VM<'a> {
         self.cursor.read_u32::<byteorder::LE>().unwrap()
     }
 
+    fn read_u64(&mut self) -> u64 {
+        self.cursor.read_u64::<byteorder::LE>().unwrap()
+    }
+
+    fn read_i8(&mut self) -> i8 {
+        self.cursor.read_i8().unwrap()
+    }
+
+    fn read_i16(&mut self) -> i16 {
+        self.cursor.read_i16::<byteorder::LE>().unwrap()
+    }
+
+    fn read_i32(&mut self) -> i32 {
+        self.cursor.read_i32::<byteorder::LE>().unwrap()
+    }
+
+    fn read_i64(&mut self) -> i64 {
+        self.cursor.read_i64::<byteorder::LE>().unwrap()
+    }
+
+    fn read_f32(&mut self) -> f32 {
+        self.cursor.read_f32::<byteorder::LE>().unwrap()
+    }
+
     fn read_f64(&mut self) -> f64 {
         self.cursor.read_f64::<byteorder::LE>().unwrap()
     }
 }
 
+macro_rules! push_value {
+    ($self:ident => $read_fn:ident, $make_fn:ident) => {{
+        let value = $self.$read_fn();
+        $self.push(Value::$make_fn(value));
+    }};
+}
+
 macro_rules! binary_op {
-    (
-        $self:ident $name:ident $symbol:literal
-        $(
-            $a:pat, $b:pat => $r:expr
-        )*
-    ) => {
-        fn $name(&mut $self) {
-            let right = $self.pop();
-            let left = $self.pop();
-            match (&left, &right) {
-                $(
-                    ($a, $b) => $self.push($r),
-                )*
-                _ => {
-                    msg::error(format!(
-                        "invalid operation: {} {} {}",
-                        left.type_name(),
-                        $symbol,
-                        right.type_name()
-                    ));
-                    process::exit(1);
-                }
-            }
-        }
-    };
+    ($self:ident => $get_fn:ident, $make_fn:ident, $op_fn:path) => {{
+        let b = $self.pop().$get_fn();
+        let a = $self.pop().$get_fn();
+        $self.push(Value::$make_fn($op_fn(&a, &b)));
+    }};
 }
 
 macro_rules! unary_op {
-    (
-        $self:ident $name:ident $symbol:literal
-        $(
-            $a:pat => $r:expr
-        )*
-    ) => {
-        fn $name(&mut $self) {
-            let value = $self.pop();
-            match &value {
-                $(
-                    $a => $self.push($r),
-                )*
-                _ => {
-                    msg::error(format!(
-                        "invalid operation: {} {}",
-                        $symbol,
-                        value.type_name()
-                    ));
-                    process::exit(1);
-                }
-            }
-        }
-    };
+    ($self:ident => $get_fn:ident, $make_fn:ident, $op_fn:path) => {{
+        let e = $self.pop().$get_fn();
+        $self.push(Value::$make_fn($op_fn(&e)));
+    }};
 }
 
-use {binary_op, unary_op};
+use binary_op;
+use push_value;
+use unary_op;

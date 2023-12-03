@@ -117,7 +117,7 @@ fn run_disassemble(command: DisassembleCommand) {
                 }
             };
 
-            run::disassemble(program);
+            run::disassemble(&program);
         }
         DisassembleCommand::NoPath => {
             msg::error("no path provided");

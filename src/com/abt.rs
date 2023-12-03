@@ -19,7 +19,6 @@ pub enum StmtAbtKind {
     WhileDo(Box<ExprAbt>, Box<StmtAbt>),
     DoWhile(Box<StmtAbt>, Box<ExprAbt>),
     Return(Box<ExprAbt>),
-    
 }
 
 impl StmtAbtKind {

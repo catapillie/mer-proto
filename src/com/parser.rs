@@ -221,7 +221,7 @@ impl<'a> Parser<'a> {
 
             self.skip_newlines();
             let stmt_do = self.empty_statement_here();
-            
+
             if self.try_match_token::<WhileKw>().is_some() {
                 self.skip_newlines();
                 let expr = self.expect_expression();
