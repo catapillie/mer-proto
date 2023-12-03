@@ -33,6 +33,9 @@ opcodes! {
     0x19 lt_u8
     0x1a ge_u8
     0x1b gt_u8
+    0x1c bitand_u8
+    0x1d bitor_u8
+    0x1e bitxor_u8
 
     0x20 ld_u16(u16)
     0x21 add_u16
@@ -46,6 +49,9 @@ opcodes! {
     0x29 lt_u16
     0x2a ge_u16
     0x2b gt_u16
+    0x2c bitand_u16
+    0x2d bitor_u16
+    0x2e bitxor_u16
 
     0x30 ld_u32(u32)
     0x31 add_u32
@@ -59,6 +65,9 @@ opcodes! {
     0x39 lt_u32
     0x3a ge_u32
     0x3b gt_u32
+    0x3c bitand_u32
+    0x3d bitor_u32
+    0x3e bitxor_u32
 
     0x40 ld_u64(u64)
     0x41 add_u64
@@ -72,6 +81,9 @@ opcodes! {
     0x49 lt_u64
     0x4a ge_u64
     0x4b gt_u64
+    0x4c bitand_u64
+    0x4d bitor_u64
+    0x4e bitxor_u64
 
     0x50 ld_i8(i8)
     0x51 add_i8
@@ -85,7 +97,10 @@ opcodes! {
     0x59 lt_i8
     0x5a ge_i8
     0x5b gt_i8
-    0x5c neg_i8
+    0x5c bitand_i8
+    0x5d bitor_i8
+    0x5e bitxor_i8
+    0x5f neg_i8
 
     0x60 ld_i16(i16)
     0x61 add_i16
@@ -99,7 +114,10 @@ opcodes! {
     0x69 lt_i16
     0x6a ge_i16
     0x6b gt_i16
-    0x6c neg_i16
+    0x6c bitand_i16
+    0x6d bitor_i16
+    0x6e bitxor_i16
+    0x6f neg_i16
 
     0x70 ld_i32(i32)
     0x71 add_i32
@@ -113,7 +131,10 @@ opcodes! {
     0x79 lt_i32
     0x7a ge_i32
     0x7b gt_i32
-    0x7c neg_i32
+    0x7c bitand_i32
+    0x7d bitor_i32
+    0x7e bitxor_i32
+    0x7f neg_i32
 
     0x80 ld_i64(i64)
     0x81 add_i64
@@ -127,7 +148,10 @@ opcodes! {
     0x89 lt_i64
     0x8a ge_i64
     0x8b gt_i64
-    0x8c neg_i64
+    0x8c bitand_i64
+    0x8d bitor_i64
+    0x8e bitxor_i64
+    0x8f neg_i64
 
     0x90 ld_f32(f32)
     0x91 add_f32

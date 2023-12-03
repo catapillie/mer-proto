@@ -98,7 +98,10 @@ impl<'a> VM<'a> {
                 opcode::lt_u8 => binary_op!(self => get_u8, make_bool, cmp::PartialOrd::lt),
                 opcode::ge_u8 => binary_op!(self => get_u8, make_bool, cmp::PartialOrd::ge),
                 opcode::gt_u8 => binary_op!(self => get_u8, make_bool, cmp::PartialOrd::gt),
-
+                opcode::bitand_u8 => binary_op!(self => get_u8, make_u8, ops::BitAnd::bitand),
+                opcode::bitor_u8 => binary_op!(self => get_u8, make_u8, ops::BitOr::bitor),
+                opcode::bitxor_u8 => binary_op!(self => get_u8, make_u8, ops::BitXor::bitxor),
+                
                 opcode::ld_u16 => push_value!(self => read_u16, make_u16),
                 opcode::add_u16 => binary_op!(self => get_u16, make_u16, ops::Add::add),
                 opcode::sub_u16 => binary_op!(self => get_u16, make_u16, ops::Sub::sub),
@@ -111,6 +114,9 @@ impl<'a> VM<'a> {
                 opcode::lt_u16 => binary_op!(self => get_u16, make_bool, cmp::PartialOrd::lt),
                 opcode::ge_u16 => binary_op!(self => get_u16, make_bool, cmp::PartialOrd::ge),
                 opcode::gt_u16 => binary_op!(self => get_u16, make_bool, cmp::PartialOrd::gt),
+                opcode::bitand_u16 => binary_op!(self => get_u16, make_u16, ops::BitAnd::bitand),
+                opcode::bitor_u16 => binary_op!(self => get_u16, make_u16, ops::BitOr::bitor),
+                opcode::bitxor_u16 => binary_op!(self => get_u16, make_u16, ops::BitXor::bitxor),
 
                 opcode::ld_u32 => push_value!(self => read_u32, make_u32),
                 opcode::add_u32 => binary_op!(self => get_u32, make_u32, ops::Add::add),
@@ -124,6 +130,9 @@ impl<'a> VM<'a> {
                 opcode::lt_u32 => binary_op!(self => get_u32, make_bool, cmp::PartialOrd::lt),
                 opcode::ge_u32 => binary_op!(self => get_u32, make_bool, cmp::PartialOrd::ge),
                 opcode::gt_u32 => binary_op!(self => get_u32, make_bool, cmp::PartialOrd::gt),
+                opcode::bitand_u32 => binary_op!(self => get_u32, make_u32, ops::BitAnd::bitand),
+                opcode::bitor_u32 => binary_op!(self => get_u32, make_u32, ops::BitOr::bitor),
+                opcode::bitxor_u32 => binary_op!(self => get_u32, make_u32, ops::BitXor::bitxor),
 
                 opcode::ld_u64 => push_value!(self => read_u64, make_u64),
                 opcode::add_u64 => binary_op!(self => get_u64, make_u64, ops::Add::add),
@@ -137,6 +146,9 @@ impl<'a> VM<'a> {
                 opcode::lt_u64 => binary_op!(self => get_u64, make_bool, cmp::PartialOrd::lt),
                 opcode::ge_u64 => binary_op!(self => get_u64, make_bool, cmp::PartialOrd::ge),
                 opcode::gt_u64 => binary_op!(self => get_u64, make_bool, cmp::PartialOrd::gt),
+                opcode::bitand_u64 => binary_op!(self => get_u64, make_u64, ops::BitAnd::bitand),
+                opcode::bitor_u64 => binary_op!(self => get_u64, make_u64, ops::BitOr::bitor),
+                opcode::bitxor_u64 => binary_op!(self => get_u64, make_u64, ops::BitXor::bitxor),
 
                 opcode::ld_i8 => push_value!(self => read_i8, make_i8),
                 opcode::add_i8 => binary_op!(self => get_i8, make_i8, ops::Add::add),
@@ -150,6 +162,9 @@ impl<'a> VM<'a> {
                 opcode::lt_i8 => binary_op!(self => get_i8, make_bool, cmp::PartialOrd::lt),
                 opcode::ge_i8 => binary_op!(self => get_i8, make_bool, cmp::PartialOrd::ge),
                 opcode::gt_i8 => binary_op!(self => get_i8, make_bool, cmp::PartialOrd::gt),
+                opcode::bitand_i8 => binary_op!(self => get_i8, make_i8, ops::BitAnd::bitand),
+                opcode::bitor_i8 => binary_op!(self => get_i8, make_i8, ops::BitOr::bitor),
+                opcode::bitxor_i8 => binary_op!(self => get_i8, make_i8, ops::BitXor::bitxor),
                 opcode::neg_i8 => unary_op!(self => get_i8, make_i8, ops::Neg::neg),
 
                 opcode::ld_i16 => push_value!(self => read_i16, make_i16),
@@ -164,6 +179,9 @@ impl<'a> VM<'a> {
                 opcode::lt_i16 => binary_op!(self => get_i16, make_bool, cmp::PartialOrd::lt),
                 opcode::ge_i16 => binary_op!(self => get_i16, make_bool, cmp::PartialOrd::ge),
                 opcode::gt_i16 => binary_op!(self => get_i16, make_bool, cmp::PartialOrd::gt),
+                opcode::bitand_i16 => binary_op!(self => get_i16, make_i16, ops::BitAnd::bitand),
+                opcode::bitor_i16 => binary_op!(self => get_i16, make_i16, ops::BitOr::bitor),
+                opcode::bitxor_i16 => binary_op!(self => get_i16, make_i16, ops::BitXor::bitxor),
                 opcode::neg_i16 => unary_op!(self => get_i16, make_i16, ops::Neg::neg),
 
                 opcode::ld_i32 => push_value!(self => read_i32, make_i32),
@@ -178,6 +196,9 @@ impl<'a> VM<'a> {
                 opcode::lt_i32 => binary_op!(self => get_i32, make_bool, cmp::PartialOrd::lt),
                 opcode::ge_i32 => binary_op!(self => get_i32, make_bool, cmp::PartialOrd::ge),
                 opcode::gt_i32 => binary_op!(self => get_i32, make_bool, cmp::PartialOrd::gt),
+                opcode::bitand_i32 => binary_op!(self => get_i32, make_i32, ops::BitAnd::bitand),
+                opcode::bitor_i32 => binary_op!(self => get_i32, make_i32, ops::BitOr::bitor),
+                opcode::bitxor_i32 => binary_op!(self => get_i32, make_i32, ops::BitXor::bitxor),
                 opcode::neg_i32 => unary_op!(self => get_i32, make_i32, ops::Neg::neg),
 
                 opcode::ld_i64 => push_value!(self => read_i64, make_i64),
@@ -192,6 +213,9 @@ impl<'a> VM<'a> {
                 opcode::lt_i64 => binary_op!(self => get_i64, make_bool, cmp::PartialOrd::lt),
                 opcode::ge_i64 => binary_op!(self => get_i64, make_bool, cmp::PartialOrd::ge),
                 opcode::gt_i64 => binary_op!(self => get_i64, make_bool, cmp::PartialOrd::gt),
+                opcode::bitand_i64 => binary_op!(self => get_i64, make_i64, ops::BitAnd::bitand),
+                opcode::bitor_i64 => binary_op!(self => get_i64, make_i64, ops::BitOr::bitor),
+                opcode::bitxor_i64 => binary_op!(self => get_i64, make_i64, ops::BitXor::bitxor),
                 opcode::neg_i64 => unary_op!(self => get_i64, make_i64, ops::Neg::neg),
 
                 opcode::ld_f32 => push_value!(self => read_f32, make_f32),
