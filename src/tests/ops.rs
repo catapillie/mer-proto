@@ -1,3 +1,12 @@
+use crate::com;
+
+#[test]
+fn can_parse_all_operations() {
+    let success = com::analyse("<source>", SOURCE.to_string()).is_some();
+    assert!(success);
+}
+
+const SOURCE: &str = "
 func add_u8(x: u8, y: u8) -> u8 = x + y
 func sub_u8(x: u8, y: u8) -> u8 = x - y
 func mul_u8(x: u8, y: u8) -> u8 = x * y
@@ -169,3 +178,4 @@ func xor_bool(a: bool, b: bool) -> bool = a xor b
 func not_bool(b: bool) -> bool = not b
 
 return
+";

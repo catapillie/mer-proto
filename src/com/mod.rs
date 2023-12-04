@@ -1,4 +1,4 @@
-use self::{diagnostics::Diagnostic, parser::Parser, codegen::Codegen};
+use self::{abt::ProgramAbt, codegen::Codegen, diagnostics::Diagnostic, parser::Parser};
 use crate::{
     com::{
         analyser::Analyser,
@@ -9,7 +9,7 @@ use crate::{
 use colored::{Color, Colorize};
 use std::process::{self};
 
-mod abt;
+pub mod abt;
 mod analyser;
 mod ast;
 mod codegen;
@@ -21,6 +21,17 @@ mod span;
 mod tokens;
 
 pub fn compile(path: &str, source: String) {
+    let Some(abt) = analyse(path, source) else {
+        process::exit(1);
+    };
+
+    let program = Codegen::new().gen(&abt).unwrap();
+    run::disassemble(&program); // wip
+
+    process::exit(0);
+}
+
+pub fn analyse(path: &str, source: String) -> Option<ProgramAbt> {
     let lines = source.lines().collect::<Vec<_>>();
 
     let mut diagnostics = Diagnostics::new();
@@ -40,15 +51,12 @@ pub fn compile(path: &str, source: String) {
 
         if fatal {
             msg::error("cannot compile with errors -- aborting");
-            process::exit(1);
+            return None;
         }
     }
     msg::ok("analysis finished successfully");
 
-    let program = Codegen::new().gen(&abt).unwrap();
-    run::disassemble(&program); // wip
-
-    process::exit(0);
+    Some(abt)
 }
 
 // TODO: make it work with TAB characters

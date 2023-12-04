@@ -58,7 +58,7 @@ impl<'a> VM<'a> {
         self.cursor.set_position(ip);
     }
 
-    pub fn run(&mut self) {
+    pub fn run(&mut self) -> Value {
         let first = self.next_opcode();
         let entry_point = self.read_u32() as u64;
 
@@ -101,7 +101,7 @@ impl<'a> VM<'a> {
                 opcode::bitand_u8 => binary_op!(self => get_u8, make_u8, ops::BitAnd::bitand),
                 opcode::bitor_u8 => binary_op!(self => get_u8, make_u8, ops::BitOr::bitor),
                 opcode::bitxor_u8 => binary_op!(self => get_u8, make_u8, ops::BitXor::bitxor),
-                
+
                 opcode::ld_u16 => push_value!(self => read_u16, make_u16),
                 opcode::add_u16 => binary_op!(self => get_u16, make_u16, ops::Add::add),
                 opcode::sub_u16 => binary_op!(self => get_u16, make_u16, ops::Sub::sub),
@@ -262,8 +262,7 @@ impl<'a> VM<'a> {
             }
         }
 
-        // a properly-compiled program should have a remaining return value here
-        // we may want to return it in the future
+        self.pop()
     }
 
     fn halt(&mut self) {

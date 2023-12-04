@@ -6,8 +6,8 @@ use colored::Colorize;
 use self::vm::VM;
 
 pub mod opcode;
-mod value;
-mod vm;
+pub mod value;
+pub mod vm;
 
 pub fn run(program: Vec<u8>) {
     let mut vm = VM::new(program.as_slice());

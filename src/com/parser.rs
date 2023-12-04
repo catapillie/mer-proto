@@ -2,8 +2,8 @@ use crate::com::diagnostics::Severity;
 
 use super::{
     ast::{
-        Associativity, BinOpAst, ExprAst, ExprAstKind, Precedence, StmtAst, StmtAstKind,
-        TypeAst, TypeAstKind, UnOpAst,
+        Associativity, BinOpAst, ExprAst, ExprAstKind, Precedence, StmtAst, StmtAstKind, TypeAst,
+        TypeAstKind, UnOpAst,
     },
     cursor::Cursor,
     diagnostics::{self, DiagnosticKind, Diagnostics},

@@ -1,7 +1,5 @@
-#![cfg(test)]
-
-use std::collections::HashSet;
 use crate::run::opcode::Opcode;
+use std::collections::HashSet;
 
 #[test]
 fn all_opcodes_are_unique() {
