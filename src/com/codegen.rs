@@ -190,14 +190,23 @@ impl Codegen {
                 }
 
                 let to = self.function_positions.get(id).cloned().unwrap();
-                Opcode::call(to).write_bytes(&mut self.cursor)
+                Opcode::call(to).write_bytes(&mut self.cursor)?;
+                Ok(())
             }
             E::Binary(op, left, right) => {
+                use BinOpAbtKind as K;
+                use TypeAbt as Ty;
+
+                // short-circuiting logic
+                match &op.kind {
+                    K::And => return self.gen_short_circuit_and(left, right),
+                    K::Or => return self.gen_short_circuit_or(left, right),
+                    _ => {}
+                }
+
                 self.gen_expression(left)?;
                 self.gen_expression(right)?;
 
-                use BinOpAbtKind as K;
-                use TypeAbt as Ty;
                 let opcode = match (&op.in_ty, &op.kind) {
                     (Ty::U8, K::Add) => Opcode::add_u8,
                     (Ty::U8, K::Sub) => Opcode::sub_u8,
@@ -338,12 +347,11 @@ impl Codegen {
                     (Ty::Bool, K::BitAnd) => Opcode::and_bool,
                     (Ty::Bool, K::BitOr) => Opcode::or_bool,
                     (Ty::Bool, K::BitXor) => Opcode::xor_bool,
-                    (Ty::Bool, K::And) => todo!(),
-                    (Ty::Bool, K::Or) => todo!(),
-                    (Ty::Bool, K::Xor) => todo!(),
+                    (Ty::Bool, K::Xor) => Opcode::xor_bool,
                     _ => unreachable!("{:?}", op),
                 };
-                opcode.write_bytes(&mut self.cursor)
+                opcode.write_bytes(&mut self.cursor)?;
+                Ok(())
             }
             E::Unary(op, expr) => {
                 self.gen_expression(expr)?;
@@ -372,8 +380,38 @@ impl Codegen {
                     _ => unreachable!(),
                 };
 
-                opcode.write_bytes(&mut self.cursor)
+                opcode.write_bytes(&mut self.cursor)?;
+                Ok(())
             }
         }
+    }
+
+    fn gen_short_circuit_and(&mut self, left: &ExprAbt, right: &ExprAbt) -> io::Result<()> {
+        self.gen_expression(left)?;
+        self.cursor.write_u8(opcode::dup)?;
+        self.cursor.write_u8(opcode::not_bool)?;
+        self.cursor.write_u8(opcode::jmp_if)?;
+        let cursor_a = self.gen_u32_placeholder()?;
+
+        self.gen_expression(right)?;
+        self.cursor.write_u8(opcode::and_bool)?;
+        let cursor_b = self.position();
+
+        self.patch_u32_placeholder(cursor_a, cursor_b)?;
+        Ok(())
+    }
+
+    fn gen_short_circuit_or(&mut self, left: &ExprAbt, right: &ExprAbt) -> Result<(), io::Error> {
+        self.gen_expression(left)?;
+        self.cursor.write_u8(opcode::dup)?;
+        self.cursor.write_u8(opcode::jmp_if)?;
+        let cursor_a = self.gen_u32_placeholder()?;
+
+        self.gen_expression(right)?;
+        self.cursor.write_u8(opcode::or_bool)?;
+        let cursor_b = self.position();
+
+        self.patch_u32_placeholder(cursor_a, cursor_b)?;
+        Ok(())
     }
 }
