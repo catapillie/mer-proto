@@ -359,23 +359,22 @@ impl Codegen {
                 use TypeAbt as Ty;
                 use UnOpAbtKind as K;
                 let opcode = match (&op.ty, &op.kind) {
-                    (Ty::U8, K::Pos) => return Ok(()),
-                    (Ty::U16, K::Pos) => return Ok(()),
-                    (Ty::U32, K::Pos) => return Ok(()),
-                    (Ty::U64, K::Pos) => return Ok(()),
-                    (Ty::I8, K::Pos) => return Ok(()),
+                    (Ty::U8, K::Pos)
+                    | (Ty::U16, K::Pos)
+                    | (Ty::U32, K::Pos)
+                    | (Ty::U64, K::Pos)
+                    | (Ty::I8, K::Pos)
+                    | (Ty::I16, K::Pos)
+                    | (Ty::I32, K::Pos)
+                    | (Ty::I64, K::Pos)
+                    | (Ty::F32, K::Pos)
+                    | (Ty::F64, K::Pos) => return Ok(()), // this operation does nothing
                     (Ty::I8, K::Neg) => Opcode::neg_i8,
-                    (Ty::I16, K::Pos) => return Ok(()),
                     (Ty::I16, K::Neg) => Opcode::neg_i16,
-                    (Ty::I32, K::Pos) => return Ok(()),
                     (Ty::I32, K::Neg) => Opcode::neg_i32,
-                    (Ty::I64, K::Pos) => return Ok(()),
                     (Ty::I64, K::Neg) => Opcode::neg_i64,
-                    (Ty::F32, K::Pos) => return Ok(()),
                     (Ty::F32, K::Neg) => Opcode::neg_f32,
-                    (Ty::F64, K::Pos) => return Ok(()),
                     (Ty::F64, K::Neg) => Opcode::neg_f64,
-                    (Ty::Bool, K::Pos) => return Ok(()),
                     (Ty::Bool, K::Not) => Opcode::not_bool,
                     _ => unreachable!(),
                 };
