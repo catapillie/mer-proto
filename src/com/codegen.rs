@@ -3,9 +3,12 @@ use std::{
     io::{self, Cursor},
 };
 
+use byteorder::WriteBytesExt;
+use byteorder::LE;
+
 use crate::{
     com::abt::{BinOpAbtKind, StmtAbtKind, TypeAbt, UnOpAbtKind},
-    run::opcode::Opcode,
+    run::opcode::{self, Opcode},
 };
 
 use super::abt::{ExprAbt, Function, ProgramAbt, StmtAbt};
@@ -27,14 +30,35 @@ impl Codegen {
         self.cursor.position().try_into().unwrap()
     }
 
+    fn gen_u32_placeholder(&mut self) -> io::Result<u32> {
+        let position = self.position();
+        self.cursor.write_u32::<LE>(0)?;
+        Ok(position)
+    }
+
+    fn patch_u32_placeholder(&mut self, placeholder: u32, value: u32) -> io::Result<()> {
+        let back = self.cursor.position();
+        self.cursor.set_position(placeholder as u64);
+        self.cursor.write_u32::<LE>(value)?;
+        self.cursor.set_position(back);
+        Ok(())
+    }
+
     pub fn gen(mut self, abt: &ProgramAbt) -> io::Result<Vec<u8>> {
-        Opcode::entry_point(0).write_bytes(&mut self.cursor)?;
+        self.cursor.write_u8(opcode::entry_point)?;
+        let entry_point_cursor = self.gen_u32_placeholder()?;
 
         for (id, (name, func)) in abt.functions_by_id.iter() {
             let position = self.position();
             self.function_positions.insert(*id, position);
             self.gen_function(name.clone(), func)?;
         }
+
+        let last_function_id = abt.functions_by_id.last_key_value().unwrap().0;
+        self.patch_u32_placeholder(
+            entry_point_cursor,
+            *self.function_positions.get(last_function_id).unwrap(),
+        )?;
 
         Ok(self.cursor.into_inner())
     }
@@ -58,10 +82,67 @@ impl Codegen {
                 self.gen_expression(expr)?;
                 Opcode::pop.write_bytes(&mut self.cursor)?;
             }
-            S::IfThen(_, _) => todo!(),
-            S::IfThenElse(_, _, _) => todo!(),
-            S::WhileDo(_, _) => todo!(),
-            S::DoWhile(_, _) => todo!(),
+            S::IfThen(guard, body) => {
+                // if ...
+                self.gen_expression(guard)?;
+                self.cursor.write_u8(opcode::not_bool)?;
+                self.cursor.write_u8(opcode::jmp_if)?;
+                let cursor_from = self.gen_u32_placeholder()?;
+
+                // then ...
+                self.gen_statement(body.as_ref())?;
+
+                // write saved jump address
+                let cursor_to = self.position();
+                self.patch_u32_placeholder(cursor_from, cursor_to)?;
+            }
+            S::IfThenElse(guard, body_then, body_else) => {
+                // if ... then
+                self.gen_expression(guard)?;
+                self.cursor.write_u8(opcode::not_bool)?;
+                self.cursor.write_u8(opcode::jmp_if)?;
+                let cursor_guard_end = self.gen_u32_placeholder()?;
+
+                // then ...
+                self.gen_statement(body_then)?;
+                self.cursor.write_u8(opcode::jmp)?;
+                let cursor_body_then_end = self.gen_u32_placeholder()?;
+
+                // else ...
+                let cursor_body_else_start = self.position();
+                self.gen_statement(body_else)?;
+                let cursor_body_else_end = self.position();
+
+                // write saved jump adresses
+                self.patch_u32_placeholder(cursor_body_then_end, cursor_body_else_end)?;
+                self.patch_u32_placeholder(cursor_guard_end, cursor_body_else_start)?;
+            }
+            S::WhileDo(guard, body) => {
+                // while ...
+                let cursor_guard_start = self.position();
+                self.gen_expression(guard)?;
+                self.cursor.write_u8(opcode::not_bool)?;
+                self.cursor.write_u8(opcode::jmp_if)?;
+                let cursor_guard_end = self.gen_u32_placeholder()?;
+
+                // do ...
+                self.gen_statement(body)?;
+                self.cursor.write_u8(opcode::jmp)?;
+                self.cursor.write_u32::<LE>(cursor_guard_start)?;
+
+                // write saved jump address
+                let cursor_body_end = self.position();
+                self.patch_u32_placeholder(cursor_guard_end, cursor_body_end)?;
+            }
+            S::DoWhile(body, guard) => {
+                // do ...
+                let cursor_stmt_start = self.position();
+                self.gen_statement(body)?;
+
+                // while ...
+                self.gen_expression(guard)?;
+                Opcode::jmp_if(cursor_stmt_start).write_bytes(&mut self.cursor)?;
+            }
             S::Return(expr) => self.gen_return(expr)?,
         }
 
