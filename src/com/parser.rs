@@ -733,7 +733,7 @@ impl<'a> Parser<'a> {
         let mut clone = self.cursor.clone();
         if let (Some('.'), Some(next)) = (clone.next(), clone.next()) {
             if !next.is_ascii_digit() {
-                return None
+                return None;
             }
         }
 
@@ -794,7 +794,7 @@ impl<'a> Parser<'a> {
                 .with_span(span)
                 .done();
             self.diagnostics.push(d);
-            return Some((None, span))
+            return Some((None, span));
         }
 
         if !has_trailing_digits {
@@ -804,13 +804,13 @@ impl<'a> Parser<'a> {
                 .with_span(span)
                 .done();
             self.diagnostics.push(d);
-            return Some((None, span))
+            return Some((None, span));
         }
 
         Some(match decimals.parse::<f64>() {
             Ok(num) => (Some(Either::Right(num)), span),
             Err(_) => {
-                // unreachable, but remain calm anyway 
+                // unreachable, but remain calm anyway
                 let d = diagnostics::create_diagnostic()
                     .with_kind(DiagnosticKind::InvalidFloat)
                     .with_severity(Severity::Error)

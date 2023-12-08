@@ -113,12 +113,12 @@ impl DiagnosticBuilder<DiagnosticKind, Severity, Option<Span>> {
 #[derive(Debug, Clone)]
 pub enum DiagnosticKind {
     IllegalCharacter(char),
-    
+
     InvalidInteger(ParseIntError),
     InvalidFloat,
     MissingLeadingDigits,
     MissingTrailingDigits,
-    
+
     ExpectedToken {
         found: Token,
         expected: TokenKind,
@@ -178,83 +178,83 @@ pub enum DiagnosticKind {
 impl DiagnosticKind {
     pub fn msg(&self) -> String {
         match self {
-            DiagnosticKind::IllegalCharacter(ill)
+            Self::IllegalCharacter(ill)
                 => format!("encountered illegal character {}",
                     format!("{ill:?}").bold(),
                 ),
-            DiagnosticKind::InvalidInteger(e)
+            Self::InvalidInteger(e)
                 => format!("invalid integer literal ({e})"),
-            DiagnosticKind::InvalidFloat
+            Self::InvalidFloat
                 => format!("invalid float literal"),
-            DiagnosticKind::MissingLeadingDigits
+            Self::MissingLeadingDigits
                 => format!("float literals must have leading digits"),
-            DiagnosticKind::MissingTrailingDigits
+            Self::MissingTrailingDigits
                 => format!("float literals must have trailing digits"),
-            DiagnosticKind::ExpectedToken { found, expected }
+            Self::ExpectedToken { found, expected }
                 => format!("expected '{}', but found '{}'",
                     expected.to_string().bold(),
                     found.to_string().bold(),
                 ),
-            DiagnosticKind::ExpectedExpression
+            Self::ExpectedExpression
                 => "expected an expression".to_string(),
-            DiagnosticKind::ExpectedStatement
+            Self::ExpectedStatement
                 => "expected a statement".to_string(),
-            DiagnosticKind::ExpectedType
+            Self::ExpectedType
                 => "expected a type expression".to_string(),
-            DiagnosticKind::GuardNotBoolean
+            Self::GuardNotBoolean
                 => "guard is not a boolean".to_string(),
-            DiagnosticKind::EmptyThenStatement
+            Self::EmptyThenStatement
                 => "empty then statement".to_string(),
-            DiagnosticKind::EmptyElseStatement
+            Self::EmptyElseStatement
                 => "empty else statement".to_string(),
-            DiagnosticKind::ThenWithoutIf
+            Self::ThenWithoutIf
                 => "then statement without if".to_string(),
-            DiagnosticKind::ElseWithoutIfThen
+            Self::ElseWithoutIfThen
                 => "else statement without if-then".to_string(),
-            DiagnosticKind::EmptyWhileDoStatement
+            Self::EmptyWhileDoStatement
                 => "empty while-do statement".to_string(),
-            DiagnosticKind::EmptyDoWhileStatement
+            Self::EmptyDoWhileStatement
                 => "empty do-while statement".to_string(),
-            DiagnosticKind::DoWithoutWhile
+            Self::DoWithoutWhile
                 => "do statement without while".to_string(),
-            DiagnosticKind::UnknownVariable(name)
+            Self::UnknownVariable(name)
                 => format!("unknown variable '{}'", name.bold()),
-            DiagnosticKind::AssigneeMustBeVariable
+            Self::AssigneeMustBeVariable
                 => "assignee must be a variable".to_string(),
-            DiagnosticKind::TooManyVariables
+            Self::TooManyVariables
                 => "too many local variables".to_string(),
-            DiagnosticKind::UnknownFunction(name)
+            Self::UnknownFunction(name)
                 => format!("unknown function '{}'", name.bold()),
-            DiagnosticKind::InvalidParameterCount { got, expected }
+            Self::InvalidParameterCount { got, expected }
                 => format!("function takes in {} but was supplied {} parameters",
                     expected.to_string().bold(),
                     got.to_string().bold()
                 ),
-            DiagnosticKind::UnknownType(id)
+            Self::UnknownType(id)
                 => format!("unkown type '{}'", id.bold()),
-            DiagnosticKind::TypeMismatch { found, expected }
+            Self::TypeMismatch { found, expected }
                 => format!("type mismatch of '{}' into '{}'",
                     found.to_string().bold(),
                     expected.to_string().bold(),
                 ),
-            DiagnosticKind::InvalidUnaryOperation { op, ty }
+            Self::InvalidUnaryOperation { op, ty }
                 => format!("invalid unary operation '{}' '{}'",
                     op.to_string().bold(),
                     ty.to_string().bold(),
                 ),
-            DiagnosticKind::InvalidBinaryOperation { op, left, right }
+            Self::InvalidBinaryOperation { op, left, right }
                 => format!("invalid binary operation ('{}' {} '{}')",
                     left.to_string().bold(),
                     op.to_string().bold(),
                     right.to_string().bold(),
                 ),
-            DiagnosticKind::MustReturnValue { expected }
+            Self::MustReturnValue { expected }
                 => format!("must return a value of type '{}'", expected.to_string().bold()),
-            DiagnosticKind::NotAllPathsReturn
+            Self::NotAllPathsReturn
                 => "not every path is guaranteed to return".to_string(),
-            DiagnosticKind::TopLevelMustReturn
+            Self::TopLevelMustReturn
                 => "the top level program must return unit".to_string(),
-            DiagnosticKind::UnreachableCode
+            Self::UnreachableCode
                 => "this code is unreachable".to_string(),
         }
     }
