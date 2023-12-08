@@ -63,7 +63,7 @@ fn run_compile(command: CompileCommand) {
                 }
             };
 
-            com::compile(path, source);
+            com::compile_then_write(path, source);
         }
         CompileCommand::NoPath => {
             msg::error("no path provided");

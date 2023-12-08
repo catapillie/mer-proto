@@ -24,12 +24,12 @@ mod pos;
 mod span;
 mod tokens;
 
-pub fn compile(out_path: &str, source: String) {
-    let Some(abt) = analyse(out_path, source) else {
+pub fn compile_to_bytecode(path: &str, source: String) -> Vec<u8> {
+    let Some(abt) = analyse(path, source) else {
         process::exit(1);
     };
 
-    let program = match Codegen::new().gen(&abt) {
+    match Codegen::new().gen(&abt) {
         Ok(vec) => vec,
         Err(e) => {
             msg::error(format!(
@@ -38,9 +38,13 @@ pub fn compile(out_path: &str, source: String) {
             ));
             process::exit(1);
         }
-    };
+    }
+}
 
-    let mut path_buf = PathBuf::from(out_path);
+pub fn compile_then_write(path: &str, source: String) {
+    let program = compile_to_bytecode(path, source);
+
+    let mut path_buf = PathBuf::from(path);
     path_buf.set_extension("out");
     let out_path = path_buf.to_string_lossy().into_owned();
 
