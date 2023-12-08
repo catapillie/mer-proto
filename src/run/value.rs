@@ -28,7 +28,7 @@ impl Value {
     init_fn! { make_f32(f32: f32) }
     init_fn! { make_f64(f64: f64) }
 
-    // getter_fn! { get_unit(unit: ()) }
+    getter_fn! { get_unit(unit: ()) }
     getter_fn! { get_bool(bool: bool) }
     getter_fn! { get_u8(u8: u8) }
     getter_fn! { get_u16(u16: u16) }

@@ -8,7 +8,10 @@ use byteorder::LE;
 
 use crate::{
     com::abt::{BinOpAbtKind, StmtAbtKind, TypeAbt, UnOpAbtKind},
-    run::opcode::{self, Opcode},
+    run::{
+        native_type::NativeType,
+        opcode::{self, Opcode},
+    },
 };
 
 use super::abt::{ExprAbt, Function, ProgramAbt, StmtAbt};
@@ -85,7 +88,7 @@ impl Codegen {
             S::IfThen(guard, body) => {
                 // if ...
                 self.gen_expression(guard)?;
-                self.cursor.write_u8(opcode::not_bool)?;
+                Opcode::neg(NativeType::bool).write_bytes(&mut self.cursor)?;
                 self.cursor.write_u8(opcode::jmp_if)?;
                 let cursor_from = self.gen_u32_placeholder()?;
 
@@ -99,7 +102,7 @@ impl Codegen {
             S::IfThenElse(guard, body_then, body_else) => {
                 // if ... then
                 self.gen_expression(guard)?;
-                self.cursor.write_u8(opcode::not_bool)?;
+                Opcode::neg(NativeType::bool).write_bytes(&mut self.cursor)?;
                 self.cursor.write_u8(opcode::jmp_if)?;
                 let cursor_guard_end = self.gen_u32_placeholder()?;
 
@@ -121,7 +124,7 @@ impl Codegen {
                 // while ...
                 let cursor_guard_start = self.position();
                 self.gen_expression(guard)?;
-                self.cursor.write_u8(opcode::not_bool)?;
+                Opcode::neg(NativeType::bool).write_bytes(&mut self.cursor)?;
                 self.cursor.write_u8(opcode::jmp_if)?;
                 let cursor_guard_end = self.gen_u32_placeholder()?;
 
@@ -167,13 +170,13 @@ impl Codegen {
         use super::abt::ExprAbt as E;
         match expr {
             E::Unknown => unreachable!(),
-            E::Unit => Opcode::ld_unit.write_bytes(&mut self.cursor),
+            E::Unit => Opcode::ld_u8(0).write_bytes(&mut self.cursor),
             E::Integer(num) => Opcode::ld_i64(*num).write_bytes(&mut self.cursor),
             E::Decimal(num) => Opcode::ld_f64(*num).write_bytes(&mut self.cursor),
             E::Boolean(b) => {
                 let opcode = match b {
-                    true => Opcode::ld_bool_true,
-                    false => Opcode::ld_bool_false,
+                    true => Opcode::ld_u8(1),
+                    false => Opcode::ld_u8(0),
                 };
                 opcode.write_bytes(&mut self.cursor)?;
                 Ok(())
@@ -196,6 +199,8 @@ impl Codegen {
             }
             E::Binary(op, left, right) => {
                 use BinOpAbtKind as K;
+                use NativeType as Nt;
+                use Opcode as O;
                 use TypeAbt as Ty;
 
                 // short-circuiting logic
@@ -209,146 +214,146 @@ impl Codegen {
                 self.gen_expression(right)?;
 
                 let opcode = match (&op.in_ty, &op.kind) {
-                    (Ty::U8, K::Add) => Opcode::add_u8,
-                    (Ty::U8, K::Sub) => Opcode::sub_u8,
-                    (Ty::U8, K::Mul) => Opcode::mul_u8,
-                    (Ty::U8, K::Div) => Opcode::div_u8,
-                    (Ty::U8, K::Rem) => Opcode::rem_u8,
-                    (Ty::U8, K::Eq) => Opcode::eq_u8,
-                    (Ty::U8, K::Ne) => Opcode::ne_u8,
-                    (Ty::U8, K::Le) => Opcode::le_u8,
-                    (Ty::U8, K::Lt) => Opcode::lt_u8,
-                    (Ty::U8, K::Ge) => Opcode::ge_u8,
-                    (Ty::U8, K::Gt) => Opcode::gt_u8,
-                    (Ty::U8, K::BitAnd) => Opcode::bitand_u8,
-                    (Ty::U8, K::BitXor) => Opcode::bitxor_u8,
-                    (Ty::U8, K::BitOr) => Opcode::bitor_u8,
-                    (Ty::U16, K::Add) => Opcode::add_u16,
-                    (Ty::U16, K::Sub) => Opcode::sub_u16,
-                    (Ty::U16, K::Mul) => Opcode::mul_u16,
-                    (Ty::U16, K::Div) => Opcode::div_u16,
-                    (Ty::U16, K::Rem) => Opcode::rem_u16,
-                    (Ty::U16, K::Eq) => Opcode::eq_u16,
-                    (Ty::U16, K::Ne) => Opcode::ne_u16,
-                    (Ty::U16, K::Le) => Opcode::le_u16,
-                    (Ty::U16, K::Lt) => Opcode::lt_u16,
-                    (Ty::U16, K::Ge) => Opcode::ge_u16,
-                    (Ty::U16, K::Gt) => Opcode::gt_u16,
-                    (Ty::U16, K::BitAnd) => Opcode::bitand_u16,
-                    (Ty::U16, K::BitXor) => Opcode::bitxor_u16,
-                    (Ty::U16, K::BitOr) => Opcode::bitor_u16,
-                    (Ty::U32, K::Add) => Opcode::add_u32,
-                    (Ty::U32, K::Sub) => Opcode::sub_u32,
-                    (Ty::U32, K::Mul) => Opcode::mul_u32,
-                    (Ty::U32, K::Div) => Opcode::div_u32,
-                    (Ty::U32, K::Rem) => Opcode::rem_u32,
-                    (Ty::U32, K::Eq) => Opcode::eq_u32,
-                    (Ty::U32, K::Ne) => Opcode::ne_u32,
-                    (Ty::U32, K::Le) => Opcode::le_u32,
-                    (Ty::U32, K::Lt) => Opcode::lt_u32,
-                    (Ty::U32, K::Ge) => Opcode::ge_u32,
-                    (Ty::U32, K::Gt) => Opcode::gt_u32,
-                    (Ty::U32, K::BitAnd) => Opcode::bitand_u32,
-                    (Ty::U32, K::BitXor) => Opcode::bitxor_u32,
-                    (Ty::U32, K::BitOr) => Opcode::bitor_u32,
-                    (Ty::U64, K::Add) => Opcode::add_u64,
-                    (Ty::U64, K::Sub) => Opcode::sub_u64,
-                    (Ty::U64, K::Mul) => Opcode::mul_u64,
-                    (Ty::U64, K::Div) => Opcode::div_u64,
-                    (Ty::U64, K::Rem) => Opcode::rem_u64,
-                    (Ty::U64, K::Eq) => Opcode::eq_u64,
-                    (Ty::U64, K::Ne) => Opcode::ne_u64,
-                    (Ty::U64, K::Le) => Opcode::le_u64,
-                    (Ty::U64, K::Lt) => Opcode::lt_u64,
-                    (Ty::U64, K::Ge) => Opcode::ge_u64,
-                    (Ty::U64, K::Gt) => Opcode::gt_u64,
-                    (Ty::U64, K::BitAnd) => Opcode::bitand_u64,
-                    (Ty::U64, K::BitXor) => Opcode::bitxor_u64,
-                    (Ty::U64, K::BitOr) => Opcode::bitor_u64,
-                    (Ty::I8, K::Add) => Opcode::add_i8,
-                    (Ty::I8, K::Sub) => Opcode::sub_i8,
-                    (Ty::I8, K::Mul) => Opcode::mul_i8,
-                    (Ty::I8, K::Div) => Opcode::div_i8,
-                    (Ty::I8, K::Rem) => Opcode::rem_i8,
-                    (Ty::I8, K::Eq) => Opcode::eq_i8,
-                    (Ty::I8, K::Ne) => Opcode::ne_i8,
-                    (Ty::I8, K::Le) => Opcode::le_i8,
-                    (Ty::I8, K::Lt) => Opcode::lt_i8,
-                    (Ty::I8, K::Ge) => Opcode::ge_i8,
-                    (Ty::I8, K::Gt) => Opcode::gt_i8,
-                    (Ty::I8, K::BitAnd) => Opcode::bitand_i8,
-                    (Ty::I8, K::BitXor) => Opcode::bitxor_i8,
-                    (Ty::I8, K::BitOr) => Opcode::bitor_i8,
-                    (Ty::I16, K::Add) => Opcode::add_i16,
-                    (Ty::I16, K::Sub) => Opcode::sub_i16,
-                    (Ty::I16, K::Mul) => Opcode::mul_i16,
-                    (Ty::I16, K::Div) => Opcode::div_i16,
-                    (Ty::I16, K::Rem) => Opcode::rem_i16,
-                    (Ty::I16, K::Eq) => Opcode::eq_i16,
-                    (Ty::I16, K::Ne) => Opcode::ne_i16,
-                    (Ty::I16, K::Le) => Opcode::le_i16,
-                    (Ty::I16, K::Lt) => Opcode::lt_i16,
-                    (Ty::I16, K::Ge) => Opcode::ge_i16,
-                    (Ty::I16, K::Gt) => Opcode::gt_i16,
-                    (Ty::I16, K::BitAnd) => Opcode::bitand_i16,
-                    (Ty::I16, K::BitXor) => Opcode::bitxor_i16,
-                    (Ty::I16, K::BitOr) => Opcode::bitor_i16,
-                    (Ty::I32, K::Add) => Opcode::add_i32,
-                    (Ty::I32, K::Sub) => Opcode::sub_i32,
-                    (Ty::I32, K::Mul) => Opcode::mul_i32,
-                    (Ty::I32, K::Div) => Opcode::div_i32,
-                    (Ty::I32, K::Rem) => Opcode::rem_i32,
-                    (Ty::I32, K::Eq) => Opcode::eq_i32,
-                    (Ty::I32, K::Ne) => Opcode::ne_i32,
-                    (Ty::I32, K::Le) => Opcode::le_i32,
-                    (Ty::I32, K::Lt) => Opcode::lt_i32,
-                    (Ty::I32, K::Ge) => Opcode::ge_i32,
-                    (Ty::I32, K::Gt) => Opcode::gt_i32,
-                    (Ty::I32, K::BitAnd) => Opcode::bitand_i32,
-                    (Ty::I32, K::BitXor) => Opcode::bitxor_i32,
-                    (Ty::I32, K::BitOr) => Opcode::bitor_i32,
-                    (Ty::I64, K::Add) => Opcode::add_i64,
-                    (Ty::I64, K::Sub) => Opcode::sub_i64,
-                    (Ty::I64, K::Mul) => Opcode::mul_i64,
-                    (Ty::I64, K::Div) => Opcode::div_i64,
-                    (Ty::I64, K::Rem) => Opcode::rem_i64,
-                    (Ty::I64, K::Eq) => Opcode::eq_i64,
-                    (Ty::I64, K::Ne) => Opcode::ne_i64,
-                    (Ty::I64, K::Le) => Opcode::le_i64,
-                    (Ty::I64, K::Lt) => Opcode::lt_i64,
-                    (Ty::I64, K::Ge) => Opcode::ge_i64,
-                    (Ty::I64, K::Gt) => Opcode::gt_i64,
-                    (Ty::I64, K::BitAnd) => Opcode::bitand_i64,
-                    (Ty::I64, K::BitXor) => Opcode::bitxor_i64,
-                    (Ty::I64, K::BitOr) => Opcode::bitor_i64,
-                    (Ty::F32, K::Add) => Opcode::add_f32,
-                    (Ty::F32, K::Sub) => Opcode::sub_f32,
-                    (Ty::F32, K::Mul) => Opcode::mul_f32,
-                    (Ty::F32, K::Div) => Opcode::div_f32,
-                    (Ty::F32, K::Rem) => Opcode::rem_f32,
-                    (Ty::F32, K::Eq) => Opcode::eq_f32,
-                    (Ty::F32, K::Ne) => Opcode::ne_f32,
-                    (Ty::F32, K::Le) => Opcode::le_f32,
-                    (Ty::F32, K::Lt) => Opcode::lt_f32,
-                    (Ty::F32, K::Ge) => Opcode::ge_f32,
-                    (Ty::F32, K::Gt) => Opcode::gt_f32,
-                    (Ty::F64, K::Add) => Opcode::add_f64,
-                    (Ty::F64, K::Sub) => Opcode::sub_f64,
-                    (Ty::F64, K::Mul) => Opcode::mul_f64,
-                    (Ty::F64, K::Div) => Opcode::div_f64,
-                    (Ty::F64, K::Rem) => Opcode::rem_f64,
-                    (Ty::F64, K::Eq) => Opcode::eq_f64,
-                    (Ty::F64, K::Ne) => Opcode::ne_f64,
-                    (Ty::F64, K::Le) => Opcode::le_f64,
-                    (Ty::F64, K::Lt) => Opcode::lt_f64,
-                    (Ty::F64, K::Ge) => Opcode::ge_f64,
-                    (Ty::F64, K::Gt) => Opcode::gt_f64,
-                    (Ty::Bool, K::Eq) => Opcode::eq_bool,
-                    (Ty::Bool, K::Ne) => Opcode::ne_bool,
-                    (Ty::Bool, K::BitAnd) => Opcode::and_bool,
-                    (Ty::Bool, K::BitOr) => Opcode::or_bool,
-                    (Ty::Bool, K::BitXor) => Opcode::xor_bool,
-                    (Ty::Bool, K::Xor) => Opcode::xor_bool,
+                    (Ty::U8, K::Add) => O::add(Nt::u8),
+                    (Ty::U8, K::Sub) => O::sub(Nt::u8),
+                    (Ty::U8, K::Mul) => O::mul(Nt::u8),
+                    (Ty::U8, K::Div) => O::div(Nt::u8),
+                    (Ty::U8, K::Rem) => O::rem(Nt::u8),
+                    (Ty::U8, K::Eq) => O::eq(Nt::u8),
+                    (Ty::U8, K::Ne) => O::ne(Nt::u8),
+                    (Ty::U8, K::Le) => O::le(Nt::u8),
+                    (Ty::U8, K::Lt) => O::lt(Nt::u8),
+                    (Ty::U8, K::Ge) => O::ge(Nt::u8),
+                    (Ty::U8, K::Gt) => O::gt(Nt::u8),
+                    (Ty::U8, K::BitAnd) => O::bitand(Nt::u8),
+                    (Ty::U8, K::BitXor) => O::bitxor(Nt::u8),
+                    (Ty::U8, K::BitOr) => O::bitor(Nt::u8),
+                    (Ty::U16, K::Add) => O::add(Nt::u16),
+                    (Ty::U16, K::Sub) => O::sub(Nt::u16),
+                    (Ty::U16, K::Mul) => O::mul(Nt::u16),
+                    (Ty::U16, K::Div) => O::div(Nt::u16),
+                    (Ty::U16, K::Rem) => O::rem(Nt::u16),
+                    (Ty::U16, K::Eq) => O::eq(Nt::u16),
+                    (Ty::U16, K::Ne) => O::ne(Nt::u16),
+                    (Ty::U16, K::Le) => O::le(Nt::u16),
+                    (Ty::U16, K::Lt) => O::lt(Nt::u16),
+                    (Ty::U16, K::Ge) => O::ge(Nt::u16),
+                    (Ty::U16, K::Gt) => O::gt(Nt::u16),
+                    (Ty::U16, K::BitAnd) => O::bitand(Nt::u16),
+                    (Ty::U16, K::BitXor) => O::bitxor(Nt::u16),
+                    (Ty::U16, K::BitOr) => O::bitor(Nt::u16),
+                    (Ty::U32, K::Add) => O::add(Nt::u32),
+                    (Ty::U32, K::Sub) => O::sub(Nt::u32),
+                    (Ty::U32, K::Mul) => O::mul(Nt::u32),
+                    (Ty::U32, K::Div) => O::div(Nt::u32),
+                    (Ty::U32, K::Rem) => O::rem(Nt::u32),
+                    (Ty::U32, K::Eq) => O::eq(Nt::u32),
+                    (Ty::U32, K::Ne) => O::ne(Nt::u32),
+                    (Ty::U32, K::Le) => O::le(Nt::u32),
+                    (Ty::U32, K::Lt) => O::lt(Nt::u32),
+                    (Ty::U32, K::Ge) => O::ge(Nt::u32),
+                    (Ty::U32, K::Gt) => O::gt(Nt::u32),
+                    (Ty::U32, K::BitAnd) => O::bitand(Nt::u32),
+                    (Ty::U32, K::BitXor) => O::bitxor(Nt::u32),
+                    (Ty::U32, K::BitOr) => O::bitor(Nt::u32),
+                    (Ty::U64, K::Add) => O::add(Nt::u64),
+                    (Ty::U64, K::Sub) => O::sub(Nt::u64),
+                    (Ty::U64, K::Mul) => O::mul(Nt::u64),
+                    (Ty::U64, K::Div) => O::div(Nt::u64),
+                    (Ty::U64, K::Rem) => O::rem(Nt::u64),
+                    (Ty::U64, K::Eq) => O::eq(Nt::u64),
+                    (Ty::U64, K::Ne) => O::ne(Nt::u64),
+                    (Ty::U64, K::Le) => O::le(Nt::u64),
+                    (Ty::U64, K::Lt) => O::lt(Nt::u64),
+                    (Ty::U64, K::Ge) => O::ge(Nt::u64),
+                    (Ty::U64, K::Gt) => O::gt(Nt::u64),
+                    (Ty::U64, K::BitAnd) => O::bitand(Nt::u64),
+                    (Ty::U64, K::BitXor) => O::bitxor(Nt::u64),
+                    (Ty::U64, K::BitOr) => O::bitor(Nt::u64),
+                    (Ty::I8, K::Add) => O::add(Nt::i8),
+                    (Ty::I8, K::Sub) => O::sub(Nt::i8),
+                    (Ty::I8, K::Mul) => O::mul(Nt::i8),
+                    (Ty::I8, K::Div) => O::div(Nt::i8),
+                    (Ty::I8, K::Rem) => O::rem(Nt::i8),
+                    (Ty::I8, K::Eq) => O::eq(Nt::i8),
+                    (Ty::I8, K::Ne) => O::ne(Nt::i8),
+                    (Ty::I8, K::Le) => O::le(Nt::i8),
+                    (Ty::I8, K::Lt) => O::lt(Nt::i8),
+                    (Ty::I8, K::Ge) => O::ge(Nt::i8),
+                    (Ty::I8, K::Gt) => O::gt(Nt::i8),
+                    (Ty::I8, K::BitAnd) => O::bitand(Nt::i8),
+                    (Ty::I8, K::BitXor) => O::bitxor(Nt::i8),
+                    (Ty::I8, K::BitOr) => O::bitor(Nt::i8),
+                    (Ty::I16, K::Add) => O::add(Nt::i16),
+                    (Ty::I16, K::Sub) => O::sub(Nt::i16),
+                    (Ty::I16, K::Mul) => O::mul(Nt::i16),
+                    (Ty::I16, K::Div) => O::div(Nt::i16),
+                    (Ty::I16, K::Rem) => O::rem(Nt::i16),
+                    (Ty::I16, K::Eq) => O::eq(Nt::i16),
+                    (Ty::I16, K::Ne) => O::ne(Nt::i16),
+                    (Ty::I16, K::Le) => O::le(Nt::i16),
+                    (Ty::I16, K::Lt) => O::lt(Nt::i16),
+                    (Ty::I16, K::Ge) => O::ge(Nt::i16),
+                    (Ty::I16, K::Gt) => O::gt(Nt::i16),
+                    (Ty::I16, K::BitAnd) => O::bitand(Nt::i16),
+                    (Ty::I16, K::BitXor) => O::bitxor(Nt::i16),
+                    (Ty::I16, K::BitOr) => O::bitor(Nt::i16),
+                    (Ty::I32, K::Add) => O::add(Nt::i32),
+                    (Ty::I32, K::Sub) => O::sub(Nt::i32),
+                    (Ty::I32, K::Mul) => O::mul(Nt::i32),
+                    (Ty::I32, K::Div) => O::div(Nt::i32),
+                    (Ty::I32, K::Rem) => O::rem(Nt::i32),
+                    (Ty::I32, K::Eq) => O::eq(Nt::i32),
+                    (Ty::I32, K::Ne) => O::ne(Nt::i32),
+                    (Ty::I32, K::Le) => O::le(Nt::i32),
+                    (Ty::I32, K::Lt) => O::lt(Nt::i32),
+                    (Ty::I32, K::Ge) => O::ge(Nt::i32),
+                    (Ty::I32, K::Gt) => O::gt(Nt::i32),
+                    (Ty::I32, K::BitAnd) => O::bitand(Nt::i32),
+                    (Ty::I32, K::BitXor) => O::bitxor(Nt::i32),
+                    (Ty::I32, K::BitOr) => O::bitor(Nt::i32),
+                    (Ty::I64, K::Add) => O::add(Nt::i64),
+                    (Ty::I64, K::Sub) => O::sub(Nt::i64),
+                    (Ty::I64, K::Mul) => O::mul(Nt::i64),
+                    (Ty::I64, K::Div) => O::div(Nt::i64),
+                    (Ty::I64, K::Rem) => O::rem(Nt::i64),
+                    (Ty::I64, K::Eq) => O::eq(Nt::i64),
+                    (Ty::I64, K::Ne) => O::ne(Nt::i64),
+                    (Ty::I64, K::Le) => O::le(Nt::i64),
+                    (Ty::I64, K::Lt) => O::lt(Nt::i64),
+                    (Ty::I64, K::Ge) => O::ge(Nt::i64),
+                    (Ty::I64, K::Gt) => O::gt(Nt::i64),
+                    (Ty::I64, K::BitAnd) => O::bitand(Nt::i64),
+                    (Ty::I64, K::BitXor) => O::bitxor(Nt::i64),
+                    (Ty::I64, K::BitOr) => O::bitor(Nt::i64),
+                    (Ty::F32, K::Add) => O::add(Nt::f32),
+                    (Ty::F32, K::Sub) => O::sub(Nt::f32),
+                    (Ty::F32, K::Mul) => O::mul(Nt::f32),
+                    (Ty::F32, K::Div) => O::div(Nt::f32),
+                    (Ty::F32, K::Rem) => O::rem(Nt::f32),
+                    (Ty::F32, K::Eq) => O::eq(Nt::f32),
+                    (Ty::F32, K::Ne) => O::ne(Nt::f32),
+                    (Ty::F32, K::Le) => O::le(Nt::f32),
+                    (Ty::F32, K::Lt) => O::lt(Nt::f32),
+                    (Ty::F32, K::Ge) => O::ge(Nt::f32),
+                    (Ty::F32, K::Gt) => O::gt(Nt::f32),
+                    (Ty::F64, K::Add) => O::add(Nt::f64),
+                    (Ty::F64, K::Sub) => O::sub(Nt::f64),
+                    (Ty::F64, K::Mul) => O::mul(Nt::f64),
+                    (Ty::F64, K::Div) => O::div(Nt::f64),
+                    (Ty::F64, K::Rem) => O::rem(Nt::f64),
+                    (Ty::F64, K::Eq) => O::eq(Nt::f64),
+                    (Ty::F64, K::Ne) => O::ne(Nt::f64),
+                    (Ty::F64, K::Le) => O::le(Nt::f64),
+                    (Ty::F64, K::Lt) => O::lt(Nt::f64),
+                    (Ty::F64, K::Ge) => O::ge(Nt::f64),
+                    (Ty::F64, K::Gt) => O::gt(Nt::f64),
+                    (Ty::Bool, K::Eq) => O::eq(Nt::bool),
+                    (Ty::Bool, K::Ne) => O::ne(Nt::bool),
+                    (Ty::Bool, K::BitAnd) => O::bitand(Nt::bool),
+                    (Ty::Bool, K::BitOr) => O::bitor(Nt::bool),
+                    (Ty::Bool, K::BitXor) => O::bitxor(Nt::bool),
+                    (Ty::Bool, K::Xor) => O::bitxor(Nt::bool),
                     _ => unreachable!("{:?}", op),
                 };
                 opcode.write_bytes(&mut self.cursor)?;
@@ -370,13 +375,13 @@ impl Codegen {
                     | (Ty::I64, K::Pos)
                     | (Ty::F32, K::Pos)
                     | (Ty::F64, K::Pos) => return Ok(()), // this operation does nothing
-                    (Ty::I8, K::Neg) => Opcode::neg_i8,
-                    (Ty::I16, K::Neg) => Opcode::neg_i16,
-                    (Ty::I32, K::Neg) => Opcode::neg_i32,
-                    (Ty::I64, K::Neg) => Opcode::neg_i64,
-                    (Ty::F32, K::Neg) => Opcode::neg_f32,
-                    (Ty::F64, K::Neg) => Opcode::neg_f64,
-                    (Ty::Bool, K::Not) => Opcode::not_bool,
+                    (Ty::I8, K::Neg) => Opcode::neg(NativeType::i8),
+                    (Ty::I16, K::Neg) => Opcode::neg(NativeType::i16),
+                    (Ty::I32, K::Neg) => Opcode::neg(NativeType::i32),
+                    (Ty::I64, K::Neg) => Opcode::neg(NativeType::i64),
+                    (Ty::F32, K::Neg) => Opcode::neg(NativeType::f32),
+                    (Ty::F64, K::Neg) => Opcode::neg(NativeType::f64),
+                    (Ty::Bool, K::Not) => Opcode::neg(NativeType::bool),
                     _ => unreachable!(),
                 };
 
@@ -389,12 +394,12 @@ impl Codegen {
     fn gen_short_circuit_and(&mut self, left: &ExprAbt, right: &ExprAbt) -> io::Result<()> {
         self.gen_expression(left)?;
         self.cursor.write_u8(opcode::dup)?;
-        self.cursor.write_u8(opcode::not_bool)?;
+        Opcode::neg(NativeType::bool).write_bytes(&mut self.cursor)?;
         self.cursor.write_u8(opcode::jmp_if)?;
         let cursor_a = self.gen_u32_placeholder()?;
 
         self.gen_expression(right)?;
-        self.cursor.write_u8(opcode::and_bool)?;
+        Opcode::bitand(NativeType::bool).write_bytes(&mut self.cursor)?;
         let cursor_b = self.position();
 
         self.patch_u32_placeholder(cursor_a, cursor_b)?;
@@ -408,7 +413,7 @@ impl Codegen {
         let cursor_a = self.gen_u32_placeholder()?;
 
         self.gen_expression(right)?;
-        self.cursor.write_u8(opcode::or_bool)?;
+        Opcode::bitor(NativeType::bool).write_bytes(&mut self.cursor)?;
         let cursor_b = self.position();
 
         self.patch_u32_placeholder(cursor_a, cursor_b)?;

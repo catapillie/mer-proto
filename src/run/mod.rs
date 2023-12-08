@@ -3,8 +3,9 @@ use std::io::{Cursor, Read};
 use byteorder::ReadBytesExt;
 use colored::Colorize;
 
-use self::vm::VM;
+use self::{native_type::NativeType, vm::VM};
 
+pub mod native_type;
 pub mod opcode;
 pub mod value;
 pub mod vm;
@@ -172,6 +173,23 @@ pub fn disassemble(program: &Vec<u8>) -> Option<()> {
                     "{offset:0width$} | {byte:02x} {:>16} -> {} ({fp:0width$})",
                     opcode.bold(),
                     name.bold(),
+                    width = 8
+                );
+            }
+            #[rustfmt::skip]
+            opcode::add | opcode::sub | opcode::mul | opcode::div | opcode::rem |
+            opcode::eq | opcode::ne | opcode::le | opcode::lt | opcode::ge | opcode::gt |
+            opcode::bitand | opcode::bitor | opcode::bitxor |
+            opcode::neg => {
+                let ty = match NativeType::try_from(cursor.read_u8().ok()?) {
+                    Ok(ty) => format!("{ty:?}"),
+                    Err(_) => "illegal".bright_red().to_string(),
+                };
+
+                println!(
+                    "{offset:0width$} | {byte:02x} {:>16} <{}>",
+                    opcode.bold(),
+                    ty.bold(),
                     width = 8
                 );
             }

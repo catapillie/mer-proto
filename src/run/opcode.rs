@@ -2,6 +2,8 @@ use std::io::{self, Cursor, Write};
 
 use byteorder::WriteBytesExt;
 
+use super::native_type::NativeType;
+
 opcodes! {
     0x00 nop
     0x01 pop
@@ -19,180 +21,37 @@ opcodes! {
     0xf0 entry_point(u32)
     0xf1 function(String, u8, u8)
 
-    0xfe ld_unit
-
     0x10 ld_u8(u8)
-    0x11 add_u8
-    0x12 sub_u8
-    0x13 mul_u8
-    0x14 div_u8
-    0x15 rem_u8
-    0x16 eq_u8
-    0x17 ne_u8
-    0x18 le_u8
-    0x19 lt_u8
-    0x1a ge_u8
-    0x1b gt_u8
-    0x1c bitand_u8
-    0x1d bitor_u8
-    0x1e bitxor_u8
+    0x11 ld_u16(u16)
+    0x12 ld_u32(u32)
+    0x13 ld_u64(u64)
+    0x14 ld_i8(i8)
+    0x15 ld_i16(i16)
+    0x16 ld_i32(i32)
+    0x17 ld_i64(i64)
+    0x18 ld_f32(f32)
+    0x19 ld_f64(f64)
 
-    0x20 ld_u16(u16)
-    0x21 add_u16
-    0x22 sub_u16
-    0x23 mul_u16
-    0x24 div_u16
-    0x25 rem_u16
-    0x26 eq_u16
-    0x27 ne_u16
-    0x28 le_u16
-    0x29 lt_u16
-    0x2a ge_u16
-    0x2b gt_u16
-    0x2c bitand_u16
-    0x2d bitor_u16
-    0x2e bitxor_u16
-
-    0x30 ld_u32(u32)
-    0x31 add_u32
-    0x32 sub_u32
-    0x33 mul_u32
-    0x34 div_u32
-    0x35 rem_u32
-    0x36 eq_u32
-    0x37 ne_u32
-    0x38 le_u32
-    0x39 lt_u32
-    0x3a ge_u32
-    0x3b gt_u32
-    0x3c bitand_u32
-    0x3d bitor_u32
-    0x3e bitxor_u32
-
-    0x40 ld_u64(u64)
-    0x41 add_u64
-    0x42 sub_u64
-    0x43 mul_u64
-    0x44 div_u64
-    0x45 rem_u64
-    0x46 eq_u64
-    0x47 ne_u64
-    0x48 le_u64
-    0x49 lt_u64
-    0x4a ge_u64
-    0x4b gt_u64
-    0x4c bitand_u64
-    0x4d bitor_u64
-    0x4e bitxor_u64
-
-    0x50 ld_i8(i8)
-    0x51 add_i8
-    0x52 sub_i8
-    0x53 mul_i8
-    0x54 div_i8
-    0x55 rem_i8
-    0x56 eq_i8
-    0x57 ne_i8
-    0x58 le_i8
-    0x59 lt_i8
-    0x5a ge_i8
-    0x5b gt_i8
-    0x5c bitand_i8
-    0x5d bitor_i8
-    0x5e bitxor_i8
-    0x5f neg_i8
-
-    0x60 ld_i16(i16)
-    0x61 add_i16
-    0x62 sub_i16
-    0x63 mul_i16
-    0x64 div_i16
-    0x65 rem_i16
-    0x66 eq_i16
-    0x67 ne_i16
-    0x68 le_i16
-    0x69 lt_i16
-    0x6a ge_i16
-    0x6b gt_i16
-    0x6c bitand_i16
-    0x6d bitor_i16
-    0x6e bitxor_i16
-    0x6f neg_i16
-
-    0x70 ld_i32(i32)
-    0x71 add_i32
-    0x72 sub_i32
-    0x73 mul_i32
-    0x74 div_i32
-    0x75 rem_i32
-    0x76 eq_i32
-    0x77 ne_i32
-    0x78 le_i32
-    0x79 lt_i32
-    0x7a ge_i32
-    0x7b gt_i32
-    0x7c bitand_i32
-    0x7d bitor_i32
-    0x7e bitxor_i32
-    0x7f neg_i32
-
-    0x80 ld_i64(i64)
-    0x81 add_i64
-    0x82 sub_i64
-    0x83 mul_i64
-    0x84 div_i64
-    0x85 rem_i64
-    0x86 eq_i64
-    0x87 ne_i64
-    0x88 le_i64
-    0x89 lt_i64
-    0x8a ge_i64
-    0x8b gt_i64
-    0x8c bitand_i64
-    0x8d bitor_i64
-    0x8e bitxor_i64
-    0x8f neg_i64
-
-    0x90 ld_f32(f32)
-    0x91 add_f32
-    0x92 sub_f32
-    0x93 mul_f32
-    0x94 div_f32
-    0x95 rem_f32
-    0x96 eq_f32
-    0x97 ne_f32
-    0x98 le_f32
-    0x99 lt_f32
-    0x9a ge_f32
-    0x9b gt_f32
-    0x9c neg_f32
-
-    0xa0 ld_f64(f64)
-    0xa1 add_f64
-    0xa2 sub_f64
-    0xa3 mul_f64
-    0xa4 div_f64
-    0xa5 rem_f64
-    0xa6 eq_f64
-    0xa7 ne_f64
-    0xa8 le_f64
-    0xa9 lt_f64
-    0xaa ge_f64
-    0xab gt_f64
-    0xac neg_f64
-
-    0xb0 ld_bool_false
-    0xb1 ld_bool_true
-    0xb2 eq_bool
-    0xb3 ne_bool
-    0xb4 and_bool
-    0xb5 or_bool
-    0xb6 xor_bool
-    0xb7 not_bool
+    0x21 add(NativeType)
+    0x22 sub(NativeType)
+    0x23 mul(NativeType)
+    0x24 div(NativeType)
+    0x25 rem(NativeType)
+    0x26 eq(NativeType)
+    0x27 ne(NativeType)
+    0x28 le(NativeType)
+    0x29 lt(NativeType)
+    0x2a ge(NativeType)
+    0x2b gt(NativeType)
+    0x2c bitand(NativeType)
+    0x2d bitor(NativeType)
+    0x2e bitxor(NativeType)
+    0x2f neg(NativeType)
 }
 
 impl Opcode {
     #[allow(dead_code)]
+    #[rustfmt::skip]
     pub fn write_bytes(&self, cursor: &mut Cursor<Vec<u8>>) -> io::Result<()> {
         cursor.write_u8(self.byte())?;
         match self {
@@ -221,6 +80,21 @@ impl Opcode {
                 cursor.write_u8(*param_count)?;
                 cursor.write_u8(*local_count)?;
             }
+            Opcode::add(ty) => cursor.write_u8((*ty).into())?,
+            Opcode::sub(ty) => cursor.write_u8((*ty).into())?,
+            Opcode::mul(ty) => cursor.write_u8((*ty).into())?,
+            Opcode::div(ty) => cursor.write_u8((*ty).into())?,
+            Opcode::rem(ty) => cursor.write_u8((*ty).into())?,
+            Opcode::eq(ty) => cursor.write_u8((*ty).into())?,
+            Opcode::ne(ty) => cursor.write_u8((*ty).into())?,
+            Opcode::le(ty) => cursor.write_u8((*ty).into())?,
+            Opcode::lt(ty) => cursor.write_u8((*ty).into())?,
+            Opcode::ge(ty) => cursor.write_u8((*ty).into())?,
+            Opcode::gt(ty) => cursor.write_u8((*ty).into())?,
+            Opcode::bitand(ty) => cursor.write_u8((*ty).into())?,
+            Opcode::bitor(ty) => cursor.write_u8((*ty).into())?,
+            Opcode::bitxor(ty) => cursor.write_u8((*ty).into())?,
+            Opcode::neg(ty) => cursor.write_u8((*ty).into())?,
             _ => {}
         }
 
@@ -261,9 +135,10 @@ macro_rules! opcodes {
         #[allow(non_camel_case_types)]
         #[allow(dead_code)]
         #[derive(Debug)]
+        #[repr(u8)]
         pub enum Opcode {
             $(
-                $name $(($($type),*))?,
+                $name $(($($type),*))? = $byte,
             )*
         }
 
