@@ -4,10 +4,14 @@ use crate::{
         analyser::Analyser,
         diagnostics::{Diagnostics, Severity},
     },
-    msg, run,
+    msg,
 };
 use colored::{Color, Colorize};
-use std::process::{self};
+use std::{
+    fs::{self},
+    path::PathBuf,
+    process::{self},
+};
 
 pub mod abt;
 mod analyser;
@@ -20,13 +24,40 @@ mod pos;
 mod span;
 mod tokens;
 
-pub fn compile(path: &str, source: String) {
-    let Some(abt) = analyse(path, source) else {
+pub fn compile(out_path: &str, source: String) {
+    let Some(abt) = analyse(out_path, source) else {
         process::exit(1);
     };
 
-    let program = Codegen::new().gen(&abt).unwrap();
-    run::disassemble(&program); // wip
+    let program = match Codegen::new().gen(&abt) {
+        Ok(vec) => vec,
+        Err(e) => {
+            msg::error(format!(
+                "io error occurred during bytecode generation:\n      {}",
+                e.to_string().italic()
+            ));
+            process::exit(1);
+        }
+    };
+
+    let mut path_buf = PathBuf::from(out_path);
+    path_buf.set_extension("out");
+    let out_path = path_buf.to_string_lossy().into_owned();
+
+    match fs::write(path_buf, program.as_slice()) {
+        Ok(()) => msg::ok(format!(
+            "compilation to '{}' finished successfully",
+            out_path.bold()
+        )),
+        Err(e) => {
+            msg::error(format!(
+                "compilation was successful, but couldn't write to file '{}':\n      {}",
+                out_path.bold(),
+                e.to_string().italic()
+            ));
+            process::exit(1);
+        }
+    }
 
     process::exit(0);
 }
