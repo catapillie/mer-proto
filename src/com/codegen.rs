@@ -190,7 +190,7 @@ impl Codegen {
                 Opcode::dbg(ty).write_bytes(&mut self.cursor)?;
                 Ok(())
             },
-            E::Unit => Opcode::ld_u8(0).write_bytes(&mut self.cursor),
+            E::Unit => Opcode::ld_unit.write_bytes(&mut self.cursor),
             E::Integer(num) => Opcode::ld_i64(*num).write_bytes(&mut self.cursor),
             E::Decimal(num) => Opcode::ld_f64(*num).write_bytes(&mut self.cursor),
             E::Boolean(b) => {

@@ -31,6 +31,7 @@ opcodes! {
     0x17 ld_i64(i64)
     0x18 ld_f32(f32)
     0x19 ld_f64(f64)
+    0x1a ld_unit
 
     0x21 add(NativeType)
     0x22 sub(NativeType)

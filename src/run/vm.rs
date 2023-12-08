@@ -98,7 +98,7 @@ impl<'a> VM<'a> {
                             process::exit(1);
                         }
                     }
-                },
+                }
 
                 opcode::jmp => self.jmp(),
                 opcode::jmp_if => self.jmp_if(),
@@ -108,6 +108,7 @@ impl<'a> VM<'a> {
                 opcode::ld_loc => self.ld_loc(),
                 opcode::st_loc => self.st_loc(),
 
+                opcode::ld_unit => self.push(Value::make_unit(())),
                 opcode::ld_u8 => push_value!(self => read_u8, make_u8),
                 opcode::ld_u16 => push_value!(self => read_u16, make_u16),
                 opcode::ld_u32 => push_value!(self => read_u32, make_u32),
