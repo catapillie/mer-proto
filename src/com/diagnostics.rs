@@ -185,11 +185,11 @@ impl DiagnosticKind {
             Self::InvalidInteger(e)
                 => format!("invalid integer literal ({e})"),
             Self::InvalidFloat
-                => format!("invalid float literal"),
+                => "invalid float literal".to_string(),
             Self::MissingLeadingDigits
-                => format!("float literals must have leading digits"),
+                => "float literals must have leading digits".to_string(),
             Self::MissingTrailingDigits
-                => format!("float literals must have trailing digits"),
+                => "float literals must have trailing digits".to_string(),
             Self::ExpectedToken { found, expected }
                 => format!("expected '{}', but found '{}'",
                     expected.to_string().bold(),
