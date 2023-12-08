@@ -168,7 +168,8 @@ impl Codegen {
         match expr {
             E::Unknown => unreachable!(),
             E::Unit => Opcode::ld_unit.write_bytes(&mut self.cursor),
-            E::Number(num) => Opcode::ld_f64(*num).write_bytes(&mut self.cursor),
+            E::Integer(num) => Opcode::ld_i64(*num).write_bytes(&mut self.cursor),
+            E::Decimal(num) => Opcode::ld_f64(*num).write_bytes(&mut self.cursor),
             E::Boolean(b) => {
                 let opcode = match b {
                     true => Opcode::ld_bool_true,

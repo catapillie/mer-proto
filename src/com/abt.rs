@@ -37,7 +37,8 @@ impl StmtAbtKind {
 pub enum ExprAbt {
     Unknown,
     Unit,
-    Number(f64),
+    Integer(i64),
+    Decimal(f64),
     Boolean(bool),
     Variable(Variable),
     Assignment(Variable, Box<ExprAbt>),
@@ -51,7 +52,8 @@ impl ExprAbt {
         match self {
             ExprAbt::Unknown => TypeAbt::Unknown,
             ExprAbt::Unit => TypeAbt::Unit,
-            ExprAbt::Number(_) => TypeAbt::F64,
+            ExprAbt::Integer(_) => TypeAbt::I64,
+            ExprAbt::Decimal(_) => TypeAbt::F64,
             ExprAbt::Boolean(_) => TypeAbt::Bool,
             ExprAbt::Variable(var) => var.ty.clone(),
             ExprAbt::Assignment(var, _) => var.ty.clone(),

@@ -96,8 +96,12 @@ gen_tokens! {
 
     Identifier(String) "identifier"
         self => ("identifier '{}'", self.0),
-    Number(f64) "number"
+    Integer(i64) "integer"
         self => ("{}", self.0),
+    Decimal(f64) "floating-point number"
+        self => ("{}", self.0),
+    MalformedNumeral "malformed number"
+        self => ("malformed nulmber")
 }
 
 macro_rules! gen_tokens {

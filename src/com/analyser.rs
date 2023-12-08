@@ -561,8 +561,10 @@ impl<'a> Analyser<'a> {
         match &expr.kind {
             ExprAstKind::Bad
                 => ExprAbt::Unknown,
-            ExprAstKind::Number(num)
-                => ExprAbt::Number(*num),
+            ExprAstKind::Integer(num)
+                => ExprAbt::Integer(*num),
+            ExprAstKind::Decimal(num)
+                => ExprAbt::Decimal(*num),
             ExprAstKind::Identifier(id)
                 => self.analyse_variable_expression(id, expr.span),
             ExprAstKind::Boolean(b)

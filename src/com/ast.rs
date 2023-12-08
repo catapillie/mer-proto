@@ -58,7 +58,8 @@ impl ExprAstKind {
 #[derive(Debug)]
 pub enum ExprAstKind {
     Bad,
-    Number(f64),
+    Integer(i64),
+    Decimal(f64),
     Identifier(String),
     Boolean(bool),
     Parenthesized(Box<ExprAst>),

@@ -1,3 +1,5 @@
+use std::num::ParseIntError;
+
 use colored::Colorize;
 
 use super::{
@@ -111,6 +113,12 @@ impl DiagnosticBuilder<DiagnosticKind, Severity, Option<Span>> {
 #[derive(Debug, Clone)]
 pub enum DiagnosticKind {
     IllegalCharacter(char),
+    
+    InvalidInteger(ParseIntError),
+    InvalidFloat,
+    MissingLeadingDigits,
+    MissingTrailingDigits,
+    
     ExpectedToken {
         found: Token,
         expected: TokenKind,
@@ -174,6 +182,14 @@ impl DiagnosticKind {
                 => format!("encountered illegal character {}",
                     format!("{ill:?}").bold(),
                 ),
+            DiagnosticKind::InvalidInteger(e)
+                => format!("invalid integer literal ({e})"),
+            DiagnosticKind::InvalidFloat
+                => format!("invalid float literal"),
+            DiagnosticKind::MissingLeadingDigits
+                => format!("float literals must have leading digits"),
+            DiagnosticKind::MissingTrailingDigits
+                => format!("float literals must have trailing digits"),
             DiagnosticKind::ExpectedToken { found, expected }
                 => format!("expected '{}', but found '{}'",
                     expected.to_string().bold(),
