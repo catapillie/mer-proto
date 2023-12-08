@@ -66,6 +66,7 @@ pub enum ExprAstKind {
     BinaryOp(BinOpAst, Box<ExprAst>, Box<ExprAst>),
     UnaryOp(UnOpAst, Box<ExprAst>),
     Call(String, Vec<ExprAst>),
+    Debug(Box<ExprAst>),
 }
 
 impl TypeAstKind {

@@ -8,7 +8,7 @@ opcodes! {
     0x00 nop
     0x01 pop
     0x02 dup
-    0x03 dbg
+    0x03 dbg(NativeType)
 
     0xc0 jmp(u32)
     0xc1 jmp_if(u32)
@@ -80,6 +80,7 @@ impl Opcode {
                 cursor.write_u8(*param_count)?;
                 cursor.write_u8(*local_count)?;
             }
+            Opcode::dbg(ty) => cursor.write_u8((*ty).into())?,
             Opcode::add(ty) => cursor.write_u8((*ty).into())?,
             Opcode::sub(ty) => cursor.write_u8((*ty).into())?,
             Opcode::mul(ty) => cursor.write_u8((*ty).into())?,

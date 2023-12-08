@@ -8,7 +8,7 @@ func fib(n: i64) -> i64
 var i = 0
 while i < 20 do
 {
-    fib(i)
+    debug fib(i)
     i = i + 1
 }
 

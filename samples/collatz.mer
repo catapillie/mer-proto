@@ -22,7 +22,7 @@ while n <= 100 do
 {
     if collatz(n) > 100 then
     {
-        n
+        debug n
     }
 
     n = n + 1

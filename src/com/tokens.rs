@@ -89,6 +89,7 @@ gen_tokens! {
         self => ("'xor' keyword"),
     NotKw "'not' keyword"
         self => ("'not' keyword"),
+
     TrueKw "'true' literal"
         self => ("'true' literal"),
     FalseKw "'false' literal"
@@ -101,7 +102,10 @@ gen_tokens! {
     Decimal(f64) "floating-point number"
         self => ("{}", self.0),
     MalformedNumeral "malformed number"
-        self => ("malformed nulmber")
+        self => ("malformed nulmber"),
+
+    DebugKw "temporary 'debug' keyword"
+        self => ("temporary 'debug' keyword"),
 }
 
 macro_rules! gen_tokens {

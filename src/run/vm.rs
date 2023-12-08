@@ -74,7 +74,31 @@ impl<'a> VM<'a> {
                 opcode::nop => continue,
                 opcode::pop => _ = self.pop(),
                 opcode::dup => self.dup(),
-                opcode::dbg => todo!(),
+
+                opcode::dbg => {
+                    self.dup();
+                    let value = self.pop();
+
+                    let ty = self.read_u8();
+                    match ty {
+                        native_type::unit => println!("{:?}", value.get_unit()),
+                        native_type::bool => println!("{}", value.get_bool()),
+                        native_type::u8 => println!("{}", value.get_u8()),
+                        native_type::u16 => println!("{}", value.get_u16()),
+                        native_type::u32 => println!("{}", value.get_u32()),
+                        native_type::u64 => println!("{}", value.get_u64()),
+                        native_type::i8 => println!("{}", value.get_i8()),
+                        native_type::i16 => println!("{}", value.get_i16()),
+                        native_type::i32 => println!("{}", value.get_i32()),
+                        native_type::i64 => println!("{}", value.get_i64()),
+                        native_type::f32 => println!("{}", value.get_f32()),
+                        native_type::f64 => println!("{}", value.get_f64()),
+                        _ => {
+                            msg::error("invalid 'dbg' operation");
+                            process::exit(1);
+                        }
+                    }
+                },
 
                 opcode::jmp => self.jmp(),
                 opcode::jmp_if => self.jmp_if(),

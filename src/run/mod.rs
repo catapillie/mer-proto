@@ -177,6 +177,7 @@ pub fn disassemble(program: &Vec<u8>) -> Option<()> {
                 );
             }
             #[rustfmt::skip]
+            opcode::dbg |
             opcode::add | opcode::sub | opcode::mul | opcode::div | opcode::rem |
             opcode::eq | opcode::ne | opcode::le | opcode::lt | opcode::ge | opcode::gt |
             opcode::bitand | opcode::bitor | opcode::bitxor |

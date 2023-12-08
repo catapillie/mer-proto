@@ -45,6 +45,7 @@ pub enum ExprAbt {
     Binary(BinOpAbt, Box<ExprAbt>, Box<ExprAbt>),
     Unary(UnOpAbt, Box<ExprAbt>),
     Call(u32, Vec<ExprAbt>, TypeAbt),
+    Debug(Box<ExprAbt>),
 }
 
 impl ExprAbt {
@@ -60,6 +61,7 @@ impl ExprAbt {
             ExprAbt::Unary(op, _) => op.ty.clone(),
             ExprAbt::Binary(op, _, _) => op.out_ty.clone(),
             ExprAbt::Call(_, _, ty) => ty.clone(),
+            ExprAbt::Debug(inner) => inner.ty(),
         }
     }
 }

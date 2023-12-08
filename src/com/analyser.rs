@@ -577,6 +577,8 @@ impl<'a> Analyser<'a> {
                 => self.analyse_unary_operation(*op, operand, expr.span),
             ExprAstKind::Call(name, params)
                 => self.analyse_call(name, params, expr.span),
+            ExprAstKind::Debug(inner)
+                => ExprAbt::Debug(Box::new(self.analyse_expression(inner))),
         }
     }
 
