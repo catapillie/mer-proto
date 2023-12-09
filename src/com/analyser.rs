@@ -5,7 +5,13 @@ use std::{
 
 use super::{
     abt::*,
-    ast::*,
+    ast::{
+        bin_op::BinOpAst,
+        expr::{ExprAst, ExprAstKind},
+        stmt::{StmtAst, StmtAstKind},
+        types::{TypeAst, TypeAstKind},
+        un_op::UnOpAst,
+    },
     diagnostics::{self, *},
     pos::Pos,
     span::*,

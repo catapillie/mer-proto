@@ -4,10 +4,9 @@ use colored::Colorize;
 
 use super::{
     abt::TypeAbt,
-    ast::{BinOpAst, UnOpAst},
     pos::Pos,
     span::Span,
-    tokens::{Token, TokenKind},
+    tokens::{Token, TokenKind}, ast::{bin_op::BinOpAst, un_op::UnOpAst},
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

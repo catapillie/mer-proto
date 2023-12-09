@@ -1,11 +1,15 @@
 use either::Either;
 
-use crate::com::diagnostics::Severity;
+use crate::com::{ast::types::TypeAstKind, diagnostics::Severity};
 
 use super::{
     ast::{
-        Associativity, BinOpAst, ExprAst, ExprAstKind, Precedence, StmtAst, StmtAstKind, TypeAst,
-        TypeAstKind, UnOpAst,
+        bin_op::BinOpAst,
+        expr::{ExprAst, ExprAstKind},
+        priority::{Associativity, Precedence},
+        stmt::{StmtAst, StmtAstKind},
+        types::TypeAst,
+        un_op::UnOpAst,
     },
     cursor::Cursor,
     diagnostics::{self, DiagnosticKind, Diagnostics},
