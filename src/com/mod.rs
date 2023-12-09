@@ -1,9 +1,6 @@
-use self::{abt::ProgramAbt, codegen::Codegen, diagnostics::Diagnostic, parser::Parser};
+use self::{abt::ProgramAbt, codegen::Codegen, diagnostics::Diagnostic, parser::Parser, analysis::Analyser};
 use crate::{
-    com::{
-        analyser::Analyser,
-        diagnostics::{Diagnostics, Severity},
-    },
+    com::diagnostics::{Diagnostics, Severity},
     msg,
 };
 use colored::{Color, Colorize};
@@ -14,8 +11,8 @@ use std::{
 };
 
 pub mod abt;
-mod analyser;
-mod ast;
+mod analysis;
+mod syntax;
 mod codegen;
 mod cursor;
 mod diagnostics;
@@ -91,7 +88,7 @@ pub fn analyse(path: &str, source: String) -> Option<ProgramAbt> {
     }
     msg::ok("analysis finished successfully");
 
-    Some(abt)
+    todo!()
 }
 
 // TODO: make it work with TAB characters

@@ -1,9 +1,9 @@
 use either::Either;
 
-use crate::com::{ast::types::TypeAstKind, diagnostics::Severity};
+use crate::com::{syntax::types::TypeAstKind, diagnostics::Severity};
 
 use super::{
-    ast::{
+    syntax::{
         bin_op::BinOpAst,
         expr::{ExprAst, ExprAstKind},
         priority::{Associativity, Precedence},

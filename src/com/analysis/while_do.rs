@@ -1,0 +1,69 @@
+use crate::com::{
+    abt::{StmtAbtKind, TypeAbt},
+    diagnostics::{self, DiagnosticKind, Severity},
+    syntax::{expr::ExprAst, stmt::StmtAst},
+};
+
+use super::Analyser;
+
+impl<'d> Analyser<'d> {
+    pub fn analyse_while_do_statement(&mut self, guard: &ExprAst, body: &StmtAst) -> StmtAbtKind {
+        let bound_guard = self.analyse_expression(guard);
+        let bound_body = self.analyse_statement(body);
+
+        if matches!(bound_body.kind, StmtAbtKind::Empty) {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::EmptyWhileDoStatement)
+                .with_severity(Severity::Warning)
+                .with_span(body.span)
+                .done();
+            self.diagnostics.push(d);
+        }
+
+        if !bound_guard.ty().is(&TypeAbt::Bool) {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::GuardNotBoolean)
+                .with_severity(Severity::Error)
+                .with_span(guard.span)
+                .done();
+            self.diagnostics.push(d);
+        }
+
+        StmtAbtKind::WhileDo(Box::new(bound_guard), Box::new(bound_body))
+    }
+
+    pub fn analyse_do_while_statement(&mut self, body: &StmtAst, guard: &ExprAst) -> StmtAbtKind {
+        let bound_body = self.analyse_statement(body);
+        let bound_guard = self.analyse_expression(guard);
+
+        if matches!(bound_body.kind, StmtAbtKind::Empty) {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::EmptyDoWhileStatement)
+                .with_severity(Severity::Warning)
+                .with_span(body.span)
+                .done();
+            self.diagnostics.push(d);
+        }
+
+        if !bound_guard.ty().is(&TypeAbt::Bool) {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::GuardNotBoolean)
+                .with_severity(Severity::Error)
+                .with_span(guard.span)
+                .done();
+            self.diagnostics.push(d);
+        }
+
+        StmtAbtKind::DoWhile(Box::new(bound_body), Box::new(bound_guard))
+    }
+
+    pub fn analyse_do_statement(&mut self, body: &StmtAst) -> StmtAbtKind {
+        let d = diagnostics::create_diagnostic()
+            .with_kind(DiagnosticKind::DoWithoutWhile)
+            .with_severity(Severity::Error)
+            .with_span(body.span)
+            .done();
+        self.diagnostics.push(d);
+        StmtAbtKind::Empty
+    }
+}

@@ -6,7 +6,7 @@ use super::{
     abt::TypeAbt,
     pos::Pos,
     span::Span,
-    tokens::{Token, TokenKind}, ast::{bin_op::BinOpAst, un_op::UnOpAst},
+    tokens::{Token, TokenKind}, syntax::{bin_op::BinOpAst, un_op::UnOpAst},
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
