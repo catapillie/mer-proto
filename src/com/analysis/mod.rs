@@ -15,7 +15,7 @@ mod while_do;
 
 pub struct Analyser<'d> {
     diagnostics: &'d mut Diagnostics,
-    functions: HashMap<(String, u64), (Vec<TypeAbt>, TypeAbt)>,
+    functions: HashMap<(String, u64, u64), (Vec<TypeAbt>, TypeAbt)>,
 }
 
 impl<'d> Analyser<'d> {
