@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 
-use super::diagnostics::Diagnostics;
+use super::{diagnostics::Diagnostics, abt::TypeAbt};
 
 mod declarations;
+
+mod types;
 
 mod expression;
 mod program;
@@ -13,14 +15,14 @@ mod while_do;
 
 pub struct Analyser<'d> {
     diagnostics: &'d mut Diagnostics,
-    declarations: HashMap<(String, u64), ()>,
+    functions: HashMap<(String, u64), (Vec<TypeAbt>, TypeAbt)>,
 }
 
 impl<'d> Analyser<'d> {
     pub fn new(diagnostics: &'d mut Diagnostics) -> Self {
         Self {
             diagnostics,
-            declarations: Default::default(),
+            functions: Default::default(),
         }
     }
 }

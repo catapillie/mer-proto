@@ -16,9 +16,13 @@ impl<'d> Analyser<'d> {
                     self.register_declarations(stmt, depth + 1)
                 }
             }
-            StmtAstKind::Func(name, _, body, _) => {
+            StmtAstKind::Func(name, args, body, ret_ty) => {
                 if let Some(name) = name {
-                    let previous = self.declarations.insert((name.clone(), depth), ());
+                    let args_ty = args.iter().map(|(_, ty)| self.analyse_type(ty)).collect();
+                    let ret_ty = self.analyse_type(ret_ty);
+                    let signature = (args_ty, ret_ty);
+
+                    let previous = self.functions.insert((name.clone(), depth), signature);
                     if previous.is_some() {
                         panic!("haven't figured out shadowing across two different scopes")
                     }

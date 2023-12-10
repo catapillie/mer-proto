@@ -5,7 +5,7 @@ use super::Analyser;
 impl<'d> Analyser<'d> {
     pub fn analyse_program(&mut self, ast: &StmtAst) {
         self.register_all_declarations(ast);
-        println!("{:?}", self.declarations);
+        println!("{:?}", self.functions);
         self.analyse_statement(ast);
     }
 }
