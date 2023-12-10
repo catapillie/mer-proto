@@ -9,8 +9,10 @@ use super::Analyser;
 impl<'d> Analyser<'d> {
     pub fn analyse_while_do_statement(&mut self, guard: &ExprAst, body: &StmtAst) -> StmtAbtKind {
         let bound_guard = self.analyse_expression(guard);
+        self.open_scope();
         let bound_body = self.analyse_statement(body);
-
+        self.close_scope();
+        
         if matches!(bound_body.kind, StmtAbtKind::Empty) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::EmptyWhileDoStatement)
@@ -33,8 +35,11 @@ impl<'d> Analyser<'d> {
     }
 
     pub fn analyse_do_while_statement(&mut self, body: &StmtAst, guard: &ExprAst) -> StmtAbtKind {
-        let bound_body = self.analyse_statement(body);
         let bound_guard = self.analyse_expression(guard);
+
+        self.open_scope();
+        let bound_body = self.analyse_statement(body);
+        self.close_scope();
 
         if matches!(bound_body.kind, StmtAbtKind::Empty) {
             let d = diagnostics::create_diagnostic()
@@ -58,12 +63,17 @@ impl<'d> Analyser<'d> {
     }
 
     pub fn analyse_do_statement(&mut self, body: &StmtAst) -> StmtAbtKind {
+        self.open_scope();
+        self.analyse_statement(body);
+        self.close_scope();
+        
         let d = diagnostics::create_diagnostic()
             .with_kind(DiagnosticKind::DoWithoutWhile)
             .with_severity(Severity::Error)
             .with_span(body.span)
             .done();
         self.diagnostics.push(d);
+
         StmtAbtKind::Empty
     }
 }

@@ -31,19 +31,19 @@ impl<'d> Analyser<'d> {
 
                     let signature = (args_ty, ret_ty);
                     let index = (name.clone(), depth, offset);
-                    
+
                     let previous = self.functions.insert(index, signature);
                     assert!(previous.is_none());
                 }
 
-                self.register_declarations(body, depth, 0);
+                self.register_declarations(body, depth + 1, 0);
             }
             StmtAstKind::IfThen(_, body) => self.register_declarations(body, depth + 1, 0),
-            StmtAstKind::Then(body) => self.register_declarations(body, depth + 1, 0),
             StmtAstKind::IfThenElse(_, body_then, body_else) => {
                 self.register_declarations(body_then, depth + 1, 0);
                 self.register_declarations(body_else, depth + 1, 0);
             }
+            StmtAstKind::Then(body) => self.register_declarations(body, depth + 1, 0),
             StmtAstKind::Else(body) => self.register_declarations(body, depth + 1, 0),
             StmtAstKind::WhileDo(_, body) => self.register_declarations(body, depth + 1, 0),
             StmtAstKind::DoWhile(body, _) => self.register_declarations(body, depth + 1, 0),

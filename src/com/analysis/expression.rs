@@ -16,7 +16,7 @@ impl<'d> Analyser<'d> {
             ExprAstKind::Decimal(num)
                 => ExprAbt::Decimal(*num),
             ExprAstKind::Identifier(id)
-                => todo!(),
+                => self.analyse_variable_expression(id, expr.span),
             ExprAstKind::Boolean(b)
                 => ExprAbt::Boolean(*b),
             ExprAstKind::Parenthesized(inner)

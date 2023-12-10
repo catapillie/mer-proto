@@ -11,12 +11,12 @@ impl<'d> Analyser<'d> {
         match &stmt.kind {
             StmtAstKind::Empty
                 => StmtAbtKind::Empty,
-            StmtAstKind::VarDef(_, _)
-                => todo!(),
+            StmtAstKind::VarDef(name, value)
+                => self.analyse_variable_definition(name, value),
             StmtAstKind::Expr(expr)
                 => StmtAbtKind::Expr(Box::new(self.analyse_expression(expr))),
-            StmtAstKind::Block(_)
-                => todo!(),
+            StmtAstKind::Block(stmts)
+                => self.analyse_block_statement(stmts),
             StmtAstKind::IfThen(guard, body)
                 => self.analyse_if_then_statement(guard, body),
             StmtAstKind::Then(body)
@@ -39,5 +39,32 @@ impl<'d> Analyser<'d> {
                 => todo!(),
         }
         .wrap(stmt.span)
+    }
+
+    fn analyse_block_statement(&mut self, stmts: &[StmtAst]) -> StmtAbtKind {
+        let prev_offset = self.get_block_offset();
+
+        self.open_scope();
+
+        let mut block_offset = 0;
+        let bound_stmts = stmts
+            .iter()
+            .map(|stmt| {
+                let is_block = matches!(stmt.kind, StmtAstKind::Block(_));
+                let o = if is_block {
+                    block_offset += 1;
+                    block_offset
+                } else {
+                    prev_offset
+                };
+
+                self.set_block_offset(o);
+                self.analyse_statement(stmt)
+            })
+            .collect();
+
+        self.close_scope();
+
+        StmtAbtKind::Block(bound_stmts)
     }
 }

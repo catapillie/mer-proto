@@ -189,7 +189,7 @@ impl Codegen {
                 };
                 Opcode::dbg(ty).write_bytes(&mut self.cursor)?;
                 Ok(())
-            },
+            }
             E::Unit => Opcode::ld_unit.write_bytes(&mut self.cursor),
             E::Integer(num) => Opcode::ld_i64(*num).write_bytes(&mut self.cursor),
             E::Decimal(num) => Opcode::ld_f64(*num).write_bytes(&mut self.cursor),
@@ -201,12 +201,16 @@ impl Codegen {
                 opcode.write_bytes(&mut self.cursor)?;
                 Ok(())
             }
-            E::Variable(var) => Opcode::ld_loc(var.id).write_bytes(&mut self.cursor),
+            E::Variable(var) => {
+                todo!()
+                // Opcode::ld_loc(var.id).write_bytes(&mut self.cursor)
+            }
             E::Assignment(var, expr) => {
-                self.gen_expression(expr)?;
-                Opcode::st_loc(var.id).write_bytes(&mut self.cursor)?;
-                Opcode::ld_loc(var.id).write_bytes(&mut self.cursor)?;
-                Ok(())
+                todo!()
+                // self.gen_expression(expr)?;
+                // Opcode::st_loc(var.id).write_bytes(&mut self.cursor)?;
+                // Opcode::ld_loc(var.id).write_bytes(&mut self.cursor)?;
+                // Ok(())
             }
             E::Call(id, params, _) => {
                 for param in params {
