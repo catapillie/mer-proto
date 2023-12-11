@@ -8,6 +8,21 @@ use crate::com::{
 use super::Analyser;
 
 impl<'d> Analyser<'d> {
+    pub fn get_function(&self, name: &str) -> Option<&(Vec<TypeAbt>, TypeAbt, u64)> {
+        let depth = self.current_depth;
+        let indices = self.current_offsets.iter().rev().enumerate();
+        for (i, &offset) in indices {
+            let depth = depth - i as u64 + 1;
+            let entry = (name.to_string(), depth, offset);
+            
+            let func = self.functions.get(&entry);
+            if func.is_some() {
+                return func;
+            }
+        }
+        None
+    }
+
     pub fn analyse_function_definition(
         &mut self,
         name: &Option<String>,
@@ -22,7 +37,7 @@ impl<'d> Analyser<'d> {
         let depth = self.current_depth;
         let offset = self.get_block_offset();
         let entry = (name.clone(), depth, offset);
-        let (bound_args_ty, _, _) = self
+        let (bound_args_ty, ty, _) = self
             .functions
             .get(&entry)
             .cloned()
@@ -31,6 +46,7 @@ impl<'d> Analyser<'d> {
         assert_eq!(args.len(), bound_args_ty.len());
 
         self.open_scope();
+        self.set_return_type(ty);
         let bound_args = args.iter().map(|(name, _)| name).zip(bound_args_ty);
         for (arg_name, arg_ty) in bound_args {
             self.declare_variable(arg_name, arg_ty);
@@ -52,11 +68,8 @@ impl<'d> Analyser<'d> {
             .map(|arg| self.analyse_expression(arg))
             .collect::<Vec<_>>();
 
-        let name = callee.to_string();
-        let depth = self.current_depth;
-        let offset = self.get_block_offset();
-        let entry = (name.clone(), depth, offset);
-        let Some(func) = self.functions.get(&entry) else {
+        let name = callee;
+        let Some(func) = self.get_function(name).cloned() else {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::UnknownFunction(name.to_string()))
                 .with_severity(Severity::Error)
@@ -70,7 +83,7 @@ impl<'d> Analyser<'d> {
 
         let mut invalid = false;
         for ((bound_param, param), expected_ty) in
-            bound_params.iter().zip(args).zip(arg_types)
+            bound_params.iter().zip(args).zip(&arg_types)
         {
             let ty_param = bound_param.ty();
             if !ty_param.is(expected_ty) {
@@ -103,7 +116,7 @@ impl<'d> Analyser<'d> {
         if invalid {
             ExprAbt::Unknown
         } else {
-            ExprAbt::Call(*id, bound_params, return_type.clone())
+            ExprAbt::Call(id, bound_params, return_type.clone())
         }
     }
 
