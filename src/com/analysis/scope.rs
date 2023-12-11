@@ -11,7 +11,8 @@ impl<'d> Analyser<'d> {
 
     pub fn close_scope(&mut self) {
         assert_ne!(self.current_depth, 0, "scope underflow");
-        self.current_offsets.pop().unwrap();
+        self.current_offsets.pop().expect("scope underflow");
+        self.current_return_ty.pop().expect("scope underflow");
         self.current_depth -= 1;
     }
 
