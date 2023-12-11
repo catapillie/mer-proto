@@ -21,10 +21,10 @@ impl<'d> Analyser<'d> {
                 => ExprAbt::Boolean(*b),
             ExprAstKind::Parenthesized(inner)
                 => self.analyse_expression(inner),
-            ExprAstKind::BinaryOp(_, _, _)
-                => todo!(),
-            ExprAstKind::UnaryOp(_, _)
-                => todo!(),
+            ExprAstKind::BinaryOp(op, left, right)
+                => self.analyse_binary_operation(*op, left, right, expr.span),
+            ExprAstKind::UnaryOp(op, operand)
+                => self.analyse_unary_operation(*op, operand, expr.span),
             ExprAstKind::Call(callee, args)
                 => self.analyse_call_expression(callee, args, expr.span),
             ExprAstKind::Debug(inner)

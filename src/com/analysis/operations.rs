@@ -1,17 +1,19 @@
 use crate::com::{
-    abt::{BinOpAbt, BinOpAbtKind, ExprAbt, TypeAbt},
+    abt::{BinOpAbt, BinOpAbtKind, ExprAbt, TypeAbt, UnOpAbt, UnOpAbtKind},
     diagnostics::{self, DiagnosticKind, Severity},
-    syntax::{bin_op::BinOpAst, expr::ExprAst},
+    span::Span,
+    syntax::{bin_op::BinOpAst, expr::ExprAst, un_op::UnOpAst},
 };
 
 use super::Analyser;
 
 impl<'d> Analyser<'d> {
-    fn analyse_binary_operation(
+    pub fn analyse_binary_operation(
         &mut self,
         op: BinOpAst,
         left: &ExprAst,
         right: &ExprAst,
+        span: Span,
     ) -> ExprAbt {
         if matches!(op, BinOpAst::Assign) {
             return self.analyse_assignment(left, right);
@@ -57,10 +59,43 @@ impl<'d> Analyser<'d> {
                 right: ty_right,
             })
             .with_severity(Severity::Error)
-            .with_span(right.span.join(left.span))
+            .with_span(span)
             .done();
         self.diagnostics.push(d);
         ExprAbt::Unknown
+    }
+
+    fn analyse_assignment(&mut self, left: &ExprAst, right: &ExprAst) -> ExprAbt {
+        let bound_left = self.analyse_expression(left);
+        let bound_right = self.analyse_expression(right);
+
+        let ExprAbt::Variable(var_id) = bound_left else {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::AssigneeMustBeVariable)
+                .with_severity(Severity::Error)
+                .with_span(left.span)
+                .done();
+            self.diagnostics.push(d);
+            return ExprAbt::Unknown;
+        };
+
+        let right_ty = self.type_of(&bound_right);
+        let var_ty = self.get_variable_by_id(var_id).unwrap();
+
+        if !right_ty.is(&var_ty) {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::TypeMismatch {
+                    found: right_ty,
+                    expected: var_ty.clone(),
+                })
+                .with_severity(Severity::Error)
+                .with_span(right.span)
+                .done();
+            self.diagnostics.push(d);
+            return ExprAbt::Unknown;
+        }
+
+        ExprAbt::Assignment(var_id, Box::new(bound_right))
     }
 
     fn integer_binary_operation(op: BinOpAst, ty: TypeAbt) -> Option<BinOpAbt> {
@@ -123,36 +158,58 @@ impl<'d> Analyser<'d> {
         }
     }
 
-    fn analyse_assignment(&mut self, left: &ExprAst, right: &ExprAst) -> ExprAbt {
-        let bound_left = self.analyse_expression(left);
-        let bound_right = self.analyse_expression(right);
+    pub fn analyse_unary_operation(
+        &mut self,
+        op: UnOpAst,
+        operand: &ExprAst,
+        span: Span,
+    ) -> ExprAbt {
+        let bound_operand = self.analyse_expression(operand);
+        let ty = self.type_of(&bound_operand);
 
-        let ExprAbt::Variable(var_id) = bound_left else {
-            let d = diagnostics::create_diagnostic()
-                .with_kind(DiagnosticKind::AssigneeMustBeVariable)
-                .with_severity(Severity::Error)
-                .with_span(left.span)
-                .done();
-            self.diagnostics.push(d);
-            return ExprAbt::Unknown;
-        };
-
-        let right_ty = self.type_of(&bound_right);
-        let var_ty = self.get_variable_by_id(var_id).unwrap();
-
-        if !right_ty.is(&var_ty) {
-            let d = diagnostics::create_diagnostic()
-                .with_kind(DiagnosticKind::TypeMismatch {
-                    found: right_ty,
-                    expected: var_ty.clone(),
-                })
-                .with_severity(Severity::Error)
-                .with_span(right.span)
-                .done();
-            self.diagnostics.push(d);
+        if !ty.is_known() {
             return ExprAbt::Unknown;
         }
 
-        ExprAbt::Assignment(var_id, Box::new(bound_right))
+        let bound_op = match ty {
+            TypeAbt::U8 | TypeAbt::U16 | TypeAbt::U32 | TypeAbt::U64 => {
+                Self::number_unary_operation(false, op, ty.clone())
+            }
+            TypeAbt::I8
+            | TypeAbt::I16
+            | TypeAbt::I32
+            | TypeAbt::I64
+            | TypeAbt::F32
+            | TypeAbt::F64 => Self::number_unary_operation(true, op, ty.clone()),
+            TypeAbt::Bool => Self::boolean_unary_operation(op),
+            _ => None,
+        };
+
+        if let Some(op) = bound_op {
+            return ExprAbt::Unary(op, Box::new(bound_operand));
+        }
+
+        let d = diagnostics::create_diagnostic()
+            .with_kind(DiagnosticKind::InvalidUnaryOperation { op, ty })
+            .with_severity(Severity::Error)
+            .with_span(span)
+            .done();
+        self.diagnostics.push(d);
+        ExprAbt::Unknown
+    }
+
+    fn number_unary_operation(signed: bool, op: UnOpAst, ty: TypeAbt) -> Option<UnOpAbt> {
+        match op {
+            UnOpAst::Pos => Some(UnOpAbtKind::Pos.wrap(ty)),
+            UnOpAst::Neg if signed => Some(UnOpAbtKind::Neg.wrap(ty)),
+            _ => None,
+        }
+    }
+
+    fn boolean_unary_operation(op: UnOpAst) -> Option<UnOpAbt> {
+        match op {
+            UnOpAst::Not => Some(UnOpAbtKind::Not.wrap(TypeAbt::Bool)),
+            _ => None,
+        }
     }
 }

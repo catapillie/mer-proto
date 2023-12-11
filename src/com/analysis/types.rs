@@ -61,8 +61,8 @@ impl<'d> Analyser<'d> {
             }
             ExprAbt::Assignment(id, _) => self.type_of(&ExprAbt::Variable(*id)),
 
-            ExprAbt::Binary(_, _, _) => todo!(),
-            ExprAbt::Unary(_, _) => todo!(),
+            ExprAbt::Binary(op, _, _) => op.out_ty.clone(),
+            ExprAbt::Unary(op, _) => op.ty.clone(),
             ExprAbt::Debug(inner) => self.type_of(inner),
         }
     }
