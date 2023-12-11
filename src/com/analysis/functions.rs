@@ -8,13 +8,23 @@ use crate::com::{
 use super::Analyser;
 
 impl<'d> Analyser<'d> {
+    pub fn get_function_by_id(&self, func_id: u64) -> Option<(&[TypeAbt], &TypeAbt)> {
+        let ids = self
+            .functions
+            .values()
+            .filter(|(_, _, id)| id == &func_id)
+            .collect::<Vec<_>>();
+        assert_eq!(ids.len(), 1, "variable ids must be unique");
+        ids.first().map(|(a, b, _)| (a.as_slice(), b))
+    }
+
     pub fn get_function(&self, name: &str) -> Option<&(Vec<TypeAbt>, TypeAbt, u64)> {
         let depth = self.current_depth;
         let indices = self.current_offsets.iter().rev().enumerate();
         for (i, &offset) in indices {
             let depth = depth - i as u64 + 1;
             let entry = (name.to_string(), depth, offset);
-            
+
             let func = self.functions.get(&entry);
             if func.is_some() {
                 return func;
@@ -82,9 +92,7 @@ impl<'d> Analyser<'d> {
         let (arg_types, return_type, id) = func;
 
         let mut invalid = false;
-        for ((bound_param, param), expected_ty) in
-            bound_params.iter().zip(args).zip(&arg_types)
-        {
+        for ((bound_param, param), expected_ty) in bound_params.iter().zip(args).zip(&arg_types) {
             let ty_param = self.type_of(bound_param);
             if !ty_param.is(expected_ty) {
                 let d = diagnostics::create_diagnostic()
