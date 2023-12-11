@@ -13,6 +13,8 @@ mod types;
 mod functions;
 mod variables;
 
+mod operations;
+
 mod if_then;
 mod while_do;
 

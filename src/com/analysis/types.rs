@@ -48,13 +48,7 @@ impl<'d> Analyser<'d> {
             ExprAbt::Boolean(_) => TypeAbt::Bool,
 
             ExprAbt::Variable(var_id) => {
-                let ids = self
-                    .variables
-                    .values()
-                    .filter(|(_, id)| id == var_id)
-                    .collect::<Vec<_>>();
-                assert_eq!(ids.len(), 1, "variable ids must be unique");
-                ids.first().unwrap().0.clone()
+                self.get_variable_by_id(*var_id).cloned().unwrap()
             }
             ExprAbt::Call(func_id, _, _) => {
                 let ids = self

@@ -8,6 +8,16 @@ use crate::com::{
 use super::Analyser;
 
 impl<'d> Analyser<'d> {
+    pub fn get_variable_by_id(&self, var_id: u64) -> Option<&TypeAbt> {
+        let ids = self
+            .variables
+            .values()
+            .filter(|(_, id)| id == &var_id)
+            .collect::<Vec<_>>();
+        assert_eq!(ids.len(), 1, "variable ids must be unique");
+        ids.first().map(|(ty, _)| ty)
+    }
+
     pub fn get_variable(&self, name: &str) -> Option<&(TypeAbt, u64)> {
         let depth = self.current_depth;
         let indices = self.current_offsets.iter().rev().enumerate();
