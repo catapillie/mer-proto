@@ -31,12 +31,12 @@ impl<'d> Analyser<'d> {
                 => self.analyse_do_while_statement(body, guard),
             StmtAstKind::Do(body)
                 => self.analyse_do_statement(body),
-            StmtAstKind::Func(_, _, _, _)
-                => todo!(),
+            StmtAstKind::Func(name, args, body, ty)
+                => self.analyse_function_definition(name, args, body, ty),
             StmtAstKind::Return
-                => todo!(),
-            StmtAstKind::ReturnWith(_)
-                => todo!(),
+                => self.analyse_return_statement(stmt.span),
+            StmtAstKind::ReturnWith(expr)
+                => self.analyse_return_with_statement(expr),
         }
         .wrap(stmt.span)
     }

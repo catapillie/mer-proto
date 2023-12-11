@@ -44,7 +44,7 @@ pub enum ExprAbt {
     Assignment(u64, Box<ExprAbt>),
     Binary(BinOpAbt, Box<ExprAbt>, Box<ExprAbt>),
     Unary(UnOpAbt, Box<ExprAbt>),
-    Call(u32, Vec<ExprAbt>, TypeAbt),
+    Call(u64, Vec<ExprAbt>, TypeAbt),
     Debug(Box<ExprAbt>),
 }
 

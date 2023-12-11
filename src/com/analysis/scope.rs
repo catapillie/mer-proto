@@ -1,9 +1,12 @@
+use crate::com::abt::TypeAbt;
+
 use super::Analyser;
 
 impl<'d> Analyser<'d> {
     pub fn open_scope(&mut self) {
         self.current_depth += 1;
         self.current_offsets.push(0);
+        self.current_return_ty.push(self.get_return_type())
     }
 
     pub fn close_scope(&mut self) {
@@ -17,7 +20,19 @@ impl<'d> Analyser<'d> {
         *o = offset;
     }
 
-    pub fn get_block_offset(&mut self) -> u64 {
+    pub fn get_block_offset(&self) -> u64 {
         *self.current_offsets.last().expect("not in scope")
+    }
+
+    pub fn get_return_type(&self) -> TypeAbt {
+        self.current_return_ty
+            .last()
+            .cloned()
+            .expect("not in scope")
+    }
+
+    pub fn set_return_type(&mut self, ty: TypeAbt) {
+        let t = self.current_return_ty.last_mut().expect("not in scope");
+        *t = ty;
     }
 }

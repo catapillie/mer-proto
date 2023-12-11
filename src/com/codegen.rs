@@ -216,10 +216,10 @@ impl Codegen {
                 for param in params {
                     self.gen_expression(param)?;
                 }
-
-                let to = self.function_positions.get(id).cloned().unwrap();
-                Opcode::call(to).write_bytes(&mut self.cursor)?;
-                Ok(())
+                todo!()
+                // let to = self.function_positions.get(id).cloned().unwrap();
+                // Opcode::call(to).write_bytes(&mut self.cursor)?;
+                // Ok(())
             }
             E::Binary(op, left, right) => {
                 use BinOpAbtKind as K;

@@ -29,7 +29,8 @@ impl<'d> Analyser<'d> {
                     let args_ty = args.iter().map(|(_, ty)| self.analyse_type(ty)).collect();
                     let ret_ty = self.analyse_type(ret_ty);
 
-                    let signature = (args_ty, ret_ty);
+                    let id = self.make_unique_id();
+                    let signature = (args_ty, ret_ty, id);
                     let index = (name.clone(), depth, offset);
 
                     let previous = self.functions.insert(index, signature);

@@ -25,8 +25,8 @@ impl<'d> Analyser<'d> {
                 => todo!(),
             ExprAstKind::UnaryOp(op, operand)
                 => todo!(),
-            ExprAstKind::Call(name, params)
-                => todo!(),
+            ExprAstKind::Call(callee, args)
+                => self.analyse_call_expression(callee, args, expr.span),
             ExprAstKind::Debug(inner)
                 => ExprAbt::Debug(Box::new(self.analyse_expression(inner))),
         }

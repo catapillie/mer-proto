@@ -1,5 +1,5 @@
 use crate::com::{
-    abt::{ExprAbt, StmtAbtKind},
+    abt::{ExprAbt, StmtAbtKind, TypeAbt},
     diagnostics::{self, DiagnosticKind, Severity},
     span::Span,
     syntax::expr::ExprAst,
@@ -8,6 +8,18 @@ use crate::com::{
 use super::Analyser;
 
 impl<'d> Analyser<'d> {
+    pub fn declare_variable(&mut self, name: &str, ty: TypeAbt) -> u64 {
+        let id = self.make_unique_id();
+        let depth = self.current_depth;
+        let offset = self.get_block_offset();
+        
+        let entry = (name.to_string(), depth, offset);
+        let previous = self.variables.insert(entry, (ty, id));
+        assert!(previous.is_none());
+        
+        id
+    }
+
     pub fn analyse_variable_definition(
         &mut self,
         id: &Option<(String, Span)>,
@@ -18,13 +30,7 @@ impl<'d> Analyser<'d> {
         let Some((name, _)) = id else {
             return StmtAbtKind::Empty;
         };
-
-        let id = self.make_unique_id();
-        let depth = self.current_depth;
-        let offset = self.get_block_offset();
-        let entry = (name.to_string(), depth, offset);
-        let previous = self.variables.insert(entry, (bound_expr.ty(), id));
-        assert!(previous.is_none());
+        let id = self.declare_variable(name, bound_expr.ty());
 
         // variable definitions are just (the first) assignment
         StmtAbtKind::Expr(Box::new(ExprAbt::Assignment(id, Box::new(bound_expr))))
