@@ -6,5 +6,6 @@ impl<'d> Analyser<'d> {
     pub fn analyse_program(&mut self, ast: &StmtAst) {
         self.register_all_declarations(ast);
         self.analyse_statement(ast);
+        assert_eq!(self.current_depth, 0, "not all opened scopes were closed");
     }
 }
