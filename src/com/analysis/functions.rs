@@ -85,7 +85,7 @@ impl<'d> Analyser<'d> {
         for ((bound_param, param), expected_ty) in
             bound_params.iter().zip(args).zip(&arg_types)
         {
-            let ty_param = bound_param.ty();
+            let ty_param = self.type_of(bound_param);
             if !ty_param.is(expected_ty) {
                 let d = diagnostics::create_diagnostic()
                     .with_kind(DiagnosticKind::TypeMismatch {
@@ -141,7 +141,7 @@ impl<'d> Analyser<'d> {
 
     pub fn analyse_return_with_statement(&mut self, expr: &ExprAst) -> StmtAbtKind {
         let bound_expr = self.analyse_expression(expr);
-        let ty_expr = bound_expr.ty();
+        let ty_expr = self.type_of(&bound_expr);
         let return_ty = self.get_return_type();
 
         if !ty_expr.is(&return_ty) {

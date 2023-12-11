@@ -21,9 +21,9 @@ impl<'d> Analyser<'d> {
                 => ExprAbt::Boolean(*b),
             ExprAstKind::Parenthesized(inner)
                 => self.analyse_expression(inner),
-            ExprAstKind::BinaryOp(op, left, right)
+            ExprAstKind::BinaryOp(_, _, _)
                 => todo!(),
-            ExprAstKind::UnaryOp(op, operand)
+            ExprAstKind::UnaryOp(_, _)
                 => todo!(),
             ExprAstKind::Call(callee, args)
                 => self.analyse_call_expression(callee, args, expr.span),

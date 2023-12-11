@@ -22,7 +22,7 @@ impl<'d> Analyser<'d> {
             self.diagnostics.push(d);
         }
 
-        if !bound_guard.ty().is(&TypeAbt::Bool) {
+        if !self.type_of(&bound_guard).is(&TypeAbt::Bool) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::GuardNotBoolean)
                 .with_severity(Severity::Error)
@@ -50,7 +50,7 @@ impl<'d> Analyser<'d> {
             self.diagnostics.push(d);
         }
 
-        if !bound_guard.ty().is(&TypeAbt::Bool) {
+        if !self.type_of(&bound_guard).is(&TypeAbt::Bool) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::GuardNotBoolean)
                 .with_severity(Severity::Error)

@@ -16,7 +16,7 @@ impl<'d> Analyser<'d> {
         let entry = (name.to_string(), depth, offset);
         let previous = self.variables.insert(entry, (ty, id));
         assert!(previous.is_none());
-        
+
         id
     }
 
@@ -30,7 +30,7 @@ impl<'d> Analyser<'d> {
         let Some((name, _)) = id else {
             return StmtAbtKind::Empty;
         };
-        let id = self.declare_variable(name, bound_expr.ty());
+        let id = self.declare_variable(name, self.type_of(&bound_expr));
 
         // variable definitions are just (the first) assignment
         StmtAbtKind::Expr(Box::new(ExprAbt::Assignment(id, Box::new(bound_expr))))

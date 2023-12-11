@@ -1,5 +1,5 @@
 use crate::com::{
-    abt::TypeAbt,
+    abt::{ExprAbt, TypeAbt},
     diagnostics::{self, DiagnosticKind, Severity},
     syntax::types::{TypeAst, TypeAstKind},
 };
@@ -36,6 +36,40 @@ impl<'d> Analyser<'d> {
 
                 TypeAbt::Unknown
             }
+        }
+    }
+
+    pub fn type_of(&self, expr: &ExprAbt) -> TypeAbt {
+        match expr {
+            ExprAbt::Unknown => TypeAbt::Unknown,
+            ExprAbt::Unit => TypeAbt::Unit,
+            ExprAbt::Integer(_) => TypeAbt::I64,
+            ExprAbt::Decimal(_) => TypeAbt::F64,
+            ExprAbt::Boolean(_) => TypeAbt::Bool,
+
+            ExprAbt::Variable(var_id) => {
+                let ids = self
+                    .variables
+                    .values()
+                    .filter(|(_, id)| id == var_id)
+                    .collect::<Vec<_>>();
+                assert_eq!(ids.len(), 1, "variable ids must be unique");
+                ids.first().unwrap().0.clone()
+            }
+            ExprAbt::Call(func_id, _, _) => {
+                let ids = self
+                    .functions
+                    .values()
+                    .filter(|(_, _, id)| id == func_id)
+                    .collect::<Vec<_>>();
+                assert_eq!(ids.len(), 1, "variable ids must be unique");
+                ids.first().unwrap().1.clone()
+            }
+            ExprAbt::Assignment(id, _) => self.type_of(&ExprAbt::Variable(*id)),
+
+            ExprAbt::Binary(_, _, _) => todo!(),
+            ExprAbt::Unary(_, _) => todo!(),
+            ExprAbt::Debug(inner) => self.type_of(inner),
         }
     }
 }

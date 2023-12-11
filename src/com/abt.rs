@@ -48,24 +48,6 @@ pub enum ExprAbt {
     Debug(Box<ExprAbt>),
 }
 
-impl ExprAbt {
-    pub fn ty(&self) -> TypeAbt {
-        match self {
-            ExprAbt::Unknown => TypeAbt::Unknown,
-            ExprAbt::Unit => TypeAbt::Unit,
-            ExprAbt::Integer(_) => TypeAbt::I64,
-            ExprAbt::Decimal(_) => TypeAbt::F64,
-            ExprAbt::Boolean(_) => TypeAbt::Bool,
-            ExprAbt::Variable(_) => todo!(),
-            ExprAbt::Assignment(_, _) => todo!(),
-            ExprAbt::Unary(op, _) => op.ty.clone(),
-            ExprAbt::Binary(op, _, _) => op.out_ty.clone(),
-            ExprAbt::Call(_, _, ty) => ty.clone(),
-            ExprAbt::Debug(inner) => inner.ty(),
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct Variable {
     pub id: u8,

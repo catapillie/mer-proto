@@ -172,22 +172,23 @@ impl Codegen {
             E::Unknown => unreachable!(),
             E::Debug(inner) => {
                 self.gen_expression(inner)?;
-                let ty = match inner.ty() {
-                    TypeAbt::Unit => NativeType::unit,
-                    TypeAbt::U8 => NativeType::u8,
-                    TypeAbt::U16 => NativeType::u16,
-                    TypeAbt::U32 => NativeType::u32,
-                    TypeAbt::U64 => NativeType::u64,
-                    TypeAbt::I8 => NativeType::i8,
-                    TypeAbt::I16 => NativeType::i16,
-                    TypeAbt::I32 => NativeType::i32,
-                    TypeAbt::I64 => NativeType::i64,
-                    TypeAbt::F32 => NativeType::f32,
-                    TypeAbt::F64 => NativeType::f64,
-                    TypeAbt::Bool => NativeType::bool,
-                    TypeAbt::Unknown => unreachable!(),
-                };
-                Opcode::dbg(ty).write_bytes(&mut self.cursor)?;
+                todo!();
+                // let ty = match inner.ty() {
+                //     TypeAbt::Unit => NativeType::unit,
+                //     TypeAbt::U8 => NativeType::u8,
+                //     TypeAbt::U16 => NativeType::u16,
+                //     TypeAbt::U32 => NativeType::u32,
+                //     TypeAbt::U64 => NativeType::u64,
+                //     TypeAbt::I8 => NativeType::i8,
+                //     TypeAbt::I16 => NativeType::i16,
+                //     TypeAbt::I32 => NativeType::i32,
+                //     TypeAbt::I64 => NativeType::i64,
+                //     TypeAbt::F32 => NativeType::f32,
+                //     TypeAbt::F64 => NativeType::f64,
+                //     TypeAbt::Bool => NativeType::bool,
+                //     TypeAbt::Unknown => unreachable!(),
+                // };
+                // Opcode::dbg(ty).write_bytes(&mut self.cursor)?;
                 Ok(())
             }
             E::Unit => Opcode::ld_unit.write_bytes(&mut self.cursor),
