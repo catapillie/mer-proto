@@ -14,7 +14,10 @@ use crate::{
     },
 };
 
-use super::abt::{ExprAbt, Function, ProgramAbt, StmtAbt};
+use super::{
+    abt::{ExprAbt, ProgramAbt, StmtAbt},
+    analysis::FunctionInfo,
+};
 
 pub struct Codegen {
     cursor: Cursor<Vec<u8>>,
@@ -51,10 +54,10 @@ impl Codegen {
         self.cursor.write_u8(opcode::entry_point)?;
         let entry_point_cursor = self.gen_u32_placeholder()?;
 
-        for (id, (name, func)) in abt.functions_by_id.iter() {
+        for (id, info) in abt.functions_by_id.iter() {
             let position = self.position();
             self.function_positions.insert(*id, position);
-            self.gen_function(name.clone(), func)?;
+            self.gen_function(info)?;
         }
 
         let last_function_id = abt.functions_by_id.last_key_value().unwrap().0;
@@ -66,14 +69,15 @@ impl Codegen {
         Ok(self.cursor.into_inner())
     }
 
-    fn gen_function(&mut self, name: String, func: &Function) -> io::Result<()> {
-        let param_count = func.param_types.len() as u8;
-        let local_count = func.local_count;
-        let opcode = Opcode::function(name, param_count, local_count);
-        opcode.write_bytes(&mut self.cursor)?;
+    fn gen_function(&mut self, info: &FunctionInfo) -> io::Result<()> {
+        todo!()
+        // let param_count = func.param_types.len() as u8;
+        // let local_count = func.local_count;
+        // let opcode = Opcode::function(name, param_count, local_count);
+        // opcode.write_bytes(&mut self.cursor)?;
 
-        self.gen_statement(&func.code)?;
-        Ok(())
+        // self.gen_statement(&func.code)?;
+        // Ok(())
     }
 
     fn gen_statement(&mut self, stmt: &StmtAbt) -> io::Result<()> {

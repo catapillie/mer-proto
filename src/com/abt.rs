@@ -1,12 +1,9 @@
 use std::{collections::BTreeMap, fmt::Display};
 
-use super::span::Span;
+use super::{analysis::FunctionInfo, span::Span};
 
-#[derive(Debug)]
 pub struct ProgramAbt {
-    // functions appear in the order that they were declared
-    // main function (@) is last
-    pub functions_by_id: BTreeMap<u32, (String, Function)>,
+    pub functions_by_id: BTreeMap<u32, FunctionInfo>,
 }
 
 #[derive(Debug)]
@@ -46,21 +43,6 @@ pub enum ExprAbt {
     Unary(UnOpAbt, Box<ExprAbt>),
     Call(u64, Vec<ExprAbt>, TypeAbt),
     Debug(Box<ExprAbt>),
-}
-
-#[derive(Debug, Clone)]
-pub struct Variable {
-    pub id: u8,
-    pub ty: TypeAbt,
-}
-
-#[derive(Debug)]
-pub struct Function {
-    pub id: u32,
-    pub param_types: Vec<TypeAbt>,
-    pub return_type: TypeAbt,
-    pub local_count: u8,
-    pub code: StmtAbt,
 }
 
 #[derive(Debug)]
@@ -164,19 +146,19 @@ impl TypeAbt {
 impl Display for TypeAbt {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            TypeAbt::Unknown => write!(f, "unknown"),
-            TypeAbt::Unit => write!(f, "()"),
-            TypeAbt::U8 => write!(f, "u8"),
-            TypeAbt::U16 => write!(f, "u16"),
-            TypeAbt::U32 => write!(f, "u32"),
-            TypeAbt::U64 => write!(f, "u64"),
-            TypeAbt::I8 => write!(f, "i8"),
-            TypeAbt::I16 => write!(f, "i16"),
-            TypeAbt::I32 => write!(f, "i32"),
-            TypeAbt::I64 => write!(f, "i64"),
-            TypeAbt::F32 => write!(f, "f32"),
-            TypeAbt::F64 => write!(f, "f64"),
-            TypeAbt::Bool => write!(f, "bool"),
+            Self::Unknown => write!(f, "unknown"),
+            Self::Unit => write!(f, "()"),
+            Self::U8 => write!(f, "u8"),
+            Self::U16 => write!(f, "u16"),
+            Self::U32 => write!(f, "u32"),
+            Self::U64 => write!(f, "u64"),
+            Self::I8 => write!(f, "i8"),
+            Self::I16 => write!(f, "i16"),
+            Self::I32 => write!(f, "i32"),
+            Self::I64 => write!(f, "i64"),
+            Self::F32 => write!(f, "f32"),
+            Self::F64 => write!(f, "f64"),
+            Self::Bool => write!(f, "bool"),
         }
     }
 }

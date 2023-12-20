@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use self::{functions::FunctionInfo, scope::Scope, variables::VariableInfo};
+use self::scope::Scope;
 
 use super::diagnostics::Diagnostics;
 
@@ -19,6 +19,9 @@ mod operations;
 
 mod if_then;
 mod while_do;
+
+pub use functions::FunctionInfo;
+pub use variables::VariableInfo;
 
 pub struct Declaration {
     pub declared: u64,
