@@ -6,6 +6,7 @@ use super::diagnostics::Diagnostics;
 
 mod scope;
 
+mod control_flow;
 mod expression;
 mod program;
 mod statement;

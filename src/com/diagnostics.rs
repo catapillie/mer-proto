@@ -6,7 +6,8 @@ use super::{
     abt::TypeAbt,
     pos::Pos,
     span::Span,
-    tokens::{Token, TokenKind}, syntax::{bin_op::BinOpAst, un_op::UnOpAst},
+    syntax::{bin_op::BinOpAst, un_op::UnOpAst},
+    tokens::{Token, TokenKind},
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -252,7 +253,7 @@ impl DiagnosticKind {
             Self::NotAllPathsReturn
                 => "not every path is guaranteed to return".to_string(),
             Self::TopLevelMustReturn
-                => "the top level program must return unit".to_string(),
+                => "the  top level program must return unit".to_string(),
             Self::UnreachableCode
                 => "this code is unreachable".to_string(),
         }

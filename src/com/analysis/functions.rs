@@ -69,16 +69,24 @@ impl<'d> Analyser<'d> {
             }
         };
 
-        let ty = info.ty.clone();
-        let args = info.args.clone();
+        let bound_ty = info.ty.clone();
+        let bound_args = info.args.clone();
 
         self.open_scope();
-        self.scope.return_type = ty;
+        self.scope.return_type = bound_ty;
 
-        for (arg_name, arg_ty) in args {
+        for (arg_name, arg_ty) in bound_args {
             self.declare_variable(arg_name.as_str(), arg_ty);
         }
-        let _body = self.analyse_statement(body);
+        let bound_body = self.analyse_statement(body);
+        if !self.analyse_control_flow(&bound_body) {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::NotAllPathsReturn)
+                .with_severity(Severity::Error)
+                .with_span(ty.span)
+                .done();
+            self.diagnostics.push(d);
+        }
 
         self.close_scope();
 
