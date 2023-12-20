@@ -1,5 +1,6 @@
 use crate::com::{
     abt::{ExprAbt, StmtAbtKind, TypeAbt},
+    analysis::Declaration,
     diagnostics::{self, DiagnosticKind, Severity},
     span::Span,
     syntax::{expr::ExprAst, stmt::StmtAst, types::TypeAst},
@@ -7,30 +8,40 @@ use crate::com::{
 
 use super::Analyser;
 
+pub struct FunctionInfo {
+    pub id: u64,
+    pub name: String,
+    pub args: Vec<(String, TypeAbt)>,
+    pub ty: TypeAbt,
+}
+
 impl<'d> Analyser<'d> {
-    pub fn get_function_by_id(&self, func_id: u64) -> Option<(&[TypeAbt], &TypeAbt)> {
-        let ids = self
-            .functions
-            .values()
-            .filter(|(_, _, id)| id == &func_id)
-            .collect::<Vec<_>>();
-        assert_eq!(ids.len(), 1, "variable ids must be unique");
-        ids.first().map(|(a, b, _)| (a.as_slice(), b))
+    pub fn declare_function_here(
+        &mut self,
+        name: &str,
+        args: Vec<(String, TypeAbt)>,
+        ty: TypeAbt,
+    ) -> Declaration {
+        let declared = self.make_unique_id();
+        let shadowed = self.scope.bindings.insert(name.to_string(), declared);
+
+        let info = FunctionInfo {
+            id: declared,
+            name: name.to_string(),
+            args,
+            ty,
+        };
+        let prev = self.functions.insert(declared, info);
+        assert!(prev.is_none(), "ids must be unique");
+
+        Declaration { declared, shadowed }
     }
 
-    pub fn get_function(&self, name: &str) -> Option<&(Vec<TypeAbt>, TypeAbt, u64)> {
-        let depth = self.current_depth;
-        let indices = self.current_offsets.iter().rev().enumerate();
-        for (i, &offset) in indices {
-            let depth = depth - i as u64 + 1;
-            let entry = (name.to_string(), depth, offset);
-
-            let func = self.functions.get(&entry);
-            if func.is_some() {
-                return func;
-            }
-        }
-        None
+    pub fn get_function(&self, name: &str) -> Option<&FunctionInfo> {
+        self.scope.search(|scope| match scope.bindings.get(name) {
+            Some(id) => self.functions.get(id),
+            None => None,
+        })
     }
 
     pub fn analyse_function_definition(
@@ -38,30 +49,37 @@ impl<'d> Analyser<'d> {
         name: &Option<String>,
         args: &[(String, TypeAst)],
         body: &StmtAst,
-        _ty: &TypeAst,
+        ty: &TypeAst,
     ) -> StmtAbtKind {
         let Some(name) = name else {
             return StmtAbtKind::Empty;
         };
 
-        let depth = self.current_depth;
-        let offset = self.get_block_offset();
-        let entry = (name.clone(), depth, offset);
-        let (bound_args_ty, ty, _) = self
-            .functions
-            .get(&entry)
-            .cloned()
-            .expect("declaration must have been reached");
+        let info = match self.get_function(name) {
+            Some(info) => info, // already declared
+            None => {
+                // must be declared now
+                let bound_args = args
+                    .iter()
+                    .map(|(name, ty)| (name.clone(), self.analyse_type(ty)))
+                    .collect();
+                let bound_ty = self.analyse_type(ty);
+                let decl = self.declare_function_here(name, bound_args, bound_ty);
+                self.functions.get(&decl.declared).unwrap() // was just declared, cannot be none
+            }
+        };
 
-        assert_eq!(args.len(), bound_args_ty.len());
+        let ty = info.ty.clone();
+        let args = info.args.clone();
 
         self.open_scope();
-        self.set_return_type(ty);
-        let bound_args = args.iter().map(|(name, _)| name).zip(bound_args_ty);
-        for (arg_name, arg_ty) in bound_args {
-            self.declare_variable(arg_name, arg_ty);
+        self.scope.return_type = ty;
+
+        for (arg_name, arg_ty) in args {
+            self.declare_variable(arg_name.as_str(), arg_ty);
         }
-        let _ = self.analyse_statement(body);
+        let _body = self.analyse_statement(body);
+
         self.close_scope();
 
         StmtAbtKind::Empty
@@ -79,7 +97,7 @@ impl<'d> Analyser<'d> {
             .collect::<Vec<_>>();
 
         let name = callee;
-        let Some(func) = self.get_function(name).cloned() else {
+        let Some(info) = self.get_function(name) else {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::UnknownFunction(name.to_string()))
                 .with_severity(Severity::Error)
@@ -89,26 +107,32 @@ impl<'d> Analyser<'d> {
             return ExprAbt::Unknown;
         };
 
-        let (arg_types, return_type, id) = func;
+        let bound_args = info.args.clone();
+        let id = info.id;
+        let ty = info.ty.clone();
 
         let mut invalid = false;
-        for ((bound_param, param), expected_ty) in bound_params.iter().zip(args).zip(&arg_types) {
-            let ty_param = self.type_of(bound_param);
-            if !ty_param.is(expected_ty) {
+        for ((bound_arg, span), arg_ty) in bound_params
+            .iter()
+            .zip(args.iter().map(|arg| arg.span))
+            .zip(bound_args.iter().map(|(_, arg_ty)| arg_ty))
+        {
+            let ty_param = self.type_of(bound_arg);
+            if !ty_param.is(arg_ty) {
                 let d = diagnostics::create_diagnostic()
                     .with_kind(DiagnosticKind::TypeMismatch {
                         found: ty_param.clone(),
-                        expected: expected_ty.clone(),
+                        expected: arg_ty.clone(),
                     })
                     .with_severity(Severity::Error)
-                    .with_span(param.span)
+                    .with_span(span)
                     .done();
                 self.diagnostics.push(d);
                 invalid = true;
             }
         }
 
-        if bound_params.len() != arg_types.len() {
+        if bound_params.len() != bound_args.len() {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::InvalidParameterCount {
                     got: bound_params.len(),
@@ -124,18 +148,18 @@ impl<'d> Analyser<'d> {
         if invalid {
             ExprAbt::Unknown
         } else {
-            ExprAbt::Call(id, bound_params, return_type.clone())
+            ExprAbt::Call(id, bound_params, ty.clone())
         }
     }
 
     pub fn analyse_return_statement(&mut self, span: Span) -> StmtAbtKind {
         let ty = TypeAbt::Unit;
-        let return_ty = self.get_return_type();
+        let return_ty = &self.scope.return_type;
 
-        if !ty.is(&return_ty) {
+        if !ty.is(return_ty) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::MustReturnValue {
-                    expected: return_ty,
+                    expected: return_ty.clone(),
                 })
                 .with_severity(Severity::Error)
                 .with_span(span)
@@ -150,13 +174,13 @@ impl<'d> Analyser<'d> {
     pub fn analyse_return_with_statement(&mut self, expr: &ExprAst) -> StmtAbtKind {
         let bound_expr = self.analyse_expression(expr);
         let ty_expr = self.type_of(&bound_expr);
-        let return_ty = self.get_return_type();
+        let return_ty = &self.scope.return_type;
 
-        if !ty_expr.is(&return_ty) {
+        if !ty_expr.is(return_ty) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::TypeMismatch {
                     found: ty_expr,
-                    expected: return_ty,
+                    expected: return_ty.clone(),
                 })
                 .with_severity(Severity::Error)
                 .with_span(expr.span)

@@ -1,39 +1,62 @@
+use std::collections::HashMap;
+
 use crate::com::abt::TypeAbt;
 
 use super::Analyser;
 
+pub struct Scope {
+    parent: Option<Box<Scope>>,
+    pub bindings: HashMap<String, u64>,
+    pub return_type: TypeAbt,
+}
+
+impl Scope {
+    pub fn root() -> Self {
+        Scope {
+            parent: None,
+            bindings: Default::default(),
+            return_type: TypeAbt::Unit,
+        }
+    }
+
+    pub fn is_root(&self) -> bool {
+        self.parent.is_none()
+    }
+
+    fn create_sub_scope(&self) -> Self {
+        Scope {
+            parent: None,
+            bindings: Default::default(),
+            return_type: self.return_type.clone(),
+        }
+    }
+
+    pub fn search<F, T>(&self, lookup: F) -> Option<T>
+    where
+        F: Fn(&Self) -> Option<T>,
+    {
+        let mut scope = Some(self);
+        while let Some(s) = scope {
+            let t = lookup(s);
+            if t.is_some() {
+                return t;
+            }
+
+            scope = s.parent.as_deref();
+        }
+
+        None
+    }
+}
+
 impl<'d> Analyser<'d> {
     pub fn open_scope(&mut self) {
-        self.current_depth += 1;
-        self.current_offsets.push(0);
-        self.current_return_ty.push(self.get_return_type())
+        let child = self.scope.create_sub_scope();
+        let parent = std::mem::replace(&mut self.scope, child);
+        self.scope.parent = Some(Box::new(parent));
     }
 
     pub fn close_scope(&mut self) {
-        assert_ne!(self.current_depth, 0, "scope underflow");
-        self.current_offsets.pop().expect("scope underflow");
-        self.current_return_ty.pop().expect("scope underflow");
-        self.current_depth -= 1;
-    }
-
-    pub fn set_block_offset(&mut self, offset: u64) {
-        let o = self.current_offsets.last_mut().expect("not in scope");
-        *o = offset;
-    }
-
-    pub fn get_block_offset(&self) -> u64 {
-        *self.current_offsets.last().expect("not in scope")
-    }
-
-    pub fn get_return_type(&self) -> TypeAbt {
-        self.current_return_ty
-            .last()
-            .cloned()
-            .expect("not in scope")
-    }
-
-    pub fn set_return_type(&mut self, ty: TypeAbt) {
-        let t = self.current_return_ty.last_mut().expect("not in scope");
-        *t = ty;
+        self.scope = *std::mem::take(&mut self.scope.parent).expect("scope underflow");
     }
 }

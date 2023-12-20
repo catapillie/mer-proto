@@ -47,8 +47,8 @@ impl<'d> Analyser<'d> {
             ExprAbt::Decimal(_) => TypeAbt::F64,
             ExprAbt::Boolean(_) => TypeAbt::Bool,
 
-            ExprAbt::Variable(var_id) => self.get_variable_by_id(*var_id).cloned().unwrap(),
-            ExprAbt::Call(func_id, _, _) => self.get_function_by_id(*func_id).unwrap().1.clone(),
+            ExprAbt::Variable(var_id) => self.variables.get(var_id).unwrap().ty.clone(),
+            ExprAbt::Call(func_id, _, _) => self.functions.get(func_id).unwrap().ty.clone(),
             ExprAbt::Assignment(id, _) => self.type_of(&ExprAbt::Variable(*id)),
 
             ExprAbt::Binary(op, _, _) => op.out_ty.clone(),

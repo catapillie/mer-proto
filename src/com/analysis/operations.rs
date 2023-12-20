@@ -80,13 +80,13 @@ impl<'d> Analyser<'d> {
         };
 
         let right_ty = self.type_of(&bound_right);
-        let var_ty = self.get_variable_by_id(var_id).unwrap();
+        let info = self.variables.get(&var_id).unwrap();
 
-        if !right_ty.is(&var_ty) {
+        if !right_ty.is(&info.ty) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::TypeMismatch {
                     found: right_ty,
-                    expected: var_ty.clone(),
+                    expected: info.ty.clone(),
                 })
                 .with_severity(Severity::Error)
                 .with_span(right.span)

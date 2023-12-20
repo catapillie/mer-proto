@@ -42,29 +42,13 @@ impl<'d> Analyser<'d> {
     }
 
     fn analyse_block_statement(&mut self, stmts: &[StmtAst]) -> StmtAbtKind {
-        let prev_offset = self.get_block_offset();
-
         self.open_scope();
-
-        let mut block_offset = 0;
         let bound_stmts = stmts
             .iter()
-            .map(|stmt| {
-                let is_block = matches!(stmt.kind, StmtAstKind::Block(_));
-                let o = if is_block {
-                    block_offset += 1;
-                    block_offset
-                } else {
-                    prev_offset
-                };
-
-                self.set_block_offset(o);
-                self.analyse_statement(stmt)
-            })
+            .map(|stmt| self.analyse_statement(stmt))
+            .filter(|stmt| !matches!(stmt.kind, StmtAbtKind::Empty))
             .collect();
-
         self.close_scope();
-
         StmtAbtKind::Block(bound_stmts)
     }
 }
