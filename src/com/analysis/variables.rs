@@ -10,17 +10,19 @@ use super::{Analyser, Declaration};
 pub struct VariableInfo {
     pub id: u64,
     pub name: String,
+    pub depth: u16,
     pub ty: TypeAbt,
 }
 
 impl<'d> Analyser<'d> {
-    pub fn declare_variable(&mut self, name: &str, ty: TypeAbt) -> Declaration {
+    pub fn declare_variable_here(&mut self, name: &str, ty: TypeAbt) -> Declaration {
         let declared = self.make_unique_id();
         let shadowed = self.scope.bindings.insert(name.to_string(), declared);
 
         let info = VariableInfo {
             id: declared,
             name: name.to_string(),
+            depth: self.scope.depth,
             ty,
         };
         let prev = self.variables.insert(declared, info);
@@ -46,7 +48,7 @@ impl<'d> Analyser<'d> {
         let Some((name, _)) = id else {
             return StmtAbtKind::Empty;
         };
-        let decl = self.declare_variable(name, self.type_of(&bound_expr));
+        let decl = self.declare_variable_here(name, self.type_of(&bound_expr));
 
         // variable definitions are just (the first) assignment
         StmtAbtKind::Expr(Box::new(ExprAbt::Assignment(
@@ -56,17 +58,35 @@ impl<'d> Analyser<'d> {
     }
 
     pub fn analyse_variable_expression(&mut self, name: &str, span: Span) -> ExprAbt {
-        match self.get_variable(name) {
-            Some(info) => ExprAbt::Variable(info.id),
-            None => {
+        let Some(info) = self.get_variable(name) else {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::UnknownVariable(name.to_string()))
+                .with_severity(Severity::Error)
+                .with_span(span)
+                .done();
+            self.diagnostics.push(d);
+            return ExprAbt::Unknown;
+        };
+
+        let id = info.id;
+
+        if let Some(func_id) = self.scope.current_func_id {
+            let func_info = self.functions.get(&func_id).unwrap();
+            if info.depth <= func_info.depth {
+                let func_name = func_info.name.clone();
+                let var_name = info.name.clone();
                 let d = diagnostics::create_diagnostic()
-                    .with_kind(DiagnosticKind::UnknownVariable(name.to_string()))
+                    .with_kind(DiagnosticKind::UnallowedVariableCapture {
+                        func_name,
+                        var_name,
+                    })
                     .with_severity(Severity::Error)
                     .with_span(span)
                     .done();
                 self.diagnostics.push(d);
-                ExprAbt::Unknown
             }
         }
+
+        ExprAbt::Variable(id)
     }
 }

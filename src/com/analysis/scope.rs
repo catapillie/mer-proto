@@ -1,21 +1,21 @@
 use std::collections::HashMap;
 
-use crate::com::abt::TypeAbt;
-
 use super::Analyser;
 
 pub struct Scope {
     parent: Option<Box<Scope>>,
+    pub depth: u16,
     pub bindings: HashMap<String, u64>,
-    pub return_type: TypeAbt,
+    pub current_func_id: Option<u64>,
 }
 
 impl Scope {
     pub fn root() -> Self {
         Scope {
             parent: None,
+            depth: 0,
             bindings: Default::default(),
-            return_type: TypeAbt::Unit,
+            current_func_id: None
         }
     }
 
@@ -26,8 +26,9 @@ impl Scope {
     fn create_sub_scope(&self) -> Self {
         Scope {
             parent: None,
+            depth: self.depth + 1,
             bindings: Default::default(),
-            return_type: self.return_type.clone(),
+            current_func_id: self.current_func_id,
         }
     }
 

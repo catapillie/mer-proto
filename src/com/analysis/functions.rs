@@ -11,6 +11,7 @@ use super::Analyser;
 pub struct FunctionInfo {
     pub id: u64,
     pub name: String,
+    pub depth: u16,
     pub args: Vec<(String, TypeAbt)>,
     pub ty: TypeAbt,
 }
@@ -28,6 +29,7 @@ impl<'d> Analyser<'d> {
         let info = FunctionInfo {
             id: declared,
             name: name.to_string(),
+            depth: self.scope.depth,
             args,
             ty,
         };
@@ -69,14 +71,14 @@ impl<'d> Analyser<'d> {
             }
         };
 
-        let bound_ty = info.ty.clone();
         let bound_args = info.args.clone();
+        let id = info.id;
 
         self.open_scope();
-        self.scope.return_type = bound_ty;
+        self.scope.current_func_id = Some(id);
 
         for (arg_name, arg_ty) in bound_args {
-            self.declare_variable(arg_name.as_str(), arg_ty);
+            self.declare_variable_here(arg_name.as_str(), arg_ty);
         }
         let bound_body = self.analyse_statement(body);
         if !self.analyse_control_flow(&bound_body) {
@@ -162,9 +164,12 @@ impl<'d> Analyser<'d> {
 
     pub fn analyse_return_statement(&mut self, span: Span) -> StmtAbtKind {
         let ty = TypeAbt::Unit;
-        let return_ty = &self.scope.return_type;
+        let return_ty = match self.scope.current_func_id {
+            Some(id) => self.functions.get(&id).unwrap().ty.clone(),
+            None => TypeAbt::Unit,
+        };
 
-        if !ty.is(return_ty) {
+        if !ty.is(&return_ty) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::MustReturnValue {
                     expected: return_ty.clone(),
@@ -182,9 +187,12 @@ impl<'d> Analyser<'d> {
     pub fn analyse_return_with_statement(&mut self, expr: &ExprAst) -> StmtAbtKind {
         let bound_expr = self.analyse_expression(expr);
         let ty_expr = self.type_of(&bound_expr);
-        let return_ty = &self.scope.return_type;
+        let return_ty = match self.scope.current_func_id {
+            Some(id) => self.functions.get(&id).unwrap().ty.clone(),
+            None => TypeAbt::Unit,
+        };
 
-        if !ty_expr.is(return_ty) {
+        if !ty_expr.is(&return_ty) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::TypeMismatch {
                     found: ty_expr,

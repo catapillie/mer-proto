@@ -172,6 +172,11 @@ pub enum DiagnosticKind {
     TopLevelMustReturn,
 
     UnreachableCode,
+
+    UnallowedVariableCapture {
+        func_name: String,
+        var_name: String,
+    },
 }
 
 #[rustfmt::skip]
@@ -256,6 +261,11 @@ impl DiagnosticKind {
                 => "the top level program must return unit".to_string(),
             Self::UnreachableCode
                 => "this code is unreachable".to_string(),
+            Self::UnallowedVariableCapture { func_name, var_name }
+                => format!("function '{}' captures variable '{}', which is not (yet) allowed",
+                    func_name.bold(),
+                    var_name.bold(),
+                ),
         }
     }
 }

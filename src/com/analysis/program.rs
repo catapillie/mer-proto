@@ -7,7 +7,9 @@ use super::Analyser;
 
 impl<'d> Analyser<'d> {
     pub fn analyse_program(&mut self, ast: &StmtAst) {
+        self.scope.depth = 1;
         self.reach_top_level_declarations(ast);
+        self.scope.depth = 0;
 
         let abt = self.analyse_statement(ast);
         if !self.analyse_control_flow(&abt) {
