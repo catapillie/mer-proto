@@ -47,8 +47,13 @@ impl<'d> Analyser<'d> {
             .iter()
             .map(|stmt| self.analyse_statement(stmt))
             .filter(|stmt| !matches!(stmt.kind, StmtAbtKind::Empty))
-            .collect();
+            .collect::<Vec<_>>();
         self.close_scope();
-        StmtAbtKind::Block(bound_stmts)
+
+        if bound_stmts.is_empty() {
+            StmtAbtKind::Empty
+        } else {
+            StmtAbtKind::Block(bound_stmts)
+        }
     }
 }
