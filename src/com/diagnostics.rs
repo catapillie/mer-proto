@@ -253,7 +253,7 @@ impl DiagnosticKind {
             Self::NotAllPathsReturn
                 => "not every path is guaranteed to return".to_string(),
             Self::TopLevelMustReturn
-                => "the  top level program must return unit".to_string(),
+                => "the top level program must return unit".to_string(),
             Self::UnreachableCode
                 => "this code is unreachable".to_string(),
         }
