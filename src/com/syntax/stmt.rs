@@ -23,7 +23,7 @@ pub enum StmtAstKind {
     Do(Box<StmtAst>),
     Func(
         Option<String>,
-        Vec<(String, TypeAst)>,
+        Vec<(String, TypeAst, Span)>,
         Box<StmtAst>,
         Box<TypeAst>,
     ),

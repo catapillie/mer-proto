@@ -49,7 +49,7 @@ impl<'d> Analyser<'d> {
     pub fn analyse_function_definition(
         &mut self,
         name: &Option<String>,
-        args: &[(String, TypeAst)],
+        args: &[(String, TypeAst, Span)],
         body: &StmtAst,
         ty: &TypeAst,
     ) -> StmtAbtKind {
@@ -63,7 +63,7 @@ impl<'d> Analyser<'d> {
                 // must be declared now
                 let bound_args = args
                     .iter()
-                    .map(|(name, ty)| (name.clone(), self.analyse_type(ty)))
+                    .map(|(name, ty, _)| (name.clone(), self.analyse_type(ty)))
                     .collect();
                 let bound_ty = self.analyse_type(ty);
                 let decl = self.declare_function_here(name, bound_args, bound_ty);
@@ -71,14 +71,18 @@ impl<'d> Analyser<'d> {
             }
         };
 
+        assert_eq!(info.args.len(), args.len());
         let bound_args = info.args.clone();
+        let bound_spanned_args = bound_args
+            .iter()
+            .zip(args.into_iter().map(|(_, _, span)| span));
         let id = info.id;
 
         self.open_scope();
         self.scope.current_func_id = Some(id);
 
-        for (arg_name, arg_ty) in bound_args {
-            self.declare_variable_here(arg_name.as_str(), arg_ty);
+        for ((arg_name, arg_ty), &span) in bound_spanned_args {
+            self.declare_variable_here(arg_name.as_str(), arg_ty.clone(), span);
         }
         let bound_body = self.analyse_statement(body);
         if !self.analyse_control_flow(&bound_body) {

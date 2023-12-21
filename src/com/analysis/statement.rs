@@ -12,7 +12,7 @@ impl<'d> Analyser<'d> {
             StmtAstKind::Empty
                 => StmtAbtKind::Empty,
             StmtAstKind::VarDef(name, value)
-                => self.analyse_variable_definition(name, value),
+                => self.analyse_variable_definition(name, value, stmt.span),
             StmtAstKind::Expr(expr)
                 => StmtAbtKind::Expr(Box::new(self.analyse_expression(expr))),
             StmtAstKind::Block(stmts)

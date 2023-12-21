@@ -41,6 +41,7 @@ pub struct Diagnostic {
     pub kind: DiagnosticKind,
     pub severity: Severity,
     pub span: Option<Span>,
+    pub notes: Vec<(Span, Note)>,
 }
 
 // type-state builder
@@ -48,6 +49,7 @@ pub struct DiagnosticBuilder<Ki, Sev, Sp> {
     kind: Ki,
     severity: Sev,
     span: Sp,
+    notes: Vec<(Span, Note)>,
 }
 
 pub fn create_diagnostic() -> DiagnosticBuilder<(), (), ()> {
@@ -55,6 +57,14 @@ pub fn create_diagnostic() -> DiagnosticBuilder<(), (), ()> {
         kind: (),
         severity: (),
         span: (),
+        notes: Default::default(),
+    }
+}
+
+impl<Ki, Sev, Sp> DiagnosticBuilder<Ki, Sev, Sp> {
+    pub fn note(mut self, note: Note, span: Span) -> Self {
+        self.notes.push((span, note));
+        self
     }
 }
 
@@ -64,6 +74,7 @@ impl<Sev, Sp> DiagnosticBuilder<(), Sev, Sp> {
             kind,
             severity: self.severity,
             span: self.span,
+            notes: self.notes,
         }
     }
 }
@@ -74,6 +85,7 @@ impl<Ki, Sp> DiagnosticBuilder<Ki, (), Sp> {
             kind: self.kind,
             severity,
             span: self.span,
+            notes: self.notes,
         }
     }
 }
@@ -84,6 +96,7 @@ impl<Ki, Sev> DiagnosticBuilder<Ki, Sev, ()> {
             kind: self.kind,
             severity: self.severity,
             span: None,
+            notes: self.notes,
         }
     }
 
@@ -92,6 +105,7 @@ impl<Ki, Sev> DiagnosticBuilder<Ki, Sev, ()> {
             kind: self.kind,
             severity: self.severity,
             span: Some(span),
+            notes: self.notes,
         }
     }
 
@@ -106,6 +120,7 @@ impl DiagnosticBuilder<DiagnosticKind, Severity, Option<Span>> {
             kind: self.kind,
             severity: self.severity,
             span: self.span,
+            notes: self.notes,
         }
     }
 }
@@ -265,6 +280,23 @@ impl DiagnosticKind {
                 => format!("function '{}' captures variable '{}', which is not (yet) allowed",
                     func_name.bold(),
                     var_name.bold(),
+                ),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum Note {
+    VariableDeclaration(String),
+}
+
+#[rustfmt::skip]
+impl Note {
+    pub fn msg(&self) -> String {
+        match self {
+            Note::VariableDeclaration(name)
+                => format!("variable '{}' declared here",
+                    name.bold(),
                 ),
         }
     }

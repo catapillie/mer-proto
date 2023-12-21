@@ -265,11 +265,13 @@ impl<'a> Parser<'a> {
                 let Some(id) = self.try_match_token::<Identifier>() else {
                     break;
                 };
+                let span = self.last_span();
 
                 self.match_token::<Colon>();
                 let ty = self.expect_type_expression();
 
-                params.push((id.0, ty));
+                let span = span.join(ty.span);
+                params.push((id.0, ty, span));
 
                 if self.try_match_token::<Comma>().is_none() {
                     break;

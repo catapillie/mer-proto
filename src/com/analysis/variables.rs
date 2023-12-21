@@ -1,6 +1,6 @@
 use crate::com::{
     abt::{ExprAbt, StmtAbtKind, TypeAbt},
-    diagnostics::{self, DiagnosticKind, Severity},
+    diagnostics::{self, DiagnosticKind, Note, Severity},
     span::Span,
     syntax::expr::ExprAst,
 };
@@ -12,10 +12,11 @@ pub struct VariableInfo {
     pub name: String,
     pub depth: u16,
     pub ty: TypeAbt,
+    pub declaration_span: Span,
 }
 
 impl<'d> Analyser<'d> {
-    pub fn declare_variable_here(&mut self, name: &str, ty: TypeAbt) -> Declaration {
+    pub fn declare_variable_here(&mut self, name: &str, ty: TypeAbt, span: Span) -> Declaration {
         let declared = self.make_unique_id();
         let shadowed = self.scope.bindings.insert(name.to_string(), declared);
 
@@ -24,6 +25,7 @@ impl<'d> Analyser<'d> {
             name: name.to_string(),
             depth: self.scope.depth,
             ty,
+            declaration_span: span,
         };
         let prev = self.variables.insert(declared, info);
         assert!(prev.is_none(), "ids must be unique");
@@ -42,13 +44,14 @@ impl<'d> Analyser<'d> {
         &mut self,
         id: &Option<(String, Span)>,
         expr: &ExprAst,
+        span: Span,
     ) -> StmtAbtKind {
         let bound_expr = self.analyse_expression(expr);
 
         let Some((name, _)) = id else {
             return StmtAbtKind::Empty;
         };
-        let decl = self.declare_variable_here(name, self.type_of(&bound_expr));
+        let decl = self.declare_variable_here(name, self.type_of(&bound_expr), span);
 
         // variable definitions are just (the first) assignment
         StmtAbtKind::Expr(Box::new(ExprAbt::Assignment(
@@ -82,6 +85,10 @@ impl<'d> Analyser<'d> {
                     })
                     .with_severity(Severity::Error)
                     .with_span(span)
+                    .note(
+                        Note::VariableDeclaration(name.to_string()),
+                        info.declaration_span,
+                    )
                     .done();
                 self.diagnostics.push(d);
             }

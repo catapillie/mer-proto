@@ -30,7 +30,7 @@ impl<'d> Analyser<'d> {
                 if let StmtAstKind::Func(Some(name), args, _, ty) = &stmt.kind {
                     let bound_args = args
                         .iter()
-                        .map(|(name, ty)| (name.clone(), self.analyse_type(ty)))
+                        .map(|(name, ty, _)| (name.clone(), self.analyse_type(ty)))
                         .collect();
                     let bound_ty = self.analyse_type(ty);
                     self.declare_function_here(name, bound_args, bound_ty);
