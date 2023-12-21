@@ -105,7 +105,7 @@ impl<'d> Analyser<'d> {
         args: &[ExprAst],
         span: Span,
     ) -> ExprAbt {
-        let bound_params = args
+        let bound_args = args
             .iter()
             .map(|arg| self.analyse_expression(arg))
             .collect::<Vec<_>>();
@@ -121,15 +121,15 @@ impl<'d> Analyser<'d> {
             return ExprAbt::Unknown;
         };
 
-        let bound_args = info.args.clone();
+        let func_args = info.args.clone();
         let id = info.id;
         let ty = info.ty.clone();
 
         let mut invalid = false;
-        for ((bound_arg, span), arg_ty) in bound_params
+        for ((bound_arg, span), arg_ty) in bound_args
             .iter()
             .zip(args.iter().map(|arg| arg.span))
-            .zip(bound_args.iter().map(|(_, arg_ty)| arg_ty))
+            .zip(func_args.iter().map(|(_, arg_ty)| arg_ty))
         {
             let ty_param = self.type_of(bound_arg);
             if !ty_param.is(arg_ty) {
@@ -146,11 +146,11 @@ impl<'d> Analyser<'d> {
             }
         }
 
-        if bound_params.len() != bound_args.len() {
+        if bound_args.len() != func_args.len() {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::InvalidParameterCount {
-                    got: bound_params.len(),
-                    expected: bound_params.len(),
+                    got: bound_args.len(),
+                    expected: func_args.len(),
                 })
                 .with_severity(Severity::Error)
                 .with_span(span)
@@ -162,7 +162,7 @@ impl<'d> Analyser<'d> {
         if invalid {
             ExprAbt::Unknown
         } else {
-            ExprAbt::Call(id, bound_params, ty.clone())
+            ExprAbt::Call(id, bound_args, ty.clone())
         }
     }
 
