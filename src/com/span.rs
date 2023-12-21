@@ -35,6 +35,10 @@ impl Span {
 
         Span::new(min, max)
     }
+
+    pub fn is_one_line(&self) -> bool {
+        self.from.line == self.to.line
+    }
 }
 
 impl Display for Span {

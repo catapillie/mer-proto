@@ -1,10 +1,13 @@
-use self::{abt::ProgramAbt, codegen::Codegen, diagnostics::Diagnostic, parser::Parser, analysis::Analyser};
+use self::{
+    abt::ProgramAbt, analysis::Analyser, codegen::Codegen, diagnostics::Diagnostic, parser::Parser,
+};
 use crate::{
     com::diagnostics::{Diagnostics, Severity},
     msg,
 };
 use colored::{Color, Colorize};
 use std::{
+    collections::BTreeMap,
     fs::{self},
     path::PathBuf,
     process::{self},
@@ -12,13 +15,14 @@ use std::{
 
 pub mod abt;
 mod analysis;
-mod syntax;
 mod codegen;
 mod cursor;
 mod diagnostics;
 mod parser;
 mod pos;
+mod printer;
 mod span;
+mod syntax;
 mod tokens;
 
 pub fn compile_to_bytecode(path: &str, source: String) -> Vec<u8> {
@@ -91,7 +95,6 @@ pub fn analyse(path: &str, source: String) -> Option<ProgramAbt> {
     todo!()
 }
 
-// TODO: make it work with TAB characters
 fn print_diagnostic(path: &str, lines: &[&str], diagnostic: &Diagnostic) {
     let msg = diagnostic.kind.msg();
     let color = match diagnostic.severity {
@@ -104,6 +107,10 @@ fn print_diagnostic(path: &str, lines: &[&str], diagnostic: &Diagnostic) {
             Color::BrightYellow
         }
     };
+
+    printer::print_diagnostic(path, lines, diagnostic);
+
+    return;
 
     let Some(span) = diagnostic.span else {
         println!("{}", format!("    --> {}", path).cyan());
