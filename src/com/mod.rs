@@ -80,6 +80,7 @@ pub fn analyse(path: &str, source: String) -> Option<ProgramAbt> {
         let mut fatal = false;
         for diagnostic in diagnostics {
             printer::print_diagnostic(path, lines.as_slice(), &diagnostic);
+            println!();
             if matches!(diagnostic.severity, Severity::Error) {
                 fatal = true;
             }

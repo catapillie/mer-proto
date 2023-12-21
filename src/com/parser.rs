@@ -1,8 +1,15 @@
 use either::Either;
 
-use crate::com::{syntax::types::TypeAstKind, diagnostics::Severity};
+use crate::com::{
+    diagnostics::{Note, Severity},
+    syntax::types::TypeAstKind,
+};
 
 use super::{
+    cursor::Cursor,
+    diagnostics::{self, DiagnosticKind, Diagnostics},
+    pos::Pos,
+    span::Span,
     syntax::{
         bin_op::BinOpAst,
         expr::{ExprAst, ExprAstKind},
@@ -11,10 +18,6 @@ use super::{
         types::TypeAst,
         un_op::UnOpAst,
     },
-    cursor::Cursor,
-    diagnostics::{self, DiagnosticKind, Diagnostics},
-    pos::Pos,
-    span::Span,
     tokens::*,
 };
 
@@ -58,6 +61,7 @@ impl<'a> Parser<'a> {
                             .with_kind(DiagnosticKind::ExpectedStatement)
                             .with_severity(Severity::Error)
                             .with_pos(self.last_boundary)
+                            .annotate_primary(Note::Here, Span::at(self.last_boundary))
                             .done();
                         self.diagnostics.push(d);
                         self.recover_to_next_statement();
@@ -299,6 +303,7 @@ impl<'a> Parser<'a> {
                         .with_kind(DiagnosticKind::ExpectedStatement)
                         .with_severity(Severity::Error)
                         .with_pos(self.last_boundary)
+                        .annotate_primary(Note::Here, Span::at(self.last_boundary))
                         .done();
                     self.diagnostics.push(d);
                     self.empty_statement_here()
@@ -349,6 +354,7 @@ impl<'a> Parser<'a> {
                             .with_kind(DiagnosticKind::ExpectedStatement)
                             .with_severity(Severity::Error)
                             .with_pos(self.last_boundary)
+                            .annotate_primary(Note::Here, Span::at(self.last_boundary))
                             .done();
                         self.diagnostics.push(d);
                         self.recover_to_next_statement();
@@ -356,13 +362,15 @@ impl<'a> Parser<'a> {
                 }
 
                 if self.try_match_token::<Eof>().is_some() {
+                    let span = self.last_token.span();
                     let d = diagnostics::create_diagnostic()
                         .with_kind(DiagnosticKind::ExpectedToken {
                             found: self.last_token.clone(),
                             expected: TokenKind::RightBrace,
                         })
                         .with_severity(Severity::Error)
-                        .with_span(self.last_token.span())
+                        .with_span(span)
+                        .annotate_primary(Note::ExpectedToken(Eof::kind()), span)
                         .done();
                     self.diagnostics.push(d);
                     break;
@@ -385,6 +393,7 @@ impl<'a> Parser<'a> {
                 | Token::TrueKw(_, _)
                 | Token::FalseKw(_, _)
                 | Token::LeftParen(_, _)
+                | Token::DebugKw(_, _)
         )
     }
 
@@ -430,6 +439,7 @@ impl<'a> Parser<'a> {
                     .with_kind(DiagnosticKind::ExpectedExpression)
                     .with_severity(Severity::Error)
                     .with_pos(self.last_boundary)
+                    .annotate_primary(Note::Here, Span::at(self.last_boundary))
                     .done();
                 self.diagnostics.push(d);
                 ExprAstKind::Bad.wrap(Span::at(self.last_boundary))
@@ -459,6 +469,7 @@ impl<'a> Parser<'a> {
                             .with_kind(DiagnosticKind::ExpectedExpression)
                             .with_severity(Severity::Error)
                             .with_pos(self.last_boundary)
+                            .annotate_primary(Note::Here, Span::at(self.last_boundary))
                             .done();
                         self.diagnostics.push(d);
                         ExprAstKind::Bad.wrap(Span::at(self.last_boundary))
@@ -489,6 +500,7 @@ impl<'a> Parser<'a> {
                         .with_kind(DiagnosticKind::ExpectedExpression)
                         .with_severity(Severity::Error)
                         .with_pos(self.last_boundary)
+                        .annotate_primary(Note::Here, Span::at(self.last_boundary))
                         .done();
                     self.diagnostics.push(d);
                     ExprAstKind::Bad.wrap(Span::at(self.last_boundary))
@@ -567,7 +579,8 @@ impl<'a> Parser<'a> {
                 let d = diagnostics::create_diagnostic()
                     .with_kind(DiagnosticKind::ExpectedType)
                     .with_severity(Severity::Error)
-                    .with_pos(self.last_span().from)
+                    .with_pos(self.last_boundary)
+                    .annotate_primary(Note::Here, Span::at(self.last_boundary))
                     .done();
                 self.diagnostics.push(d);
                 TypeAstKind::Bad.wrap(Span::at(self.last_span().from))
@@ -642,6 +655,7 @@ impl<'a> Parser<'a> {
                     })
                     .with_severity(Severity::Error)
                     .with_span(span)
+                    .annotate_primary(Note::ExpectedToken(T::kind()), span)
                     .done();
                 self.diagnostics.push(d);
                 None
@@ -667,6 +681,7 @@ impl<'a> Parser<'a> {
                         })
                         .with_severity(Severity::Error)
                         .with_span(span)
+                        .annotate_primary(Note::ExpectedToken(T::kind()), span)
                         .done();
                     self.diagnostics.push(d);
                     None
@@ -779,6 +794,7 @@ impl<'a> Parser<'a> {
                         .with_kind(DiagnosticKind::InvalidInteger(e))
                         .with_severity(Severity::Error)
                         .with_span(span)
+                        .annotate_primary(Note::Quiet, span)
                         .done();
                     self.diagnostics.push(d);
                     Some((None, span))
@@ -805,6 +821,7 @@ impl<'a> Parser<'a> {
                 .with_kind(DiagnosticKind::MissingLeadingDigits)
                 .with_severity(Severity::Error)
                 .with_span(span)
+                .annotate_primary(Note::LeadingDigits, span)
                 .done();
             self.diagnostics.push(d);
             return Some((None, span));
@@ -815,6 +832,7 @@ impl<'a> Parser<'a> {
                 .with_kind(DiagnosticKind::MissingTrailingDigits)
                 .with_severity(Severity::Error)
                 .with_span(span)
+                .annotate_primary(Note::TrailingDigits, span)
                 .done();
             self.diagnostics.push(d);
             return Some((None, span));
@@ -828,6 +846,7 @@ impl<'a> Parser<'a> {
                     .with_kind(DiagnosticKind::InvalidFloat)
                     .with_severity(Severity::Error)
                     .with_span(span)
+                    .annotate_primary(Note::Quiet, span)
                     .done();
                 self.diagnostics.push(d);
                 (None, span)
@@ -937,10 +956,12 @@ impl<'a> Parser<'a> {
                     self.cursor.next();
                     let pos_to = self.cursor.pos();
 
+                    let span = Span::new(pos_from, pos_to);
                     let d = diagnostics::create_diagnostic()
                         .with_kind(DiagnosticKind::IllegalCharacter(u))
                         .with_severity(Severity::Error)
                         .with_span(Span::new(pos_from, pos_to))
+                        .annotate_primary(Note::Here, span)
                         .done();
                     self.diagnostics.push(d);
                     continue;

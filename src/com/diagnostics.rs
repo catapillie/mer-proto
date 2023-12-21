@@ -41,7 +41,7 @@ pub struct Diagnostic {
     pub kind: DiagnosticKind,
     pub severity: Severity,
     pub span: Option<Span>,
-    pub notes: Vec<(Span, Note)>,
+    pub annotations: Vec<(Span, Note, NoteSeverity)>,
 }
 
 // type-state builder
@@ -49,7 +49,7 @@ pub struct DiagnosticBuilder<Ki, Sev, Sp> {
     kind: Ki,
     severity: Sev,
     span: Sp,
-    notes: Vec<(Span, Note)>,
+    notes: Vec<(Span, Note, NoteSeverity)>,
 }
 
 pub fn create_diagnostic() -> DiagnosticBuilder<(), (), ()> {
@@ -62,8 +62,13 @@ pub fn create_diagnostic() -> DiagnosticBuilder<(), (), ()> {
 }
 
 impl<Ki, Sev, Sp> DiagnosticBuilder<Ki, Sev, Sp> {
-    pub fn note(mut self, note: Note, span: Span) -> Self {
-        self.notes.push((span, note));
+    pub fn annotate_primary(mut self, note: Note, span: Span) -> Self {
+        self.notes.push((span, note, NoteSeverity::Default));
+        self
+    }
+
+    pub fn annotate_secondary(mut self, note: Note, span: Span, severity: NoteSeverity) -> Self {
+        self.notes.push((span, note, severity));
         self
     }
 }
@@ -120,7 +125,7 @@ impl DiagnosticBuilder<DiagnosticKind, Severity, Option<Span>> {
             kind: self.kind,
             severity: self.severity,
             span: self.span,
-            notes: self.notes,
+            annotations: self.notes,
         }
     }
 }
@@ -158,7 +163,7 @@ pub enum DiagnosticKind {
     TooManyVariables,
 
     UnknownFunction(String),
-    InvalidParameterCount {
+    InvalidArgCount {
         got: usize,
         expected: usize,
     },
@@ -245,13 +250,13 @@ impl DiagnosticKind {
                 => "too many local variables".to_string(),
             Self::UnknownFunction(name)
                 => format!("unknown function '{}'", name.bold()),
-            Self::InvalidParameterCount { got, expected }
-                => format!("function takes in {} but was supplied {} parameters",
+            Self::InvalidArgCount { got, expected }
+                => format!("function takes in {} arguments, but was supplied {}",
                     expected.to_string().bold(),
                     got.to_string().bold()
                 ),
             Self::UnknownType(id)
-                => format!("unkown type '{}'", id.bold()),
+                => format!("unknown type '{}'", id.bold()),
             Self::TypeMismatch { found, expected }
                 => format!("type mismatch of '{}' into '{}'",
                     found.to_string().bold(),
@@ -287,17 +292,87 @@ impl DiagnosticKind {
 
 #[derive(Debug, Clone)]
 pub enum Note {
+    Numbered(usize, Box<Note>),
+    Then(Box<Note>),
+    DDDot(Box<Note>),
+    Quiet,
+    Here,
+    Unknown,
+    LeadingDigits,
+    TrailingDigits,
+    ExpectedToken(TokenKind),
+    CanBeRemoved,
+    FollowsIf,
+    FollowsIfThen,
+    MissingWhile,
+    CannotAssign,
+    MustBeOfType(TypeAbt),
     VariableDeclaration(String),
+    VariableCapture(String),
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum NoteSeverity {
+    Default,
+    Annotation,
 }
 
 #[rustfmt::skip]
 impl Note {
+    pub fn num(self, num: usize) -> Self {
+        Note::Numbered(num, Box::new(self))
+    }
+
+    pub fn then(self) -> Self {
+        Note::Then(Box::new(self))
+    }
+
+    pub fn dddot(self) -> Self {
+        Note::DDDot(Box::new(self))
+    }
+
     pub fn msg(&self) -> String {
         match self {
-            Note::VariableDeclaration(name)
-                => format!("variable '{}' declared here",
+            Self::Quiet
+                => String::new(),
+            Self::Numbered(num, note)
+                => format!("{} {}", format!("[{num}]").bold(), note.msg()),
+            Self::Then(note)
+                => format!("...then {}", note.msg()),
+            Self::DDDot(note)
+                => format!("{}...", note.msg()),
+            Self::Here
+                => "here".to_string(),
+            Self::Unknown
+                => "???".to_string(),
+            Self::LeadingDigits
+                => "needs leading digit".to_string(),
+            Self::TrailingDigits
+                => "needs trailing digit".to_string(),
+            Self::ExpectedToken(expected)
+                => format!("expected {}", expected.to_string().bold()),
+            Self::CanBeRemoved
+                => "this can be removed".to_string(),
+            Self::FollowsIf
+                => "this should follow an if statement".to_string(),
+            Self::FollowsIfThen
+                => "this should follow an if-then statement".to_string(),
+            Self::MissingWhile
+                => "this must be followed by a while guard".to_string(),
+            Self::CannotAssign
+                => "this cannot be assigned to".to_string(),
+            Self::MustBeOfType(ty)
+                => format!("this must be of type '{}'",
+                    ty.to_string().bold()
+                ),
+            Self::VariableDeclaration(name)
+                => format!("variable '{}' is declared here",
                     name.bold(),
                 ),
+            Self::VariableCapture(name)
+                => format!("variable '{}' is captured here",
+                    name.bold()
+                )
         }
     }
 }

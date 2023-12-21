@@ -1,6 +1,6 @@
 use crate::com::{
     abt::{StmtAbtKind, TypeAbt},
-    diagnostics::{self, DiagnosticKind, Severity},
+    diagnostics::{self, DiagnosticKind, Note, Severity},
     syntax::{expr::ExprAst, stmt::StmtAst},
 };
 
@@ -19,6 +19,7 @@ impl<'d> Analyser<'d> {
                 .with_kind(DiagnosticKind::EmptyThenStatement)
                 .with_severity(Severity::Warning)
                 .with_span(body.span)
+                .annotate_primary(Note::CanBeRemoved, body.span)
                 .done();
             self.diagnostics.push(d);
         }
@@ -28,6 +29,7 @@ impl<'d> Analyser<'d> {
                 .with_kind(DiagnosticKind::GuardNotBoolean)
                 .with_severity(Severity::Error)
                 .with_span(guard.span)
+                .annotate_primary(Note::MustBeOfType(TypeAbt::Bool), guard.span)
                 .done();
             self.diagnostics.push(d);
         }
@@ -56,6 +58,7 @@ impl<'d> Analyser<'d> {
                 .with_kind(DiagnosticKind::EmptyThenStatement)
                 .with_severity(Severity::Warning)
                 .with_span(body_then.span)
+                .annotate_primary(Note::CanBeRemoved, body_then.span)
                 .done();
             self.diagnostics.push(d);
         }
@@ -65,6 +68,7 @@ impl<'d> Analyser<'d> {
                 .with_kind(DiagnosticKind::EmptyElseStatement)
                 .with_severity(Severity::Warning)
                 .with_span(body_else.span)
+                .annotate_primary(Note::CanBeRemoved, body_else.span)
                 .done();
             self.diagnostics.push(d);
         }
@@ -74,6 +78,7 @@ impl<'d> Analyser<'d> {
                 .with_kind(DiagnosticKind::GuardNotBoolean)
                 .with_severity(Severity::Error)
                 .with_span(guard.span)
+                .annotate_primary(Note::MustBeOfType(TypeAbt::Bool), guard.span)
                 .done();
             self.diagnostics.push(d);
         }
@@ -94,6 +99,7 @@ impl<'d> Analyser<'d> {
             .with_kind(DiagnosticKind::ThenWithoutIf)
             .with_severity(Severity::Error)
             .with_span(body.span)
+            .annotate_primary(Note::FollowsIf, body.span)
             .done();
         self.diagnostics.push(d);
 
@@ -109,6 +115,7 @@ impl<'d> Analyser<'d> {
             .with_kind(DiagnosticKind::ElseWithoutIfThen)
             .with_severity(Severity::Error)
             .with_span(body.span)
+            .annotate_primary(Note::FollowsIfThen, body.span)
             .done();
         self.diagnostics.push(d);
 

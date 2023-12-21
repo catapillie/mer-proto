@@ -1,7 +1,7 @@
 use crate::com::{
     abt::{ExprAbt, StmtAbtKind, TypeAbt},
     analysis::Declaration,
-    diagnostics::{self, DiagnosticKind, Severity},
+    diagnostics::{self, DiagnosticKind, Note, Severity},
     span::Span,
     syntax::{expr::ExprAst, stmt::StmtAst, types::TypeAst},
 };
@@ -73,9 +73,7 @@ impl<'d> Analyser<'d> {
 
         assert_eq!(info.args.len(), args.len());
         let bound_args = info.args.clone();
-        let bound_spanned_args = bound_args
-            .iter()
-            .zip(args.into_iter().map(|(_, _, span)| span));
+        let bound_spanned_args = bound_args.iter().zip(args.iter().map(|(_, _, span)| span));
         let id = info.id;
 
         self.open_scope();
@@ -90,6 +88,7 @@ impl<'d> Analyser<'d> {
                 .with_kind(DiagnosticKind::NotAllPathsReturn)
                 .with_severity(Severity::Error)
                 .with_span(ty.span)
+                .annotate_primary(Note::Quiet, ty.span)
                 .done();
             self.diagnostics.push(d);
         }
@@ -116,6 +115,7 @@ impl<'d> Analyser<'d> {
                 .with_kind(DiagnosticKind::UnknownFunction(name.to_string()))
                 .with_severity(Severity::Error)
                 .with_span(span)
+                .annotate_primary(Note::Unknown, span)
                 .done();
             self.diagnostics.push(d);
             return ExprAbt::Unknown;
@@ -140,6 +140,7 @@ impl<'d> Analyser<'d> {
                     })
                     .with_severity(Severity::Error)
                     .with_span(span)
+                    .annotate_primary(Note::MustBeOfType(arg_ty.clone()), span)
                     .done();
                 self.diagnostics.push(d);
                 invalid = true;
@@ -148,12 +149,13 @@ impl<'d> Analyser<'d> {
 
         if bound_args.len() != func_args.len() {
             let d = diagnostics::create_diagnostic()
-                .with_kind(DiagnosticKind::InvalidParameterCount {
+                .with_kind(DiagnosticKind::InvalidArgCount {
                     got: bound_args.len(),
                     expected: func_args.len(),
                 })
                 .with_severity(Severity::Error)
                 .with_span(span)
+                .annotate_primary(Note::Quiet, span)
                 .done();
             self.diagnostics.push(d);
             invalid = true;
@@ -180,6 +182,7 @@ impl<'d> Analyser<'d> {
                 })
                 .with_severity(Severity::Error)
                 .with_span(span)
+                .annotate_primary(Note::MustBeOfType(return_ty.clone()), span)
                 .done();
             self.diagnostics.push(d);
             return StmtAbtKind::Return(Box::new(ExprAbt::Unknown));
@@ -204,6 +207,7 @@ impl<'d> Analyser<'d> {
                 })
                 .with_severity(Severity::Error)
                 .with_span(expr.span)
+                .annotate_primary(Note::MustBeOfType(return_ty.clone()), expr.span)
                 .done();
             self.diagnostics.push(d);
             return StmtAbtKind::Return(Box::new(ExprAbt::Unknown));

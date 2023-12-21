@@ -1,6 +1,6 @@
 use crate::com::{
     abt::{ExprAbt, TypeAbt},
-    diagnostics::{self, DiagnosticKind, Severity},
+    diagnostics::{self, DiagnosticKind, Note, Severity},
     syntax::types::{TypeAst, TypeAstKind},
 };
 
@@ -31,6 +31,7 @@ impl<'d> Analyser<'d> {
                     .with_kind(DiagnosticKind::UnknownType(id.clone()))
                     .with_severity(Severity::Error)
                     .with_span(ty.span)
+                    .annotate_primary(Note::Unknown, ty.span)
                     .done();
                 self.diagnostics.push(d);
 

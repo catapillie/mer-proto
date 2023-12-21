@@ -5,11 +5,11 @@ use colored::{Color, Colorize};
 use crate::msg;
 
 use super::{
-    diagnostics::{Diagnostic, Severity},
+    diagnostics::{Diagnostic, NoteSeverity, Severity},
     span::Span,
 };
 
-pub fn print_diagnostic(_path: &str, lines: &[&str], diagnostic: &Diagnostic) {
+pub fn print_diagnostic(path: &str, lines: &[&str], diagnostic: &Diagnostic) {
     let msg = diagnostic.kind.msg();
     let color = match diagnostic.severity {
         Severity::Error => {
@@ -23,26 +23,36 @@ pub fn print_diagnostic(_path: &str, lines: &[&str], diagnostic: &Diagnostic) {
     };
 
     let mut printer = Printer::new(lines);
-    for (span, note) in &diagnostic.notes {
-        printer.highlight_span(span, Color::BrightBlue);
+    for (span, note, severity) in &diagnostic.annotations {
+        let note_color = match severity {
+            NoteSeverity::Default => color,
+            NoteSeverity::Annotation => Color::BrightYellow,
+        };
+
+        printer.highlight_span(span, note_color);
+        let line = span.to.line;
+        let msg = note.msg();
         if span.is_one_line() {
-            printer.underline_span(span, Color::BrightBlue, Some(&note.msg()));
-        } else {
-            todo!()
+            let from = span.from.column;
+            let to = span.to.column;
+            printer.underline_span(line, from, to, note_color, &msg);
+        } else if !msg.is_empty() {
+            printer.add_on_line(line, note_color, &msg);
         }
     }
+
     if let Some(span) = diagnostic.span {
-        printer.highlight_span(&span, color);
-        if span.is_one_line() {
-            printer.underline_span(&span, color, None);
-        }
+        println!("{}", format!("  --> {}:{}", path, span).cyan());
+    } else {
+        println!("{}", format!("  --> {}", path).cyan());
     }
+
     printer.print();
 }
 
 struct Printer<'s> {
     lines: &'s [&'s str],
-    content: BTreeMap<usize, Vec<(Color, String)>>,
+    content: BTreeMap<usize, Vec<(Color, String, bool)>>,
 }
 
 impl<'s> Printer<'s> {
@@ -72,7 +82,7 @@ impl<'s> Printer<'s> {
 
         for (index, lines) in self.content {
             let mut iter = lines.iter();
-            let Some((first_col, first)) = iter.by_ref().next() else {
+            let Some((first_col, first, _)) = iter.by_ref().next() else {
                 return;
             };
 
@@ -81,8 +91,12 @@ impl<'s> Printer<'s> {
                 (index + 1).to_string().color(*first_col),
                 "║".color(*first_col)
             );
-            for (col, line) in iter {
-                println!(" {:>max_line_len$} {}{line}", " ", "║".color(*col));
+            for (col, line, on_line) in iter {
+                if *on_line {
+                    println!(" {:>max_line_len$} {} ({line})", " ", "╟─".color(*col));
+                } else {
+                    println!(" {:>max_line_len$} {}{line}", " ", "║".color(*col));
+                }
             }
         }
 
@@ -120,50 +134,49 @@ impl<'s> Printer<'s> {
         }
     }
 
-    fn underline_span(&mut self, span: &Span, color: Color, msg: Option<&str>) {
-        let from = span.from.column;
-        let to = span.to.column;
-        let w = to - from;
-
+    fn underline_span(&mut self, line: usize, from: usize, to: usize, color: Color, msg: &str) {
         let mut s = String::new();
 
         if from > 0 {
             s.push_str(&" ".repeat(from));
         }
 
+        let w = to - from;
         if w > 1 {
             s.push_str(&format!("└{}┘", "─".repeat(w)));
         } else {
             s.push_str(&format!("{:>s$}↑", " ", s = 2 - w));
-            if w == 0 && msg.is_none() {
-                s.push_str(" here");
-            }
         }
 
-        if let Some(msg) = msg {
-            s.push(' ');
-            s.push_str(&msg.color(color).to_string());
-        }
+        s.push(' ');
+        s.push_str(&msg.color(color).to_string());
 
-        let index = span.from.line;
-        self.ensure_line(index, color);
+        self.ensure_line(line, color);
         self.content
-            .get_mut(&index)
+            .get_mut(&line)
             .unwrap()
-            .push((color, s.color(color).to_string()));
+            .push((color, s.color(color).to_string(), false));
+    }
+
+    fn add_on_line(&mut self, line: usize, color: Color, msg: &str) {
+        self.ensure_line(line, color);
+        self.content
+            .get_mut(&line)
+            .unwrap()
+            .push((color, msg.color(color).to_string(), true));
     }
 
     fn get_line_mut(&mut self, index: usize) -> Option<&mut String> {
         self.content
             .get_mut(&index)
             .and_then(|v| v.first_mut())
-            .map(|(_, f)| f)
+            .map(|(_, f, _)| f)
     }
 
     fn ensure_line(&mut self, index: usize, color: Color) {
         let lines = self.content.entry(index).or_default();
         if lines.is_empty() {
-            lines.push((color, self.lines[index].to_string()));
+            lines.push((color, self.lines[index].to_string(), false));
         }
     }
 

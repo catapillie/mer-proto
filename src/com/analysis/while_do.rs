@@ -1,6 +1,6 @@
 use crate::com::{
     abt::{StmtAbtKind, TypeAbt},
-    diagnostics::{self, DiagnosticKind, Severity},
+    diagnostics::{self, DiagnosticKind, Note, Severity},
     syntax::{expr::ExprAst, stmt::StmtAst},
 };
 
@@ -12,12 +12,13 @@ impl<'d> Analyser<'d> {
         self.open_scope();
         let bound_body = self.analyse_statement(body);
         self.close_scope();
-        
+
         if matches!(bound_body.kind, StmtAbtKind::Empty) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::EmptyWhileDoStatement)
                 .with_severity(Severity::Warning)
                 .with_span(body.span)
+                .annotate_primary(Note::CanBeRemoved, body.span)
                 .done();
             self.diagnostics.push(d);
         }
@@ -27,6 +28,7 @@ impl<'d> Analyser<'d> {
                 .with_kind(DiagnosticKind::GuardNotBoolean)
                 .with_severity(Severity::Error)
                 .with_span(guard.span)
+                .annotate_primary(Note::MustBeOfType(TypeAbt::Bool), guard.span)
                 .done();
             self.diagnostics.push(d);
         }
@@ -46,6 +48,7 @@ impl<'d> Analyser<'d> {
                 .with_kind(DiagnosticKind::EmptyDoWhileStatement)
                 .with_severity(Severity::Warning)
                 .with_span(body.span)
+                .annotate_primary(Note::CanBeRemoved, body.span)
                 .done();
             self.diagnostics.push(d);
         }
@@ -55,6 +58,7 @@ impl<'d> Analyser<'d> {
                 .with_kind(DiagnosticKind::GuardNotBoolean)
                 .with_severity(Severity::Error)
                 .with_span(guard.span)
+                .annotate_primary(Note::MustBeOfType(TypeAbt::Bool), guard.span)
                 .done();
             self.diagnostics.push(d);
         }
@@ -66,11 +70,12 @@ impl<'d> Analyser<'d> {
         self.open_scope();
         self.analyse_statement(body);
         self.close_scope();
-        
+
         let d = diagnostics::create_diagnostic()
             .with_kind(DiagnosticKind::DoWithoutWhile)
             .with_severity(Severity::Error)
             .with_span(body.span)
+            .annotate_primary(Note::MissingWhile, body.span)
             .done();
         self.diagnostics.push(d);
 

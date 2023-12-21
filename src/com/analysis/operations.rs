@@ -1,6 +1,6 @@
 use crate::com::{
     abt::{BinOpAbt, BinOpAbtKind, ExprAbt, TypeAbt, UnOpAbt, UnOpAbtKind},
-    diagnostics::{self, DiagnosticKind, Severity},
+    diagnostics::{self, DiagnosticKind, Note, Severity},
     span::Span,
     syntax::{bin_op::BinOpAst, expr::ExprAst, un_op::UnOpAst},
 };
@@ -60,6 +60,7 @@ impl<'d> Analyser<'d> {
             })
             .with_severity(Severity::Error)
             .with_span(span)
+            .annotate_primary(Note::Quiet, span)
             .done();
         self.diagnostics.push(d);
         ExprAbt::Unknown
@@ -74,6 +75,7 @@ impl<'d> Analyser<'d> {
                 .with_kind(DiagnosticKind::AssigneeMustBeVariable)
                 .with_severity(Severity::Error)
                 .with_span(left.span)
+                .annotate_primary(Note::CannotAssign, left.span)
                 .done();
             self.diagnostics.push(d);
             return ExprAbt::Unknown;
@@ -90,6 +92,7 @@ impl<'d> Analyser<'d> {
                 })
                 .with_severity(Severity::Error)
                 .with_span(right.span)
+                .annotate_primary(Note::MustBeOfType(info.ty.clone()), right.span)
                 .done();
             self.diagnostics.push(d);
             return ExprAbt::Unknown;
@@ -193,6 +196,7 @@ impl<'d> Analyser<'d> {
             .with_kind(DiagnosticKind::InvalidUnaryOperation { op, ty })
             .with_severity(Severity::Error)
             .with_span(span)
+            .annotate_primary(Note::Quiet, span)
             .done();
         self.diagnostics.push(d);
         ExprAbt::Unknown

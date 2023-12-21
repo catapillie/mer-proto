@@ -1,6 +1,6 @@
 use crate::com::{
     abt::{StmtAbt, StmtAbtKind},
-    diagnostics::{self, DiagnosticKind, Severity},
+    diagnostics::{self, DiagnosticKind, Note, Severity},
     span::Span,
 };
 
@@ -23,10 +23,12 @@ impl<'d> Analyser<'d> {
 
                 let remaining = iter.collect::<Vec<_>>();
                 if let (Some(first), Some(last)) = (remaining.first(), remaining.last()) {
+                    let span = Span::join(first.span, last.span);
                     let d = diagnostics::create_diagnostic()
                         .with_kind(DiagnosticKind::UnreachableCode)
                         .with_severity(Severity::Warning)
-                        .with_span(Span::join(first.span, last.span))
+                        .with_span(span)
+                        .annotate_primary(Note::CanBeRemoved, span)
                         .done();
                     self.diagnostics.push(d);
                 }

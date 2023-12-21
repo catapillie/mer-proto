@@ -15,7 +15,7 @@ impl Scope {
             parent: None,
             depth: 0,
             bindings: Default::default(),
-            current_func_id: None
+            current_func_id: None,
         }
     }
 

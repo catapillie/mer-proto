@@ -1,6 +1,6 @@
 use crate::com::{
     abt::{ExprAbt, StmtAbtKind, TypeAbt},
-    diagnostics::{self, DiagnosticKind, Note, Severity},
+    diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
     span::Span,
     syntax::expr::ExprAst,
 };
@@ -66,6 +66,7 @@ impl<'d> Analyser<'d> {
                 .with_kind(DiagnosticKind::UnknownVariable(name.to_string()))
                 .with_severity(Severity::Error)
                 .with_span(span)
+                .annotate_primary(Note::Unknown, span)
                 .done();
             self.diagnostics.push(d);
             return ExprAbt::Unknown;
@@ -85,9 +86,11 @@ impl<'d> Analyser<'d> {
                     })
                     .with_severity(Severity::Error)
                     .with_span(span)
-                    .note(
-                        Note::VariableDeclaration(name.to_string()),
+                    .annotate_primary(Note::VariableCapture(name.to_string()).then().num(2), span)
+                    .annotate_secondary(
+                        Note::VariableDeclaration(name.to_string()).dddot().num(1),
                         info.declaration_span,
+                        NoteSeverity::Annotation,
                     )
                     .done();
                 self.diagnostics.push(d);
