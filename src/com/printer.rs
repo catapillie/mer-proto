@@ -1,16 +1,25 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, ops::Add};
 
 use colored::{Color, Colorize};
+
+use crate::msg;
 
 use super::{
     diagnostics::{Diagnostic, Severity},
     span::Span,
 };
 
-pub fn print_diagnostic(path: &str, lines: &[&str], diagnostic: &Diagnostic) {
+pub fn print_diagnostic(_path: &str, lines: &[&str], diagnostic: &Diagnostic) {
+    let msg = diagnostic.kind.msg();
     let color = match diagnostic.severity {
-        Severity::Error => Color::BrightRed,
-        Severity::Warning => Color::BrightYellow,
+        Severity::Error => {
+            msg::error(msg);
+            Color::BrightRed
+        }
+        Severity::Warning => {
+            msg::warn(msg);
+            Color::BrightYellow
+        }
     };
 
     let mut printer = Printer::new(lines);
@@ -54,6 +63,7 @@ impl<'s> Printer<'s> {
             .keys()
             .cloned()
             .fold(0, usize::max)
+            .add(1)
             .checked_ilog10()
             .unwrap_or(0) as usize
             + 1;
