@@ -308,7 +308,7 @@ pub enum Note {
     CannotAssign,
     MustBeOfType(TypeAbt),
     VariableDeclaration(String),
-    VariableCapture(String),
+    VariableCapturedBy(String, String),
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -366,12 +366,11 @@ impl Note {
                     ty.to_string().bold()
                 ),
             Self::VariableDeclaration(name)
-                => format!("variable '{}' is declared here",
-                    name.bold(),
-                ),
-            Self::VariableCapture(name)
-                => format!("variable '{}' is captured here",
-                    name.bold()
+                => format!("variable '{}' is declared here", name.bold()),
+            Self::VariableCapturedBy(var_name, func_name)
+                => format!("variable '{}' gets captured by '{}' here",
+                    var_name.bold(),
+                    func_name.bold(),
                 )
         }
     }

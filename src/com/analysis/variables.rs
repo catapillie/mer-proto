@@ -86,7 +86,12 @@ impl<'d> Analyser<'d> {
                     })
                     .with_severity(Severity::Error)
                     .with_span(span)
-                    .annotate_primary(Note::VariableCapture(name.to_string()).then().num(2), span)
+                    .annotate_primary(
+                        Note::VariableCapturedBy(name.to_string(), func_info.name.to_string())
+                            .then()
+                            .num(2),
+                        span,
+                    )
                     .annotate_secondary(
                         Note::VariableDeclaration(name.to_string()).dddot().num(1),
                         info.declaration_span,
