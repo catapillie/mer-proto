@@ -152,11 +152,6 @@ macro_rules! opcodes {
                     )*
                 }
             }
-
-            #[cfg(test)]
-            pub fn all_opcodes() -> Vec<u8> {
-                vec![$($byte),*]
-            }
         }
     };
 }
