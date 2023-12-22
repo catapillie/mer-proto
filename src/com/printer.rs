@@ -52,7 +52,7 @@ pub fn print_diagnostic(path: &str, lines: &[&str], diagnostic: &Diagnostic) {
 
 struct Printer<'s> {
     lines: &'s [&'s str],
-    content: BTreeMap<usize, Vec<(Color, String, bool)>>,
+    content: BTreeMap<usize, Vec<(Option<Color>, String, bool)>>,
 }
 
 impl<'s> Printer<'s> {
@@ -85,17 +85,19 @@ impl<'s> Printer<'s> {
             let Some((first_col, first, _)) = iter.by_ref().next() else {
                 return;
             };
+            let first_col = first_col.unwrap_or(Color::White);
 
             println!(
                 " {:>max_line_len$} {} {first}",
-                (index + 1).to_string().color(*first_col),
-                "║".color(*first_col)
+                (index + 1).to_string().color(first_col),
+                "║".color(first_col)
             );
             for (col, line, on_line) in iter {
+                let col = col.unwrap_or(Color::White);
                 if *on_line {
-                    println!(" {:>max_line_len$} {} ({line})", " ", "╟─".color(*col));
+                    println!(" {:>max_line_len$} {} ({line})", " ", "╟─".color(col));
                 } else {
-                    println!(" {:>max_line_len$} {}{line}", " ", "║".color(*col));
+                    println!(" {:>max_line_len$} {}{line}", " ", "║".color(col));
                 }
             }
         }
@@ -108,13 +110,13 @@ impl<'s> Printer<'s> {
         let last_line = span.to.line;
 
         if first_line > 0 {
-            self.ensure_line_unless_empty(first_line - 1, Color::White);
+            self.ensure_line_unless_empty(first_line - 1, None);
         }
         for i in first_line..=last_line {
-            self.ensure_line(i, color);
+            self.ensure_line(i, Some(color));
         }
         if last_line < self.lines.len() - 1 {
-            self.ensure_line_unless_empty(last_line + 1, Color::White);
+            self.ensure_line_unless_empty(last_line + 1, None);
         }
 
         if span.is_one_line() {
@@ -151,19 +153,20 @@ impl<'s> Printer<'s> {
         s.push(' ');
         s.push_str(&msg.color(color).to_string());
 
-        self.ensure_line(line, color);
+        self.ensure_line(line, Some(color));
         self.content
             .get_mut(&line)
             .unwrap()
-            .push((color, s.color(color).to_string(), false));
+            .push((Some(color), s.color(color).to_string(), false));
     }
 
     fn add_on_line(&mut self, line: usize, color: Color, msg: &str) {
-        self.ensure_line(line, color);
-        self.content
-            .get_mut(&line)
-            .unwrap()
-            .push((color, msg.color(color).to_string(), true));
+        self.ensure_line(line, Some(color));
+        self.content.get_mut(&line).unwrap().push((
+            Some(color),
+            msg.color(color).to_string(),
+            true,
+        ));
     }
 
     fn get_line_mut(&mut self, index: usize) -> Option<&mut String> {
@@ -173,14 +176,18 @@ impl<'s> Printer<'s> {
             .map(|(_, f, _)| f)
     }
 
-    fn ensure_line(&mut self, index: usize, color: Color) {
+    fn ensure_line(&mut self, index: usize, color: Option<Color>) {
         let lines = self.content.entry(index).or_default();
-        if lines.is_empty() {
+        if let Some((col, _, _)) = lines.first_mut() {
+            if col.is_none() {
+                *col = color;
+            }
+        } else {
             lines.push((color, self.lines[index].to_string(), false));
         }
     }
 
-    fn ensure_line_unless_empty(&mut self, index: usize, color: Color) {
+    fn ensure_line_unless_empty(&mut self, index: usize, color: Option<Color>) {
         let line = self.lines[index];
         if !line.is_empty() {
             self.ensure_line(index, color);
