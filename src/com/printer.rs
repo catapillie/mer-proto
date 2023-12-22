@@ -80,12 +80,23 @@ impl<'s> Printer<'s> {
 
         println!(" {:>max_line_len$} ╥", " ");
 
+        let mut prev_index = None;
         for (index, lines) in self.content {
             let mut iter = lines.iter();
             let Some((first_col, first, _)) = iter.by_ref().next() else {
                 return;
             };
             let first_col = first_col.unwrap_or(Color::White);
+
+            match prev_index {
+                Some(prev) if prev + 1 != index => {
+                    println!(" {:>max_line_len$} ╨ ", " ");
+                    println!(" {:>max_line_len$}...", " ");
+                    println!(" {:>max_line_len$} ╥ ", " ");
+                },
+                _ => {},
+            }
+            prev_index = Some(index);
 
             println!(
                 " {:>max_line_len$} {} {first}",
@@ -189,7 +200,7 @@ impl<'s> Printer<'s> {
 
     fn ensure_line_unless_empty(&mut self, index: usize, color: Option<Color>) {
         let line = self.lines[index];
-        if !line.is_empty() {
+        if !line.trim().is_empty() {
             self.ensure_line(index, color);
         }
     }
