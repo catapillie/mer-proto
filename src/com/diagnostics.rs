@@ -1,4 +1,4 @@
-use std::{fmt::format, num::ParseIntError};
+use std::num::ParseIntError;
 
 use colored::Colorize;
 

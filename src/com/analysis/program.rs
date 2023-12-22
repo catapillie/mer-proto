@@ -1,12 +1,12 @@
 use crate::com::{
     diagnostics::{self, DiagnosticKind, Severity},
-    syntax::stmt::{StmtAst, StmtAstKind},
+    syntax::stmt::{StmtAst, StmtAstKind}, abt::ProgramAbt,
 };
 
 use super::Analyser;
 
 impl<'d> Analyser<'d> {
-    pub fn analyse_program(&mut self, ast: &StmtAst) {
+    pub fn analyse_program(mut self, ast: &StmtAst) -> ProgramAbt {
         self.scope.depth = 1;
         self.reach_top_level_declarations(ast);
         self.scope.depth = 0;
@@ -21,7 +21,12 @@ impl<'d> Analyser<'d> {
             self.diagnostics.push(d);
         }
 
-        assert!(self.scope.is_root()) // correct scope usage
+        assert!(self.scope.is_root()); // correct scope usage
+
+        ProgramAbt {
+            functions: self.functions,
+            variables: self.variables,
+        }
     }
 
     fn reach_top_level_declarations(&mut self, ast: &StmtAst) {

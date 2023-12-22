@@ -21,7 +21,7 @@ use super::{
 
 pub struct Codegen {
     cursor: Cursor<Vec<u8>>,
-    function_positions: HashMap<u32, u32>,
+    function_positions: HashMap<u64, u32>,
 }
 
 impl Codegen {
@@ -52,32 +52,25 @@ impl Codegen {
 
     pub fn gen(mut self, abt: &ProgramAbt) -> io::Result<Vec<u8>> {
         self.cursor.write_u8(opcode::entry_point)?;
-        let entry_point_cursor = self.gen_u32_placeholder()?;
-
-        for (id, info) in abt.functions_by_id.iter() {
-            let position = self.position();
-            self.function_positions.insert(*id, position);
+        let _ = self.gen_u32_placeholder()?;
+        for info in abt.functions.values() {
             self.gen_function(info)?;
         }
-
-        let last_function_id = abt.functions_by_id.last_key_value().unwrap().0;
-        self.patch_u32_placeholder(
-            entry_point_cursor,
-            *self.function_positions.get(last_function_id).unwrap(),
-        )?;
-
         Ok(self.cursor.into_inner())
     }
 
     fn gen_function(&mut self, info: &FunctionInfo) -> io::Result<()> {
-        todo!()
-        // let param_count = func.param_types.len() as u8;
-        // let local_count = func.local_count;
-        // let opcode = Opcode::function(name, param_count, local_count);
-        // opcode.write_bytes(&mut self.cursor)?;
+        let param_count: u8 = info.args.len().try_into().unwrap();
+        let local_count: u8 = info.used_variables.len().try_into().unwrap();
+        let opcode = Opcode::function(info.name.clone(), param_count, local_count);
+        opcode.write_bytes(&mut self.cursor)?;
 
-        // self.gen_statement(&func.code)?;
-        // Ok(())
+        let code = info
+            .code
+            .as_ref()
+            .expect(format!("unresolved function code {}", info.name).as_str());
+        self.gen_statement(code)?;
+        Ok(())
     }
 
     fn gen_statement(&mut self, stmt: &StmtAbt) -> io::Result<()> {

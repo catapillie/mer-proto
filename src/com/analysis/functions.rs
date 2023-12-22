@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::com::{
-    abt::{ExprAbt, StmtAbtKind, TypeAbt},
+    abt::{ExprAbt, StmtAbtKind, TypeAbt, StmtAbt},
     analysis::Declaration,
     diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
     span::Span,
@@ -24,6 +24,7 @@ pub struct FunctionInfo {
     pub ty: TypeAbt,
     pub ty_span: Span,
     pub used_variables: HashMap<u64, VariableUsage>,
+    pub code: Option<Box<StmtAbt>>,
 }
 
 impl<'d> Analyser<'d> {
@@ -48,6 +49,7 @@ impl<'d> Analyser<'d> {
             ty,
             ty_span,
             used_variables: Default::default(),
+            code: None,
         };
         let prev = self.functions.insert(declared, info);
         assert!(prev.is_none(), "ids must be unique");
@@ -116,7 +118,9 @@ impl<'d> Analyser<'d> {
 
         self.close_scope();
 
-        let info = self.functions.get(&id).unwrap();
+        let info = self.functions.get_mut(&id).unwrap();
+        info.code = Some(Box::new(bound_body));
+
         let var_count = info.used_variables.len();
         if var_count > 256 {
             let d = diagnostics::create_diagnostic()

@@ -1,13 +1,10 @@
-use self::{
-    abt::ProgramAbt, analysis::Analyser, codegen::Codegen, diagnostics::Diagnostic, parser::Parser,
-};
+use self::{abt::ProgramAbt, analysis::Analyser, codegen::Codegen, parser::Parser};
 use crate::{
     com::diagnostics::{Diagnostics, Severity},
     msg,
 };
-use colored::{Color, Colorize};
+use colored::Colorize;
 use std::{
-    collections::BTreeMap,
     fs::{self},
     path::PathBuf,
     process::{self},
@@ -93,5 +90,5 @@ pub fn analyse(path: &str, source: String) -> Option<ProgramAbt> {
     }
     msg::ok("analysis finished successfully");
 
-    todo!()
+    Some(abt)
 }

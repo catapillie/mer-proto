@@ -1,9 +1,13 @@
-use std::{collections::BTreeMap, fmt::Display};
+use std::{collections::HashMap, fmt::Display};
 
-use super::{analysis::FunctionInfo, span::Span};
+use super::{
+    analysis::{FunctionInfo, VariableInfo},
+    span::Span,
+};
 
 pub struct ProgramAbt {
-    pub functions_by_id: BTreeMap<u32, FunctionInfo>,
+    pub functions: HashMap<u64, FunctionInfo>,
+    pub variables: HashMap<u64, VariableInfo>,
 }
 
 #[derive(Debug)]
