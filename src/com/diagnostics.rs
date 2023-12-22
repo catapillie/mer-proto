@@ -310,10 +310,12 @@ pub enum Note {
     MissingWhile,
     CannotAssign,
     MustBeOfType(TypeAbt),
+    ImpliedType(TypeAbt),
     VariableDeclaration(String),
     VariableType(String, TypeAbt),
     ArgumentType(String, TypeAbt),
     FunctionArgs(String, usize),
+    FunctionReturnType(String, TypeAbt),
     ProvidedArgs(usize),
     VariableCapturedBy(String, String),
 }
@@ -390,6 +392,10 @@ impl Note {
                 => format!("this must be of type '{}'",
                     ty.to_string().bold()
                 ),
+            Self::ImpliedType(ty)
+                => format!("this is implied to be of type '{}'",
+                    ty.to_string().bold()
+                ),
             Self::VariableDeclaration(name)
                 => format!("variable '{}' is declared here", name.bold()),
             Self::VariableType(name, ty)
@@ -406,6 +412,11 @@ impl Note {
                 => format!("function '{}' takes in {} arguments",
                     name.bold(),
                     count.to_string().bold(),
+                ),
+            Self::FunctionReturnType(name, ty)
+                => format!("function '{}' returns '{}'",
+                    name.bold(),
+                    ty.to_string().bold(),
                 ),
             Self::ProvidedArgs(count)
                 => format!("{} were provided", count.to_string().bold()),

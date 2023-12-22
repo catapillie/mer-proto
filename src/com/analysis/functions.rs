@@ -16,6 +16,7 @@ pub struct FunctionInfo {
     pub args: Vec<(String, TypeAbt)>,
     pub arg_ids: Vec<u64>,
     pub ty: TypeAbt,
+    pub ty_span: Span,
 }
 
 impl<'d> Analyser<'d> {
@@ -25,6 +26,7 @@ impl<'d> Analyser<'d> {
         span: Span,
         args: Vec<(String, TypeAbt)>,
         ty: TypeAbt,
+        ty_span: Span,
     ) -> Declaration {
         let declared = self.make_unique_id();
         let shadowed = self.scope.bindings.insert(name.to_string(), declared);
@@ -37,6 +39,7 @@ impl<'d> Analyser<'d> {
             args,
             arg_ids: Default::default(),
             ty,
+            ty_span,
         };
         let prev = self.functions.insert(declared, info);
         assert!(prev.is_none(), "ids must be unique");
@@ -71,7 +74,7 @@ impl<'d> Analyser<'d> {
                     .map(|(name, ty, _)| (name.clone(), self.analyse_type(ty)))
                     .collect();
                 let bound_ty = self.analyse_type(ty);
-                let decl = self.declare_function_here(name, *span, bound_args, bound_ty);
+                let decl = self.declare_function_here(name, *span, bound_args, bound_ty, ty.span);
                 self.functions.get(&decl.declared).unwrap() // was just declared, cannot be none
             }
         };
@@ -212,19 +215,37 @@ impl<'d> Analyser<'d> {
     pub fn analyse_return_statement(&mut self, span: Span) -> StmtAbtKind {
         let ty = TypeAbt::Unit;
         let return_ty = match self.scope.current_func_id {
-            Some(id) => self.functions.get(&id).unwrap().ty.clone(),
-            None => TypeAbt::Unit,
+            Some(id) => {
+                let info = self.functions.get(&id).unwrap();
+                (info.ty.clone(), Some((info.ty_span, info.name.clone())))
+            }
+            None => (TypeAbt::Unit, None),
         };
 
-        if !ty.is(&return_ty) {
+        if !ty.is(&return_ty.0) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::MustReturnValue {
-                    expected: return_ty.clone(),
+                    expected: return_ty.0.clone(),
                 })
                 .with_severity(Severity::Error)
                 .with_span(span)
-                .annotate_primary(Note::MustBeOfType(return_ty.clone()), span)
-                .done();
+                .annotate_primary(
+                    Note::ImpliedType(ty.clone()).but().dddot_front().num(2),
+                    span,
+                );
+
+            let d = match return_ty.1 {
+                Some((span, name)) => d
+                    .annotate_secondary(
+                        Note::FunctionReturnType(name, return_ty.0.clone())
+                            .dddot_back()
+                            .num(1),
+                        span,
+                        NoteSeverity::Annotation,
+                    )
+                    .done(),
+                None => d.done(),
+            };
             self.diagnostics.push(d);
             return StmtAbtKind::Return(Box::new(ExprAbt::Unknown));
         }
@@ -236,20 +257,42 @@ impl<'d> Analyser<'d> {
         let bound_expr = self.analyse_expression(expr);
         let ty_expr = self.type_of(&bound_expr);
         let return_ty = match self.scope.current_func_id {
-            Some(id) => self.functions.get(&id).unwrap().ty.clone(),
-            None => TypeAbt::Unit,
+            Some(id) => {
+                let info = self.functions.get(&id).unwrap();
+                (info.ty.clone(), Some((info.ty_span, info.name.clone())))
+            }
+            None => (TypeAbt::Unit, None),
         };
 
-        if !ty_expr.is(&return_ty) {
+        if !ty_expr.is(&return_ty.0) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::TypeMismatch {
                     found: ty_expr,
-                    expected: return_ty.clone(),
+                    expected: return_ty.0.clone(),
                 })
                 .with_severity(Severity::Error)
                 .with_span(expr.span)
-                .annotate_primary(Note::MustBeOfType(return_ty.clone()), expr.span)
-                .done();
+                .annotate_primary(
+                    Note::MustBeOfType(return_ty.0.clone())
+                        .so()
+                        .dddot_front()
+                        .num(2),
+                    expr.span,
+                );
+
+            let d = match return_ty.1 {
+                Some((span, name)) => d
+                    .annotate_secondary(
+                        Note::FunctionReturnType(name, return_ty.0.clone())
+                            .dddot_back()
+                            .num(1),
+                        span,
+                        NoteSeverity::Annotation,
+                    )
+                    .done(),
+                None => d.done(),
+            };
+
             self.diagnostics.push(d);
             return StmtAbtKind::Return(Box::new(ExprAbt::Unknown));
         }

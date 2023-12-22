@@ -33,7 +33,7 @@ impl<'d> Analyser<'d> {
                         .map(|(name, ty, _)| (name.clone(), self.analyse_type(ty)))
                         .collect();
                     let bound_ty = self.analyse_type(ty);
-                    self.declare_function_here(name, *span, bound_args, bound_ty);
+                    self.declare_function_here(name, *span, bound_args, bound_ty, ty.span);
                 }
             }
         }
