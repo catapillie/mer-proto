@@ -22,7 +22,7 @@ pub enum StmtAstKind {
     DoWhile(Box<StmtAst>, Box<ExprAst>),
     Do(Box<StmtAst>),
     Func(
-        Option<String>,
+        Option<(String, Span)>,
         Vec<(String, TypeAst, Span)>,
         Box<StmtAst>,
         Box<TypeAst>,

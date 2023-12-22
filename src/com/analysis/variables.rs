@@ -89,11 +89,12 @@ impl<'d> Analyser<'d> {
                     .annotate_primary(
                         Note::VariableCapturedBy(name.to_string(), func_info.name.to_string())
                             .then()
+                            .dddot_front()
                             .num(2),
                         span,
                     )
                     .annotate_secondary(
-                        Note::VariableDeclaration(name.to_string()).dddot().num(1),
+                        Note::VariableDeclaration(name.to_string()).dddot_back().num(1),
                         info.declaration_span,
                         NoteSeverity::Annotation,
                     )

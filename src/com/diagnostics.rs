@@ -294,7 +294,9 @@ impl DiagnosticKind {
 pub enum Note {
     Numbered(usize, Box<Note>),
     Then(Box<Note>),
-    DDDot(Box<Note>),
+    But(Box<Note>),
+    DDDotFront(Box<Note>),
+    DDDotBack(Box<Note>),
     Quiet,
     Here,
     Unknown,
@@ -308,6 +310,8 @@ pub enum Note {
     CannotAssign,
     MustBeOfType(TypeAbt),
     VariableDeclaration(String),
+    FunctionArgs(String, usize),
+    ProvidedArgs(usize),
     VariableCapturedBy(String, String),
 }
 
@@ -327,8 +331,16 @@ impl Note {
         Note::Then(Box::new(self))
     }
 
-    pub fn dddot(self) -> Self {
-        Note::DDDot(Box::new(self))
+    pub fn but(self) -> Self {
+        Note::But(Box::new(self))
+    }
+
+    pub fn dddot_front(self) -> Self {
+        Note::DDDotFront(Box::new(self))
+    }
+
+    pub fn dddot_back(self) -> Self {
+        Note::DDDotBack(Box::new(self))
     }
 
     pub fn msg(&self) -> String {
@@ -338,8 +350,12 @@ impl Note {
             Self::Numbered(num, note)
                 => format!("{} {}", format!("[{num}]").bold(), note.msg()),
             Self::Then(note)
-                => format!("...then {}", note.msg()),
-            Self::DDDot(note)
+                => format!("then {}", note.msg()),
+            Self::But(note)
+                => format!("but {}", note.msg()),
+            Self::DDDotFront(note)
+                => format!("...{}", note.msg()),
+            Self::DDDotBack(note)
                 => format!("{}...", note.msg()),
             Self::Here
                 => "here".to_string(),
@@ -367,8 +383,15 @@ impl Note {
                 ),
             Self::VariableDeclaration(name)
                 => format!("variable '{}' is declared here", name.bold()),
+            Self::FunctionArgs(name, count)
+                => format!("function '{}' takes in {} arguments",
+                    name.bold(),
+                    count.to_string().bold(),
+                ),
+            Self::ProvidedArgs(count)
+                => format!("{} were provided", count.to_string().bold()),
             Self::VariableCapturedBy(var_name, func_name)
-                => format!("variable '{}' gets captured by '{}' here",
+                => format!("'{}' gets captured by '{}' here",
                     var_name.bold(),
                     func_name.bold(),
                 )

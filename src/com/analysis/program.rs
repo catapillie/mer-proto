@@ -27,13 +27,13 @@ impl<'d> Analyser<'d> {
     fn reach_top_level_declarations(&mut self, ast: &StmtAst) {
         if let StmtAstKind::Block(stmts) = &ast.kind {
             for stmt in stmts {
-                if let StmtAstKind::Func(Some(name), args, _, ty) = &stmt.kind {
+                if let StmtAstKind::Func(Some((name, span)), args, _, ty) = &stmt.kind {
                     let bound_args = args
                         .iter()
                         .map(|(name, ty, _)| (name.clone(), self.analyse_type(ty)))
                         .collect();
                     let bound_ty = self.analyse_type(ty);
-                    self.declare_function_here(name, bound_args, bound_ty);
+                    self.declare_function_here(name, *span, bound_args, bound_ty);
                 }
             }
         }

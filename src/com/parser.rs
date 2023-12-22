@@ -261,7 +261,7 @@ impl<'a> Parser<'a> {
         let (stmt, span) = take_span!(self => {
             self.try_match_token::<FuncKw>()?;
 
-            let name = self.match_token::<Identifier>().map(|id| id.0);
+            let name = self.match_token::<Identifier>().map(|id| (id.0, self.last_span()));
             let mut params = Vec::new();
 
             self.match_token::<LeftParen>();

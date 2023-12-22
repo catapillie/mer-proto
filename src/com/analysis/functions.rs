@@ -1,7 +1,7 @@
 use crate::com::{
     abt::{ExprAbt, StmtAbtKind, TypeAbt},
     analysis::Declaration,
-    diagnostics::{self, DiagnosticKind, Note, Severity},
+    diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
     span::Span,
     syntax::{expr::ExprAst, stmt::StmtAst, types::TypeAst},
 };
@@ -11,6 +11,7 @@ use super::Analyser;
 pub struct FunctionInfo {
     pub id: u64,
     pub name: String,
+    pub span: Span,
     pub depth: u16,
     pub args: Vec<(String, TypeAbt)>,
     pub ty: TypeAbt,
@@ -20,6 +21,7 @@ impl<'d> Analyser<'d> {
     pub fn declare_function_here(
         &mut self,
         name: &str,
+        span: Span,
         args: Vec<(String, TypeAbt)>,
         ty: TypeAbt,
     ) -> Declaration {
@@ -29,6 +31,7 @@ impl<'d> Analyser<'d> {
         let info = FunctionInfo {
             id: declared,
             name: name.to_string(),
+            span,
             depth: self.scope.depth,
             args,
             ty,
@@ -48,12 +51,12 @@ impl<'d> Analyser<'d> {
 
     pub fn analyse_function_definition(
         &mut self,
-        name: &Option<String>,
+        name: &Option<(String, Span)>,
         args: &[(String, TypeAst, Span)],
         body: &StmtAst,
         ty: &TypeAst,
     ) -> StmtAbtKind {
-        let Some(name) = name else {
+        let Some((name, span)) = name else {
             return StmtAbtKind::Empty;
         };
 
@@ -66,7 +69,7 @@ impl<'d> Analyser<'d> {
                     .map(|(name, ty, _)| (name.clone(), self.analyse_type(ty)))
                     .collect();
                 let bound_ty = self.analyse_type(ty);
-                let decl = self.declare_function_here(name, bound_args, bound_ty);
+                let decl = self.declare_function_here(name, *span, bound_args, bound_ty);
                 self.functions.get(&decl.declared).unwrap() // was just declared, cannot be none
             }
         };
@@ -121,6 +124,8 @@ impl<'d> Analyser<'d> {
             return ExprAbt::Unknown;
         };
 
+        let func_span = info.span;
+        let func_name = info.name.clone();
         let func_args = info.args.clone();
         let id = info.id;
         let ty = info.ty.clone();
@@ -155,7 +160,20 @@ impl<'d> Analyser<'d> {
                 })
                 .with_severity(Severity::Error)
                 .with_span(span)
-                .annotate_primary(Note::Quiet, span)
+                .annotate_primary(
+                    Note::ProvidedArgs(bound_args.len())
+                        .but()
+                        .dddot_front()
+                        .num(2),
+                    span,
+                )
+                .annotate_secondary(
+                    Note::FunctionArgs(func_name, func_args.len())
+                        .dddot_back()
+                        .num(1),
+                    func_span,
+                    NoteSeverity::Annotation,
+                )
                 .done();
             self.diagnostics.push(d);
             invalid = true;
