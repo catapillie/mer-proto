@@ -295,6 +295,7 @@ pub enum Note {
     Numbered(usize, Box<Note>),
     Then(Box<Note>),
     But(Box<Note>),
+    So(Box<Note>),
     DDDotFront(Box<Note>),
     DDDotBack(Box<Note>),
     Quiet,
@@ -310,6 +311,7 @@ pub enum Note {
     CannotAssign,
     MustBeOfType(TypeAbt),
     VariableDeclaration(String),
+    VariableType(String, TypeAbt),
     FunctionArgs(String, usize),
     ProvidedArgs(usize),
     VariableCapturedBy(String, String),
@@ -335,6 +337,10 @@ impl Note {
         Note::But(Box::new(self))
     }
 
+    pub fn so(self) -> Self {
+        Note::So(Box::new(self))
+    }
+
     pub fn dddot_front(self) -> Self {
         Note::DDDotFront(Box::new(self))
     }
@@ -353,6 +359,8 @@ impl Note {
                 => format!("then {}", note.msg()),
             Self::But(note)
                 => format!("but {}", note.msg()),
+            Self::So(note)
+                => format!("so {}", note.msg()),
             Self::DDDotFront(note)
                 => format!("...{}", note.msg()),
             Self::DDDotBack(note)
@@ -383,6 +391,11 @@ impl Note {
                 ),
             Self::VariableDeclaration(name)
                 => format!("variable '{}' is declared here", name.bold()),
+            Self::VariableType(name, ty)
+                => format!("variable '{}' has type '{}'",
+                    name.bold(),
+                    ty.to_string().bold(),
+                ),
             Self::FunctionArgs(name, count)
                 => format!("function '{}' takes in {} arguments",
                     name.bold(),

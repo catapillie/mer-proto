@@ -1,6 +1,6 @@
 use crate::com::{
     abt::{BinOpAbt, BinOpAbtKind, ExprAbt, TypeAbt, UnOpAbt, UnOpAbtKind},
-    diagnostics::{self, DiagnosticKind, Note, Severity},
+    diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
     span::Span,
     syntax::{bin_op::BinOpAst, expr::ExprAst, un_op::UnOpAst},
 };
@@ -92,7 +92,20 @@ impl<'d> Analyser<'d> {
                 })
                 .with_severity(Severity::Error)
                 .with_span(right.span)
-                .annotate_primary(Note::MustBeOfType(info.ty.clone()), right.span)
+                .annotate_primary(
+                    Note::MustBeOfType(info.ty.clone())
+                        .so()
+                        .dddot_front()
+                        .num(2),
+                    right.span,
+                )
+                .annotate_secondary(
+                    Note::VariableType(info.name.clone(), info.ty.clone())
+                        .dddot_back()
+                        .num(1),
+                    info.declaration_span,
+                    NoteSeverity::Annotation,
+                )
                 .done();
             self.diagnostics.push(d);
             return ExprAbt::Unknown;
