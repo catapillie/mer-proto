@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::com::{
     abt::{ExprAbt, StmtAbtKind, TypeAbt},
     analysis::Declaration,
@@ -8,6 +10,10 @@ use crate::com::{
 
 use super::Analyser;
 
+pub struct VariableUsage {
+    pub captured: bool,
+}
+
 pub struct FunctionInfo {
     pub id: u64,
     pub name: String,
@@ -17,6 +23,7 @@ pub struct FunctionInfo {
     pub arg_ids: Vec<u64>,
     pub ty: TypeAbt,
     pub ty_span: Span,
+    pub used_variables: HashMap<u64, VariableUsage>,
 }
 
 impl<'d> Analyser<'d> {
@@ -40,6 +47,7 @@ impl<'d> Analyser<'d> {
             arg_ids: Default::default(),
             ty,
             ty_span,
+            used_variables: Default::default(),
         };
         let prev = self.functions.insert(declared, info);
         assert!(prev.is_none(), "ids must be unique");
@@ -107,6 +115,18 @@ impl<'d> Analyser<'d> {
         }
 
         self.close_scope();
+
+        let info = self.functions.get(&id).unwrap();
+        let var_count = info.used_variables.len();
+        if var_count > 256 {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::TooManyVariables(name.clone(), var_count))
+                .with_severity(Severity::Error)
+                .with_span(*span)
+                .annotate_primary(Note::FunctionVariableCount(var_count), *span)
+                .done();
+            self.diagnostics.push(d);
+        }
 
         StmtAbtKind::Empty
     }

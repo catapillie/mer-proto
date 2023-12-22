@@ -1,4 +1,4 @@
-use std::num::ParseIntError;
+use std::{fmt::format, num::ParseIntError};
 
 use colored::Colorize;
 
@@ -160,7 +160,7 @@ pub enum DiagnosticKind {
 
     UnknownVariable(String),
     AssigneeMustBeVariable,
-    TooManyVariables,
+    TooManyVariables(String, usize),
 
     UnknownFunction(String),
     InvalidArgCount {
@@ -246,8 +246,11 @@ impl DiagnosticKind {
                 => format!("unknown variable '{}'", name.bold()),
             Self::AssigneeMustBeVariable
                 => "assignee must be a variable".to_string(),
-            Self::TooManyVariables
-                => "too many local variables".to_string(),
+            Self::TooManyVariables(name, count)
+                => format!("function '{}' uses {} variables, which is more than the allowed maximum (256)",
+                    name.bold(),
+                    count.to_string().bold(),
+                ),
             Self::UnknownFunction(name)
                 => format!("unknown function '{}'", name.bold()),
             Self::InvalidArgCount { got, expected }
@@ -316,6 +319,7 @@ pub enum Note {
     ArgumentType(String, TypeAbt),
     FunctionArgs(String, usize),
     FunctionReturnType(String, TypeAbt),
+    FunctionVariableCount(usize),
     ProvidedArgs(usize),
     VariableCapturedBy(String, String),
 }
@@ -417,6 +421,10 @@ impl Note {
                 => format!("function '{}' returns '{}'",
                     name.bold(),
                     ty.to_string().bold(),
+                ),
+            Self::FunctionVariableCount(count)
+                => format!("uses {} variables",
+                    count.to_string().bold(),
                 ),
             Self::ProvidedArgs(count)
                 => format!("{} were provided", count.to_string().bold()),
