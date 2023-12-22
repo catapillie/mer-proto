@@ -14,6 +14,7 @@ pub struct FunctionInfo {
     pub span: Span,
     pub depth: u16,
     pub args: Vec<(String, TypeAbt)>,
+    pub arg_ids: Vec<u64>,
     pub ty: TypeAbt,
 }
 
@@ -34,6 +35,7 @@ impl<'d> Analyser<'d> {
             span,
             depth: self.scope.depth,
             args,
+            arg_ids: Default::default(),
             ty,
         };
         let prev = self.functions.insert(declared, info);
@@ -83,7 +85,12 @@ impl<'d> Analyser<'d> {
         self.scope.current_func_id = Some(id);
 
         for ((arg_name, arg_ty), &span) in bound_spanned_args {
-            self.declare_variable_here(arg_name.as_str(), arg_ty.clone(), span);
+            let decl = self.declare_variable_here(arg_name.as_str(), arg_ty.clone(), span);
+            self.functions
+                .get_mut(&id)
+                .unwrap()
+                .arg_ids
+                .push(decl.declared)
         }
         let bound_body = self.analyse_statement(body);
         if !self.analyse_control_flow(&bound_body) {
@@ -127,17 +134,23 @@ impl<'d> Analyser<'d> {
         let func_span = info.span;
         let func_name = info.name.clone();
         let func_args = info.args.clone();
+        let func_arg_ids = info.arg_ids.clone();
         let id = info.id;
         let ty = info.ty.clone();
 
         let mut invalid = false;
-        for ((bound_arg, span), arg_ty) in bound_args
+        for (((i, bound_arg), span), arg_ty) in bound_args
             .iter()
+            .enumerate()
             .zip(args.iter().map(|arg| arg.span))
             .zip(func_args.iter().map(|(_, arg_ty)| arg_ty))
         {
             let ty_param = self.type_of(bound_arg);
             if !ty_param.is(arg_ty) {
+                let arg_id = func_arg_ids.get(i).unwrap();
+                let arg_info = self.variables.get(&arg_id).unwrap();
+                let arg_name = arg_info.name.clone();
+                let arg_span = arg_info.declaration_span;
                 let d = diagnostics::create_diagnostic()
                     .with_kind(DiagnosticKind::TypeMismatch {
                         found: ty_param.clone(),
@@ -145,7 +158,17 @@ impl<'d> Analyser<'d> {
                     })
                     .with_severity(Severity::Error)
                     .with_span(span)
-                    .annotate_primary(Note::MustBeOfType(arg_ty.clone()), span)
+                    .annotate_secondary(
+                        Note::ArgumentType(arg_name, arg_ty.clone())
+                            .dddot_back()
+                            .num(1),
+                        arg_span,
+                        NoteSeverity::Annotation,
+                    )
+                    .annotate_primary(
+                        Note::MustBeOfType(arg_ty.clone()).so().dddot_front().num(2),
+                        span,
+                    )
                     .done();
                 self.diagnostics.push(d);
                 invalid = true;

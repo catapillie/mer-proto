@@ -312,6 +312,7 @@ pub enum Note {
     MustBeOfType(TypeAbt),
     VariableDeclaration(String),
     VariableType(String, TypeAbt),
+    ArgumentType(String, TypeAbt),
     FunctionArgs(String, usize),
     ProvidedArgs(usize),
     VariableCapturedBy(String, String),
@@ -393,6 +394,11 @@ impl Note {
                 => format!("variable '{}' is declared here", name.bold()),
             Self::VariableType(name, ty)
                 => format!("variable '{}' has type '{}'",
+                    name.bold(),
+                    ty.to_string().bold(),
+                ),
+            Self::ArgumentType(name, ty)
+                => format!("argument '{}' has type '{}'",
                     name.bold(),
                     ty.to_string().bold(),
                 ),
