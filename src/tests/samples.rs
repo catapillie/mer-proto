@@ -8,6 +8,6 @@ fn all_samples_compile() {
         let path_buf = file.unwrap().path();
         let path = &*path_buf.to_string_lossy();
         let source = fs::read_to_string(path).unwrap();
-        com::compile_to_bytecode(path, source);
+        com::compile_then_write(path, source);
     }
 }

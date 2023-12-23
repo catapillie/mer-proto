@@ -28,7 +28,13 @@ impl<'d> Analyser<'d> {
             ExprAstKind::Call(callee, args)
                 => self.analyse_call_expression(callee, args, expr.span),
             ExprAstKind::Debug(inner)
-                => ExprAbt::Debug(Box::new(self.analyse_expression(inner))),
+                => self.analyse_debug_expression(inner),
         }
+    }
+
+    fn analyse_debug_expression(&mut self, expr: &ExprAst) -> ExprAbt {
+        let inner = self.analyse_expression(expr);
+        let ty = self.type_of(&inner);
+        ExprAbt::Debug(Box::new(inner), ty)
     }
 }

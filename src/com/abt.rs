@@ -6,6 +6,7 @@ use super::{
 };
 
 pub struct ProgramAbt {
+    pub main_fn_id: u64,
     pub functions: HashMap<u64, FunctionInfo>,
     pub variables: HashMap<u64, VariableInfo>,
 }
@@ -46,7 +47,7 @@ pub enum ExprAbt {
     Binary(BinOpAbt, Box<ExprAbt>, Box<ExprAbt>),
     Unary(UnOpAbt, Box<ExprAbt>),
     Call(u64, Vec<ExprAbt>, TypeAbt),
-    Debug(Box<ExprAbt>),
+    Debug(Box<ExprAbt>, TypeAbt),
 }
 
 #[derive(Debug)]

@@ -1,7 +1,7 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use crate::com::{
-    abt::{ExprAbt, StmtAbtKind, TypeAbt, StmtAbt},
+    abt::{ExprAbt, StmtAbt, StmtAbtKind, TypeAbt},
     analysis::Declaration,
     diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
     span::Span,
@@ -17,13 +17,13 @@ pub struct VariableUsage {
 pub struct FunctionInfo {
     pub id: u64,
     pub name: String,
-    pub span: Span,
+    pub span: Option<Span>,
     pub depth: u16,
     pub args: Vec<(String, TypeAbt)>,
     pub arg_ids: Vec<u64>,
     pub ty: TypeAbt,
-    pub ty_span: Span,
-    pub used_variables: HashMap<u64, VariableUsage>,
+    pub ty_span: Option<Span>,
+    pub used_variables: BTreeMap<u64, VariableUsage>,
     pub code: Option<Box<StmtAbt>>,
 }
 
@@ -31,10 +31,10 @@ impl<'d> Analyser<'d> {
     pub fn declare_function_here(
         &mut self,
         name: &str,
-        span: Span,
+        span: Option<Span>,
         args: Vec<(String, TypeAbt)>,
         ty: TypeAbt,
-        ty_span: Span,
+        ty_span: Option<Span>,
     ) -> Declaration {
         let declared = self.make_unique_id();
         let shadowed = self.scope.bindings.insert(name.to_string(), declared);
@@ -84,7 +84,13 @@ impl<'d> Analyser<'d> {
                     .map(|(name, ty, _)| (name.clone(), self.analyse_type(ty)))
                     .collect();
                 let bound_ty = self.analyse_type(ty);
-                let decl = self.declare_function_here(name, *span, bound_args, bound_ty, ty.span);
+                let decl = self.declare_function_here(
+                    name,
+                    Some(*span),
+                    bound_args,
+                    bound_ty,
+                    Some(ty.span),
+                );
                 self.functions.get(&decl.declared).unwrap() // was just declared, cannot be none
             }
         };
@@ -158,7 +164,7 @@ impl<'d> Analyser<'d> {
             return ExprAbt::Unknown;
         };
 
-        let func_span = info.span;
+        let func_span = info.span.unwrap();
         let func_name = info.name.clone();
         let func_args = info.args.clone();
         let func_arg_ids = info.arg_ids.clone();
@@ -175,7 +181,7 @@ impl<'d> Analyser<'d> {
             let ty_param = self.type_of(bound_arg);
             if !ty_param.is(arg_ty) {
                 let arg_id = func_arg_ids.get(i).unwrap();
-                let arg_info = self.variables.get(&arg_id).unwrap();
+                let arg_info = self.variables.get(arg_id).unwrap();
                 let arg_name = arg_info.name.clone();
                 let arg_span = arg_info.declaration_span;
                 let d = diagnostics::create_diagnostic()
@@ -259,7 +265,7 @@ impl<'d> Analyser<'d> {
                 );
 
             let d = match return_ty.1 {
-                Some((span, name)) => d
+                Some((Some(span), name)) => d
                     .annotate_secondary(
                         Note::FunctionReturnType(name, return_ty.0.clone())
                             .dddot_back()
@@ -268,7 +274,7 @@ impl<'d> Analyser<'d> {
                         NoteSeverity::Annotation,
                     )
                     .done(),
-                None => d.done(),
+                _ => d.done(),
             };
             self.diagnostics.push(d);
             return StmtAbtKind::Return(Box::new(ExprAbt::Unknown));
@@ -305,7 +311,7 @@ impl<'d> Analyser<'d> {
                 );
 
             let d = match return_ty.1 {
-                Some((span, name)) => d
+                Some((Some(span), name)) => d
                     .annotate_secondary(
                         Note::FunctionReturnType(name, return_ty.0.clone())
                             .dddot_back()
@@ -314,7 +320,7 @@ impl<'d> Analyser<'d> {
                         NoteSeverity::Annotation,
                     )
                     .done(),
-                None => d.done(),
+                _ => d.done(),
             };
 
             self.diagnostics.push(d);

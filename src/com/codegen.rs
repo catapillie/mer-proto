@@ -21,19 +21,29 @@ use super::{
 
 pub struct Codegen {
     cursor: Cursor<Vec<u8>>,
+    current_locals: HashMap<u64, u8>,
     function_positions: HashMap<u64, u32>,
+    call_placeholders: Vec<(u32, u64)>,
 }
 
 impl Codegen {
     pub fn new() -> Self {
         Self {
             cursor: Cursor::new(Vec::new()),
-            function_positions: HashMap::new(),
+            current_locals: Default::default(),
+            function_positions: Default::default(),
+            call_placeholders: Default::default(),
         }
     }
 
     fn position(&self) -> u32 {
         self.cursor.position().try_into().unwrap()
+    }
+
+    fn add_fn_addr_placeholder(&mut self, id: u64) -> io::Result<()> {
+        let position = self.position();
+        self.call_placeholders.push((position, id));
+        self.cursor.write_u32::<LE>(0)
     }
 
     fn gen_u32_placeholder(&mut self) -> io::Result<u32> {
@@ -52,10 +62,18 @@ impl Codegen {
 
     pub fn gen(mut self, abt: &ProgramAbt) -> io::Result<Vec<u8>> {
         self.cursor.write_u8(opcode::entry_point)?;
-        let _ = self.gen_u32_placeholder()?;
+        self.add_fn_addr_placeholder(abt.main_fn_id)?;
+
         for info in abt.functions.values() {
+            self.function_positions.insert(info.id, self.position());
             self.gen_function(info)?;
         }
+
+        for (pos, id) in self.call_placeholders.clone() {
+            let addr = *self.function_positions.get(&id).unwrap();
+            self.patch_u32_placeholder(pos, addr)?;
+        }
+
         Ok(self.cursor.into_inner())
     }
 
@@ -65,10 +83,20 @@ impl Codegen {
         let opcode = Opcode::function(info.name.clone(), param_count, local_count);
         opcode.write_bytes(&mut self.cursor)?;
 
+        self.current_locals.clear();
+        for (loc, id) in info
+            .used_variables
+            .iter()
+            .enumerate()
+            .map(|(loc, (&id, _))| (loc as u8, id))
+        {
+            self.current_locals.insert(id, loc);
+        }
+
         let code = info
             .code
             .as_ref()
-            .expect(format!("unresolved function code {}", info.name).as_str());
+            .unwrap_or_else(|| panic!("unresolved function code {}", info.name));
         self.gen_statement(code)?;
         Ok(())
     }
@@ -167,25 +195,24 @@ impl Codegen {
         use super::abt::ExprAbt as E;
         match expr {
             E::Unknown => unreachable!(),
-            E::Debug(inner) => {
+            E::Debug(inner, ty) => {
                 self.gen_expression(inner)?;
-                todo!();
-                // let ty = match inner.ty() {
-                //     TypeAbt::Unit => NativeType::unit,
-                //     TypeAbt::U8 => NativeType::u8,
-                //     TypeAbt::U16 => NativeType::u16,
-                //     TypeAbt::U32 => NativeType::u32,
-                //     TypeAbt::U64 => NativeType::u64,
-                //     TypeAbt::I8 => NativeType::i8,
-                //     TypeAbt::I16 => NativeType::i16,
-                //     TypeAbt::I32 => NativeType::i32,
-                //     TypeAbt::I64 => NativeType::i64,
-                //     TypeAbt::F32 => NativeType::f32,
-                //     TypeAbt::F64 => NativeType::f64,
-                //     TypeAbt::Bool => NativeType::bool,
-                //     TypeAbt::Unknown => unreachable!(),
-                // };
-                // Opcode::dbg(ty).write_bytes(&mut self.cursor)?;
+                let ty = match ty {
+                    TypeAbt::Unit => NativeType::unit,
+                    TypeAbt::U8 => NativeType::u8,
+                    TypeAbt::U16 => NativeType::u16,
+                    TypeAbt::U32 => NativeType::u32,
+                    TypeAbt::U64 => NativeType::u64,
+                    TypeAbt::I8 => NativeType::i8,
+                    TypeAbt::I16 => NativeType::i16,
+                    TypeAbt::I32 => NativeType::i32,
+                    TypeAbt::I64 => NativeType::i64,
+                    TypeAbt::F32 => NativeType::f32,
+                    TypeAbt::F64 => NativeType::f64,
+                    TypeAbt::Bool => NativeType::bool,
+                    TypeAbt::Unknown => unreachable!(),
+                };
+                Opcode::dbg(ty).write_bytes(&mut self.cursor)?;
                 Ok(())
             }
             E::Unit => Opcode::ld_unit.write_bytes(&mut self.cursor),
@@ -200,24 +227,23 @@ impl Codegen {
                 Ok(())
             }
             E::Variable(var) => {
-                todo!()
-                // Opcode::ld_loc(var.id).write_bytes(&mut self.cursor)
+                let id = *self.current_locals.get(var).unwrap();
+                Opcode::ld_loc(id).write_bytes(&mut self.cursor)
             }
             E::Assignment(var, expr) => {
-                todo!()
-                // self.gen_expression(expr)?;
-                // Opcode::st_loc(var.id).write_bytes(&mut self.cursor)?;
-                // Opcode::ld_loc(var.id).write_bytes(&mut self.cursor)?;
-                // Ok(())
+                self.gen_expression(expr)?;
+                let id = *self.current_locals.get(var).unwrap();
+                Opcode::st_loc(id).write_bytes(&mut self.cursor)?;
+                Opcode::ld_loc(id).write_bytes(&mut self.cursor)?;
+                Ok(())
             }
             E::Call(id, params, _) => {
                 for param in params {
                     self.gen_expression(param)?;
                 }
-                todo!()
-                // let to = self.function_positions.get(id).cloned().unwrap();
-                // Opcode::call(to).write_bytes(&mut self.cursor)?;
-                // Ok(())
+                self.cursor.write_u8(opcode::call)?;
+                self.add_fn_addr_placeholder(*id)?;
+                Ok(())
             }
             E::Binary(op, left, right) => {
                 use BinOpAbtKind as K;
