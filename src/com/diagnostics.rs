@@ -1,5 +1,3 @@
-use std::num::ParseIntError;
-
 use colored::Colorize;
 
 use super::{
@@ -134,7 +132,7 @@ impl DiagnosticBuilder<DiagnosticKind, Severity, Option<Span>> {
 pub enum DiagnosticKind {
     IllegalCharacter(char),
 
-    InvalidInteger(ParseIntError),
+    InvalidInteger,
     InvalidFloat,
     MissingLeadingDigits,
     MissingTrailingDigits,
@@ -207,8 +205,8 @@ impl DiagnosticKind {
                 => format!("encountered illegal character {}",
                     format!("{ill:?}").bold(),
                 ),
-            Self::InvalidInteger(e)
-                => format!("invalid integer literal ({e})"),
+            Self::InvalidInteger
+                => "invalid integer literal".to_string(),
             Self::InvalidFloat
                 => "invalid float literal".to_string(),
             Self::MissingLeadingDigits

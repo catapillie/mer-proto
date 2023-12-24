@@ -1,7 +1,8 @@
 use crate::com::{
     abt::{ProgramAbt, TypeAbt},
+    analysis::FunctionInfo,
     diagnostics::{self, DiagnosticKind, Severity},
-    syntax::stmt::{StmtAst, StmtAstKind}, analysis::FunctionInfo,
+    syntax::stmt::{StmtAst, StmtAstKind},
 };
 
 use super::Analyser;
@@ -9,18 +10,22 @@ use super::Analyser;
 impl<'d> Analyser<'d> {
     pub fn analyse_program(mut self, ast: &StmtAst) -> ProgramAbt {
         let main_fn_id = 0;
-        self.functions.insert(main_fn_id, FunctionInfo {
-            id: main_fn_id,
-            name: "<main>".to_string(),
-            span: None,
-            depth: 0,
-            args: vec![],
-            arg_ids: vec![],
-            ty: TypeAbt::Unit,
-            ty_span: None,
-            used_variables: Default::default(),
-            code: None,
-        });
+        self.functions.insert(
+            main_fn_id,
+            FunctionInfo {
+                id: main_fn_id,
+                name: "<main>".to_string(),
+                span: None,
+                depth: 0,
+                args: vec![],
+                arg_ids: vec![],
+                ty: TypeAbt::Unit,
+                ty_span: None,
+                type_variables: Default::default(),
+                used_variables: Default::default(),
+                code: None,
+            },
+        );
 
         self.scope.depth = 1;
         self.reach_top_level_declarations(ast);
@@ -35,6 +40,8 @@ impl<'d> Analyser<'d> {
                 .done();
             self.diagnostics.push(d);
         }
+
+        self.resolve_type_variables();
 
         assert!(self.scope.is_root()); // correct scope usage
 

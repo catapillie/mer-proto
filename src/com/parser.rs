@@ -757,7 +757,10 @@ impl<'a> Parser<'a> {
         Some((identifier, Span::new(start_pos, end_pos)))
     }
 
-    fn try_consume_number(&mut self) -> Option<(Option<Either<i64, f64>>, Span)> {
+    #[allow(clippy::type_complexity)] // todo: make it simpler
+    fn try_consume_number(
+        &mut self,
+    ) -> Option<(Option<Either<Box<IntegerValues>, Box<DecimalValues>>>, Span)> {
         let mut clone = self.cursor.clone();
         if let (Some('.'), Some(next)) = (clone.next(), clone.next()) {
             if !next.is_ascii_digit() {
@@ -787,19 +790,29 @@ impl<'a> Parser<'a> {
         } else {
             let end_pos = self.cursor.pos();
             let span = Span::new(start_pos, end_pos);
-            return match decimals.parse::<i64>() {
-                Ok(num) => Some((Some(Either::Left(num)), span)),
-                Err(e) => {
+            let ints = IntegerValues {
+                u8: decimals.parse::<u8>().ok(),
+                u16: decimals.parse::<u16>().ok(),
+                u32: decimals.parse::<u32>().ok(),
+                u64: decimals.parse::<u64>().ok(),
+                i8: decimals.parse::<i8>().ok(),
+                i16: decimals.parse::<i16>().ok(),
+                i32: decimals.parse::<i32>().ok(),
+                i64: decimals.parse::<i64>().ok(),
+            };
+            return Some(match ints.has_some() {
+                true => (Some(Either::Left(Box::new(ints))), span),
+                false => {
                     let d = diagnostics::create_diagnostic()
-                        .with_kind(DiagnosticKind::InvalidInteger(e))
+                        .with_kind(DiagnosticKind::InvalidInteger)
                         .with_severity(Severity::Error)
                         .with_span(span)
                         .annotate_primary(Note::Quiet, span)
                         .done();
                     self.diagnostics.push(d);
-                    Some((None, span))
+                    (None, span)
                 }
-            };
+            });
         }
 
         let mut has_trailing_digits = false;
@@ -838,10 +851,14 @@ impl<'a> Parser<'a> {
             return Some((None, span));
         }
 
-        Some(match decimals.parse::<f64>() {
-            Ok(num) => (Some(Either::Right(num)), span),
-            Err(_) => {
-                // unreachable, but remain calm anyway
+        let decims = DecimalValues {
+            f32: decimals.parse::<f32>().ok(),
+            f64: decimals.parse::<f64>().ok(),
+        };
+
+        Some(match decims.has_some() {
+            true => (Some(Either::Right(Box::new(decims))), span),
+            false => {
                 let d = diagnostics::create_diagnostic()
                     .with_kind(DiagnosticKind::InvalidFloat)
                     .with_severity(Severity::Error)

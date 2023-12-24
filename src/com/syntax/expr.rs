@@ -1,4 +1,4 @@
-use crate::com::span::Span;
+use crate::com::{span::Span, tokens::{IntegerValues, DecimalValues}};
 
 use super::{bin_op::BinOpAst, un_op::UnOpAst};
 
@@ -11,8 +11,8 @@ pub struct ExprAst {
 #[derive(Debug)]
 pub enum ExprAstKind {
     Bad,
-    Integer(i64),
-    Decimal(f64),
+    Integer(Box<IntegerValues>),
+    Decimal(Box<DecimalValues>),
     Identifier(String),
     Boolean(bool),
     Parenthesized(Box<ExprAst>),

@@ -3,6 +3,7 @@ use std::{collections::HashMap, fmt::Display};
 use super::{
     analysis::{FunctionInfo, VariableInfo},
     span::Span,
+    tokens::{IntegerValues, DecimalValues},
 };
 
 pub struct ProgramAbt {
@@ -39,8 +40,8 @@ impl StmtAbtKind {
 pub enum ExprAbt {
     Unknown,
     Unit,
-    Integer(i64),
-    Decimal(f64),
+    Integer(Box<IntegerValues>),
+    Decimal(Box<DecimalValues>),
     Boolean(bool),
     Variable(u64),
     Assignment(u64, Box<ExprAbt>),
@@ -108,7 +109,9 @@ impl UnOpAbtKind {
 }
 
 #[rustfmt::skip]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug)]
+#[derive(Clone, Copy)]
+#[derive(PartialEq, Eq, Hash)]
 pub enum TypeAbt {
     Unknown,
     Unit,
@@ -116,33 +119,11 @@ pub enum TypeAbt {
     I8, I16, I32, I64,
     F32, F64,
     Bool,
+
+    Var(u64),
 }
 
 impl TypeAbt {
-    /// Determines whether [`self`] is of the specified type.
-    /// If [`self`] is [`TypeAbt::Unknown`], then the check is true.
-    pub fn is(&self, ty: &Self) -> bool {
-        if !ty.is_known() {
-            return true; // ignored
-        }
-
-        match self {
-            Self::Unknown => true, // ignored too
-            Self::Unit => matches!(ty, Self::Unit),
-            Self::U8 => matches!(ty, Self::U8),
-            Self::U16 => matches!(ty, Self::U16),
-            Self::U32 => matches!(ty, Self::U32),
-            Self::U64 => matches!(ty, Self::U64),
-            Self::I8 => matches!(ty, Self::I8),
-            Self::I16 => matches!(ty, Self::I16),
-            Self::I32 => matches!(ty, Self::I32),
-            Self::I64 => matches!(ty, Self::I64),
-            Self::F32 => matches!(ty, Self::F32),
-            Self::F64 => matches!(ty, Self::F64),
-            Self::Bool => matches!(ty, Self::Bool),
-        }
-    }
-
     pub fn is_known(&self) -> bool {
         !matches!(self, Self::Unknown)
     }
@@ -164,6 +145,7 @@ impl Display for TypeAbt {
             Self::F32 => write!(f, "f32"),
             Self::F64 => write!(f, "f64"),
             Self::Bool => write!(f, "bool"),
+            Self::Var(id) => write!(f, "{{{id}}}"),
         }
     }
 }

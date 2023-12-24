@@ -12,9 +12,9 @@ impl<'d> Analyser<'d> {
             ExprAstKind::Bad
                 => ExprAbt::Unknown,
             ExprAstKind::Integer(num)
-                => ExprAbt::Integer(*num),
+                => ExprAbt::Integer(num.clone()),
             ExprAstKind::Decimal(num)
-                => ExprAbt::Decimal(*num),
+                => ExprAbt::Decimal(num.clone()),
             ExprAstKind::Identifier(id)
                 => self.analyse_variable_expression(id, expr.span),
             ExprAstKind::Boolean(b)

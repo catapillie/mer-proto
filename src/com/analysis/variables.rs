@@ -57,7 +57,8 @@ impl<'d> Analyser<'d> {
         let Some((name, _)) = id else {
             return StmtAbtKind::Empty;
         };
-        let decl = self.declare_variable_here(name, self.type_of(&bound_expr), span);
+        let ty = self.type_of(&bound_expr);
+        let decl = self.declare_variable_here(name, ty, span);
 
         // variable definitions are just (the first) assignment
         StmtAbtKind::Expr(Box::new(ExprAbt::Assignment(

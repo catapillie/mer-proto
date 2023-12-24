@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::com::{
     abt::{ExprAbt, TypeAbt},
     diagnostics::{self, DiagnosticKind, Note, Severity},
@@ -40,21 +42,157 @@ impl<'d> Analyser<'d> {
         }
     }
 
-    pub fn type_of(&self, expr: &ExprAbt) -> TypeAbt {
+    pub fn type_of(&mut self, expr: &ExprAbt) -> TypeAbt {
         match expr {
             ExprAbt::Unknown => TypeAbt::Unknown,
             ExprAbt::Unit => TypeAbt::Unit,
-            ExprAbt::Integer(_) => TypeAbt::I64,
-            ExprAbt::Decimal(_) => TypeAbt::F64,
+            
+            // generate a type variable, and store all its possible values
+            #[rustfmt::skip]
+            ExprAbt::Integer(values) => {
+                let id = self.make_unique_id();
+
+                let func_id = self.scope.current_func_id;
+                let info = self.functions.get_mut(&func_id).unwrap();
+
+                let mut int_types = HashSet::new();
+                if values.u8.is_some() { int_types.insert(TypeAbt::U8); }
+                if values.u16.is_some() { int_types.insert(TypeAbt::U16); }
+                if values.u32.is_some() { int_types.insert(TypeAbt::U32); }
+                if values.u64.is_some() { int_types.insert(TypeAbt::U64); }
+                if values.i8.is_some() { int_types.insert(TypeAbt::I8); }
+                if values.i16.is_some() { int_types.insert(TypeAbt::I16); }
+                if values.i32.is_some() { int_types.insert(TypeAbt::I32); }
+                if values.i64.is_some() { int_types.insert(TypeAbt::I64); }
+
+                info.type_variables.insert(id, int_types);
+                
+                TypeAbt::Var(id)
+            }
+            // same for floating-point numbers
+            ExprAbt::Decimal(values) => {
+                let id = self.make_unique_id();
+
+                let func_id = self.scope.current_func_id;
+                let info = self.functions.get_mut(&func_id).unwrap();
+
+                let mut float_types = HashSet::new();
+                if values.f32.is_some() { float_types.insert(TypeAbt::F32); }
+                if values.f64.is_some() { float_types.insert(TypeAbt::F64); }
+
+                info.type_variables.insert(id, float_types);
+                
+                TypeAbt::Var(id)
+            },
+
             ExprAbt::Boolean(_) => TypeAbt::Bool,
 
-            ExprAbt::Variable(var_id) => self.variables.get(var_id).unwrap().ty.clone(),
-            ExprAbt::Call(func_id, _, _) => self.functions.get(func_id).unwrap().ty.clone(),
+            ExprAbt::Variable(var_id) => self.variables.get(var_id).unwrap().ty,
+            ExprAbt::Call(func_id, _, _) => self.functions.get(func_id).unwrap().ty,
             ExprAbt::Assignment(id, _) => self.type_of(&ExprAbt::Variable(*id)),
 
-            ExprAbt::Binary(op, _, _) => op.out_ty.clone(),
-            ExprAbt::Unary(op, _) => op.ty.clone(),
-            ExprAbt::Debug(_, ty) => ty.clone(),
+            ExprAbt::Binary(op, _, _) => op.out_ty,
+            ExprAbt::Unary(op, _) => op.ty,
+            ExprAbt::Debug(_, ty) => *ty,
+        }
+    }
+
+    pub fn check_type(&mut self, left: TypeAbt, right: TypeAbt) -> bool {
+        if !left.is_known() || !right.is_known() {
+            return true; // just accept the check assuming an error was produced
+        }
+
+        let func_id = self.scope.current_func_id;
+        let info = self.functions.get_mut(&func_id).unwrap();
+        
+        use TypeAbt as Ty;
+        match (left, right) {
+            (Ty::Var(x), Ty::Var(y)) => {
+                // intersection types of x and y
+                let xs = info.type_variables.get(&x).unwrap();
+                let ys = info.type_variables.get(&y).unwrap();
+
+                let inter: HashSet<_> = xs.intersection(ys).copied().collect();
+
+                if inter.is_empty() {
+                    info.type_variables.insert(x, [Ty::Unknown].into());
+                    info.type_variables.insert(y, [Ty::Unknown].into());
+                    panic!("type mismatch: intersection of types failed");
+                }
+
+                info.type_variables.insert(x, inter.clone());
+                info.type_variables.insert(y, inter.clone());
+
+                true
+            }
+            (Ty::Var(x), target) | (target, Ty::Var(x)) => {
+                // constrain type x to be target type
+                let xs = info.type_variables.get_mut(&x).unwrap();
+                if !xs.contains(&target) {
+                    *xs = [Ty::Unknown].into();
+                    panic!("type mismatch: of ty_var x into {target}")
+                }
+
+                *xs = [target].into();
+                true
+            }
+            _ => left == right // simple type equality
+        }
+    }
+
+    pub fn check_integer_type(&self, ty: TypeAbt) -> bool {
+        match ty {
+            TypeAbt::Unknown => true,
+            TypeAbt::U8
+                | TypeAbt::U16
+                | TypeAbt::U32
+                | TypeAbt::U64
+                | TypeAbt::I8
+                | TypeAbt::I16
+                | TypeAbt::I32
+                | TypeAbt::I64=> true,
+            TypeAbt::Var(x) => {
+                let func_id = self.scope.current_func_id;
+                let func_info = self.functions.get(&func_id).unwrap();
+                func_info.type_variables
+                    .get(&x)
+                    .unwrap()
+                    .iter()
+                    .all(|ty| self.check_integer_type(*ty))
+            },
+            _ => false,
+        }
+    }
+
+    pub fn check_float_type(&self, ty: TypeAbt) -> bool {
+        match ty {
+            TypeAbt::Unknown => true,
+            TypeAbt::F32 | TypeAbt::F64 => true,
+            TypeAbt::Var(x) => {
+                let func_id = self.scope.current_func_id;
+                let func_info = self.functions.get(&func_id).unwrap();
+                func_info.type_variables
+                    .get(&x)
+                    .unwrap()
+                    .iter()
+                    .all(|ty| self.check_float_type(*ty))
+            },
+            _ => false,
+        }
+    }
+
+    pub fn resolve_type_variables(&mut self) {
+        let func_id = self.scope.current_func_id;
+        let func_info = self.functions.get_mut(&func_id).unwrap();
+        println!("{:#?}", func_info.type_variables);
+
+        for (id, tys) in func_info.type_variables.iter_mut() {
+            let tys = tys.iter().collect::<Vec<_>>();
+            match tys.split_first() {
+                Some((head, tail)) if tail.is_empty() => println!("{id} => {head}"),
+                Some((_, _)) => println!("{{{id}}} needs annotations"),
+                None => unreachable!(),
+            }
         }
     }
 }

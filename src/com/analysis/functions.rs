@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use crate::com::{
     abt::{ExprAbt, StmtAbt, StmtAbtKind, TypeAbt},
@@ -19,10 +19,15 @@ pub struct FunctionInfo {
     pub name: String,
     pub span: Option<Span>,
     pub depth: u16,
+
     pub args: Vec<(String, TypeAbt)>,
     pub arg_ids: Vec<u64>,
+
     pub ty: TypeAbt,
     pub ty_span: Option<Span>,
+
+    pub type_variables: HashMap<u64, HashSet<TypeAbt>>,
+
     pub used_variables: BTreeMap<u64, VariableUsage>,
     pub code: Option<Box<StmtAbt>>,
 }
@@ -45,9 +50,10 @@ impl<'d> Analyser<'d> {
             span,
             depth: self.scope.depth,
             args,
-            arg_ids: Default::default(),
+            arg_ids: vec![],
             ty,
             ty_span,
+            type_variables: Default::default(),
             used_variables: Default::default(),
             code: None,
         };
@@ -104,7 +110,7 @@ impl<'d> Analyser<'d> {
         self.scope.current_func_id = id;
 
         for ((arg_name, arg_ty), &span) in bound_spanned_args {
-            let decl = self.declare_variable_here(arg_name.as_str(), arg_ty.clone(), span);
+            let decl = self.declare_variable_here(arg_name.as_str(), *arg_ty, span);
             self.functions
                 .get_mut(&id)
                 .unwrap()
@@ -169,7 +175,7 @@ impl<'d> Analyser<'d> {
         let func_args = info.args.clone();
         let func_arg_ids = info.arg_ids.clone();
         let id = info.id;
-        let ty = info.ty.clone();
+        let ty = info.ty;
 
         let mut invalid = false;
         for (((i, bound_arg), span), arg_ty) in bound_args
@@ -179,27 +185,27 @@ impl<'d> Analyser<'d> {
             .zip(func_args.iter().map(|(_, arg_ty)| arg_ty))
         {
             let ty_param = self.type_of(bound_arg);
-            if !ty_param.is(arg_ty) {
+            if !self.check_type(ty_param, *arg_ty) {
                 let arg_id = func_arg_ids.get(i).unwrap();
                 let arg_info = self.variables.get(arg_id).unwrap();
                 let arg_name = arg_info.name.clone();
                 let arg_span = arg_info.declaration_span;
                 let d = diagnostics::create_diagnostic()
                     .with_kind(DiagnosticKind::TypeMismatch {
-                        found: ty_param.clone(),
-                        expected: arg_ty.clone(),
+                        found: ty_param,
+                        expected: *arg_ty,
                     })
                     .with_severity(Severity::Error)
                     .with_span(span)
                     .annotate_secondary(
-                        Note::ArgumentType(arg_name, arg_ty.clone())
+                        Note::ArgumentType(arg_name, *arg_ty)
                             .dddot_back()
                             .num(1),
                         arg_span,
                         NoteSeverity::Annotation,
                     )
                     .annotate_primary(
-                        Note::MustBeOfType(arg_ty.clone()).so().dddot_front().num(2),
+                        Note::MustBeOfType(*arg_ty).so().dddot_front().num(2),
                         span,
                     )
                     .done();
@@ -238,7 +244,7 @@ impl<'d> Analyser<'d> {
         if invalid {
             ExprAbt::Unknown
         } else {
-            ExprAbt::Call(id, bound_args, ty.clone())
+            ExprAbt::Call(id, bound_args, ty)
         }
     }
 
@@ -247,25 +253,25 @@ impl<'d> Analyser<'d> {
         let return_ty = {
             let id = self.scope.current_func_id;
             let info = self.functions.get(&id).unwrap();
-            (info.ty.clone(), Some((info.ty_span, info.name.clone())))
+            (info.ty, Some((info.ty_span, info.name.clone())))
         };
 
-        if !ty.is(&return_ty.0) {
+        if !self.check_type(ty, return_ty.0) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::MustReturnValue {
-                    expected: return_ty.0.clone(),
+                    expected: return_ty.0,
                 })
                 .with_severity(Severity::Error)
                 .with_span(span)
                 .annotate_primary(
-                    Note::ImpliedType(ty.clone()).but().dddot_front().num(2),
+                    Note::ImpliedType(ty).but().dddot_front().num(2),
                     span,
                 );
 
             let d = match return_ty.1 {
                 Some((Some(span), name)) => d
                     .annotate_secondary(
-                        Note::FunctionReturnType(name, return_ty.0.clone())
+                        Note::FunctionReturnType(name, return_ty.0)
                             .dddot_back()
                             .num(1),
                         span,
@@ -287,19 +293,19 @@ impl<'d> Analyser<'d> {
         let return_ty = {
             let id = self.scope.current_func_id;
             let info = self.functions.get(&id).unwrap();
-            (info.ty.clone(), Some((info.ty_span, info.name.clone())))
+            (info.ty, Some((info.ty_span, info.name.clone())))
         };
 
-        if !ty_expr.is(&return_ty.0) {
+        if !self.check_type(ty_expr, return_ty.0) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::TypeMismatch {
                     found: ty_expr,
-                    expected: return_ty.0.clone(),
+                    expected: return_ty.0,
                 })
                 .with_severity(Severity::Error)
                 .with_span(expr.span)
                 .annotate_primary(
-                    Note::MustBeOfType(return_ty.0.clone())
+                    Note::MustBeOfType(return_ty.0)
                         .so()
                         .dddot_front()
                         .num(2),
@@ -309,7 +315,7 @@ impl<'d> Analyser<'d> {
             let d = match return_ty.1 {
                 Some((Some(span), name)) => d
                     .annotate_secondary(
-                        Note::FunctionReturnType(name, return_ty.0.clone())
+                        Note::FunctionReturnType(name, return_ty.0)
                             .dddot_back()
                             .num(1),
                         span,

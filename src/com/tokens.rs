@@ -10,6 +10,43 @@ pub trait TokenValue: Clone + Default + Display {
     fn display() -> &'static str;
 }
 
+#[derive(Debug, Default, Clone)]
+pub struct IntegerValues {
+    pub u8: Option<u8>,
+    pub u16: Option<u16>,
+    pub u32: Option<u32>,
+    pub u64: Option<u64>,
+    pub i8: Option<i8>,
+    pub i16: Option<i16>,
+    pub i32: Option<i32>,
+    pub i64: Option<i64>,
+}
+
+impl IntegerValues {
+    pub fn has_some(&self) -> bool {
+        self.u8.is_some()
+            | self.u16.is_some()
+            | self.u32.is_some()
+            | self.u64.is_some()
+            | self.i8.is_some()
+            | self.i16.is_some()
+            | self.i32.is_some()
+            | self.i64.is_some()
+    }
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct DecimalValues {
+    pub f32: Option<f32>,
+    pub f64: Option<f64>,
+}
+
+impl DecimalValues {
+    pub fn has_some(&self) -> bool {
+        self.f32.is_some() | self.f64.is_some()
+    }
+}
+
 gen_tokens! {
     Eof "end-of-file"
         self => ("end-of-file"),
@@ -97,10 +134,10 @@ gen_tokens! {
 
     Identifier(String) "identifier"
         self => ("identifier '{}'", self.0),
-    Integer(i64) "integer"
-        self => ("{}", self.0),
-    Decimal(f64) "floating-point number"
-        self => ("{}", self.0),
+    Integer(Box<IntegerValues>) "integer"
+        self => ("integer"),
+    Decimal(Box<DecimalValues>) "floating-point number"
+        self => ("floating-point number"),
     MalformedNumeral "malformed number"
         self => ("malformed nulmber"),
 

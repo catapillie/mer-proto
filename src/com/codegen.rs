@@ -211,13 +211,14 @@ impl Codegen {
                     TypeAbt::F64 => NativeType::f64,
                     TypeAbt::Bool => NativeType::bool,
                     TypeAbt::Unknown => unreachable!(),
+                    TypeAbt::Var(_) => unreachable!(),
                 };
                 Opcode::dbg(ty).write_bytes(&mut self.cursor)?;
                 Ok(())
             }
             E::Unit => Opcode::ld_unit.write_bytes(&mut self.cursor),
-            E::Integer(num) => Opcode::ld_i64(*num).write_bytes(&mut self.cursor),
-            E::Decimal(num) => Opcode::ld_f64(*num).write_bytes(&mut self.cursor),
+            E::Integer(_num) => todo!() /* Opcode::ld_i64(*num).write_bytes(&mut self.cursor) */,
+            E::Decimal(_num) => todo!() /* Opcode::ld_f64(*num).write_bytes(&mut self.cursor) */,
             E::Boolean(b) => {
                 let opcode = match b {
                     true => Opcode::ld_u8(1),
