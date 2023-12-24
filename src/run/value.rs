@@ -42,6 +42,21 @@ impl Value {
     getter_fn! { get_f64(f64: f64) }
 }
 
+impl_from! {
+    () => get_unit
+    bool => get_bool
+    u8 => get_u8
+    u16 => get_u16
+    u32 => get_u32
+    u64 => get_u64
+    i8 => get_i8
+    i16 => get_i16
+    i32 => get_i32
+    i64 => get_i64
+    f32 => get_f32
+    f64 => get_f64
+}
+
 macro_rules! init_fn {
     ($fn_name:ident($name:ident: $type:ty)) => {
         pub fn $fn_name($name: $type) -> Self {
@@ -58,4 +73,16 @@ macro_rules! getter_fn {
     };
 }
 
-use {getter_fn, init_fn};
+macro_rules! impl_from {
+    ($($t:ty => $get_fn:ident)*) => {
+        $(
+            impl From<Value> for $t {
+                fn from(value: Value) -> Self {
+                    value.$get_fn()
+                }
+            }
+        )*
+    };
+}
+
+use {getter_fn, impl_from, init_fn};
