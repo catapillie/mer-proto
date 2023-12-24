@@ -6,7 +6,7 @@ pub struct Scope {
     parent: Option<Box<Scope>>,
     pub depth: u16,
     pub bindings: HashMap<String, u64>,
-    pub current_func_id: Option<u64>,
+    pub current_func_id: u64,
 }
 
 impl Scope {
@@ -15,7 +15,7 @@ impl Scope {
             parent: None,
             depth: 0,
             bindings: Default::default(),
-            current_func_id: None,
+            current_func_id: 0,
         }
     }
 

@@ -1,22 +1,30 @@
 use crate::com::{
     abt::{ProgramAbt, TypeAbt},
     diagnostics::{self, DiagnosticKind, Severity},
-    syntax::stmt::{StmtAst, StmtAstKind},
+    syntax::stmt::{StmtAst, StmtAstKind}, analysis::FunctionInfo,
 };
 
 use super::Analyser;
 
 impl<'d> Analyser<'d> {
     pub fn analyse_program(mut self, ast: &StmtAst) -> ProgramAbt {
-        let main_fn_id = self
-            .declare_function_here("<main>", None, vec![], TypeAbt::Unit, None)
-            .declared;
+        let main_fn_id = 0;
+        self.functions.insert(main_fn_id, FunctionInfo {
+            id: main_fn_id,
+            name: "<main>".to_string(),
+            span: None,
+            depth: 0,
+            args: vec![],
+            arg_ids: vec![],
+            ty: TypeAbt::Unit,
+            ty_span: None,
+            used_variables: Default::default(),
+            code: None,
+        });
 
         self.scope.depth = 1;
         self.reach_top_level_declarations(ast);
         self.scope.depth = 0;
-
-        self.scope.current_func_id = Some(main_fn_id);
 
         let abt = self.analyse_statement(ast);
         if !self.analyse_control_flow(&abt) {

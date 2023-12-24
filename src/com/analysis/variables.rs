@@ -30,12 +30,11 @@ impl<'d> Analyser<'d> {
         let prev = self.variables.insert(declared, info);
         assert!(prev.is_none(), "ids must be unique");
 
-        if let Some(func_id) = self.scope.current_func_id {
-            let func_info = self.functions.get_mut(&func_id).unwrap();
-            func_info
-                .used_variables
-                .insert(declared, VariableUsage { captured: false });
-        }
+        let func_id = self.scope.current_func_id;
+        let func_info = self.functions.get_mut(&func_id).unwrap();
+        func_info
+            .used_variables
+            .insert(declared, VariableUsage { captured: false });
 
         Declaration { declared, shadowed }
     }
@@ -83,43 +82,42 @@ impl<'d> Analyser<'d> {
         let depth = info.depth;
         let declaration_span = info.declaration_span;
 
-        if let Some(func_id) = self.scope.current_func_id {
-            let func_info = self.functions.get_mut(&func_id).unwrap();
-            let captured = depth <= func_info.depth;
+        let func_id = self.scope.current_func_id;
+        let func_info = self.functions.get_mut(&func_id).unwrap();
+        let captured = depth <= func_info.depth;
 
-            func_info
-                .used_variables
-                .entry(id)
-                .and_modify(|u| u.captured = captured)
-                .or_insert(VariableUsage { captured });
+        func_info
+            .used_variables
+            .entry(id)
+            .and_modify(|u| u.captured = captured)
+            .or_insert(VariableUsage { captured });
 
-            if captured {
-                let func_name = func_info.name.clone();
-                let var_name = name.to_string();
-                let d = diagnostics::create_diagnostic()
-                    .with_kind(DiagnosticKind::UnallowedVariableCapture {
-                        func_name,
-                        var_name,
-                    })
-                    .with_severity(Severity::Error)
-                    .with_span(span)
-                    .annotate_primary(
-                        Note::VariableCapturedBy(name.to_string(), func_info.name.to_string())
-                            .then()
-                            .dddot_front()
-                            .num(2),
-                        span,
-                    )
-                    .annotate_secondary(
-                        Note::VariableDeclaration(name.to_string())
-                            .dddot_back()
-                            .num(1),
-                        declaration_span,
-                        NoteSeverity::Annotation,
-                    )
-                    .done();
-                self.diagnostics.push(d);
-            }
+        if captured {
+            let func_name = func_info.name.clone();
+            let var_name = name.to_string();
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::UnallowedVariableCapture {
+                    func_name,
+                    var_name,
+                })
+                .with_severity(Severity::Error)
+                .with_span(span)
+                .annotate_primary(
+                    Note::VariableCapturedBy(name.to_string(), func_info.name.to_string())
+                        .then()
+                        .dddot_front()
+                        .num(2),
+                    span,
+                )
+                .annotate_secondary(
+                    Note::VariableDeclaration(name.to_string())
+                        .dddot_back()
+                        .num(1),
+                    declaration_span,
+                    NoteSeverity::Annotation,
+                )
+                .done();
+            self.diagnostics.push(d);
         }
 
         ExprAbt::Variable(id)

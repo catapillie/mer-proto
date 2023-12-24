@@ -101,7 +101,7 @@ impl<'d> Analyser<'d> {
         let id = info.id;
 
         self.open_scope();
-        self.scope.current_func_id = Some(id);
+        self.scope.current_func_id = id;
 
         for ((arg_name, arg_ty), &span) in bound_spanned_args {
             let decl = self.declare_variable_here(arg_name.as_str(), arg_ty.clone(), span);
@@ -244,12 +244,10 @@ impl<'d> Analyser<'d> {
 
     pub fn analyse_return_statement(&mut self, span: Span) -> StmtAbtKind {
         let ty = TypeAbt::Unit;
-        let return_ty = match self.scope.current_func_id {
-            Some(id) => {
-                let info = self.functions.get(&id).unwrap();
-                (info.ty.clone(), Some((info.ty_span, info.name.clone())))
-            }
-            None => (TypeAbt::Unit, None),
+        let return_ty = {
+            let id = self.scope.current_func_id;
+            let info = self.functions.get(&id).unwrap();
+            (info.ty.clone(), Some((info.ty_span, info.name.clone())))
         };
 
         if !ty.is(&return_ty.0) {
@@ -286,12 +284,10 @@ impl<'d> Analyser<'d> {
     pub fn analyse_return_with_statement(&mut self, expr: &ExprAst) -> StmtAbtKind {
         let bound_expr = self.analyse_expression(expr);
         let ty_expr = self.type_of(&bound_expr);
-        let return_ty = match self.scope.current_func_id {
-            Some(id) => {
-                let info = self.functions.get(&id).unwrap();
-                (info.ty.clone(), Some((info.ty_span, info.name.clone())))
-            }
-            None => (TypeAbt::Unit, None),
+        let return_ty = {
+            let id = self.scope.current_func_id;
+            let info = self.functions.get(&id).unwrap();
+            (info.ty.clone(), Some((info.ty_span, info.name.clone())))
         };
 
         if !ty_expr.is(&return_ty.0) {
