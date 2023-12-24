@@ -194,6 +194,8 @@ impl<'d> Analyser<'d> {
             return ExprAbt::Unknown;
         }
 
+        todo!();
+
         let bound_op = match ty {
             TypeAbt::U8 | TypeAbt::U16 | TypeAbt::U32 | TypeAbt::U64 => {
                 self.number_unary_operation(false, op, ty)

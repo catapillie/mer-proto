@@ -8,6 +8,13 @@ use crate::com::{
 
 use super::Analyser;
 
+#[derive(Debug)]
+pub enum TypeConstraint {
+    Exactly(u64),
+    OneOf(HashSet<TypeAbt>),
+    Unknown,
+}
+
 impl<'d> Analyser<'d> {
     pub fn analyse_type(&mut self, ty: &TypeAst) -> TypeAbt {
         match &ty.kind {
@@ -65,7 +72,7 @@ impl<'d> Analyser<'d> {
                 if values.i32.is_some() { int_types.insert(TypeAbt::I32); }
                 if values.i64.is_some() { int_types.insert(TypeAbt::I64); }
 
-                info.type_variables.insert(id, int_types);
+                info.type_variables.insert(id, TypeConstraint::OneOf(int_types));
                 
                 TypeAbt::Var(id)
             }
@@ -80,7 +87,7 @@ impl<'d> Analyser<'d> {
                 if values.f32.is_some() { float_types.insert(TypeAbt::F32); }
                 if values.f64.is_some() { float_types.insert(TypeAbt::F64); }
 
-                info.type_variables.insert(id, float_types);
+                info.type_variables.insert(id, TypeConstraint::OneOf(float_types));
                 
                 TypeAbt::Var(id)
             },
@@ -109,31 +116,68 @@ impl<'d> Analyser<'d> {
         match (left, right) {
             (Ty::Var(x), Ty::Var(y)) => {
                 // intersection types of x and y
-                let xs = info.type_variables.get(&x).unwrap();
-                let ys = info.type_variables.get(&y).unwrap();
+                let mut xs = info.type_variables.get(&x).unwrap();
+                while let TypeConstraint::Exactly(xx) = xs {
+                    xs = info.type_variables.get(xx).unwrap();
+                }
+                let mut ys = info.type_variables.get(&y).unwrap();
+                while let TypeConstraint::Exactly(yy) = ys {
+                    ys = info.type_variables.get(yy).unwrap();
+                }
+                
+                if matches!(xs, TypeConstraint::Unknown) || matches!(ys, TypeConstraint::Unknown) {
+                    return true; // don't care
+                }
+
+                let TypeConstraint::OneOf(xs) = xs else {
+                    unreachable!()
+                };
+                let TypeConstraint::OneOf(ys) = ys else {
+                    unreachable!()
+                };
 
                 let inter: HashSet<_> = xs.intersection(ys).copied().collect();
 
                 if inter.is_empty() {
-                    info.type_variables.insert(x, [Ty::Unknown].into());
-                    info.type_variables.insert(y, [Ty::Unknown].into());
+                    info.type_variables.insert(x, TypeConstraint::Unknown);
+                    info.type_variables.insert(y, TypeConstraint::Unknown);
                     panic!("type mismatch: intersection of types failed");
                 }
 
-                info.type_variables.insert(x, inter.clone());
-                info.type_variables.insert(y, inter.clone());
+                let cx = TypeConstraint::OneOf(inter.clone());
+                let cy = if x == y {
+                    TypeConstraint::OneOf(inter)
+                } else {
+                    TypeConstraint::Exactly(x)
+                };
+
+                info.type_variables.insert(x, cx);
+                info.type_variables.insert(y, cy);
 
                 true
             }
             (Ty::Var(x), target) | (target, Ty::Var(x)) => {
                 // constrain type x to be target type
-                let xs = info.type_variables.get_mut(&x).unwrap();
+                let mut xs = info.type_variables.get(&x).unwrap();
+                while let TypeConstraint::Exactly(xx) = xs {
+                    println!("{xx}");
+                    xs = info.type_variables.get(xx).unwrap();
+                }
+
+                if matches!(xs, TypeConstraint::Unknown) {
+                    return true; // don't care
+                }
+
+                let TypeConstraint::OneOf(xs) = xs else {
+                    unreachable!();
+                };
+
                 if !xs.contains(&target) {
-                    *xs = [Ty::Unknown].into();
+                    info.type_variables.insert(x, TypeConstraint::Unknown);
                     panic!("type mismatch: of ty_var x into {target}")
                 }
 
-                *xs = [target].into();
+                info.type_variables.insert(x, TypeConstraint::OneOf([target].into()));
                 true
             }
             _ => left == right // simple type equality
@@ -150,15 +194,15 @@ impl<'d> Analyser<'d> {
                 | TypeAbt::I8
                 | TypeAbt::I16
                 | TypeAbt::I32
-                | TypeAbt::I64=> true,
+                | TypeAbt::I64 => true,
             TypeAbt::Var(x) => {
                 let func_id = self.scope.current_func_id;
                 let func_info = self.functions.get(&func_id).unwrap();
-                func_info.type_variables
-                    .get(&x)
-                    .unwrap()
-                    .iter()
-                    .all(|ty| self.check_integer_type(*ty))
+                match func_info.type_variables.get(&x).unwrap() {
+                    TypeConstraint::Exactly(y) => self.check_integer_type(TypeAbt::Var(*y)),
+                    TypeConstraint::OneOf(xs) => xs.iter().all(|ty| self.check_integer_type(*ty)),
+                    TypeConstraint::Unknown => true,
+                }
             },
             _ => false,
         }
@@ -171,11 +215,11 @@ impl<'d> Analyser<'d> {
             TypeAbt::Var(x) => {
                 let func_id = self.scope.current_func_id;
                 let func_info = self.functions.get(&func_id).unwrap();
-                func_info.type_variables
-                    .get(&x)
-                    .unwrap()
-                    .iter()
-                    .all(|ty| self.check_float_type(*ty))
+                match func_info.type_variables.get(&x).unwrap() {
+                    TypeConstraint::Exactly(y) => self.check_float_type(TypeAbt::Var(*y)),
+                    TypeConstraint::OneOf(xs) => xs.iter().all(|ty| self.check_float_type(*ty)),
+                    TypeConstraint::Unknown => true,
+                }
             },
             _ => false,
         }
@@ -184,15 +228,25 @@ impl<'d> Analyser<'d> {
     pub fn resolve_type_variables(&mut self) {
         let func_id = self.scope.current_func_id;
         let func_info = self.functions.get_mut(&func_id).unwrap();
-        println!("{:#?}", func_info.type_variables);
-
-        for (id, tys) in func_info.type_variables.iter_mut() {
-            let tys = tys.iter().collect::<Vec<_>>();
-            match tys.split_first() {
-                Some((head, tail)) if tail.is_empty() => println!("{id} => {head}"),
-                Some((_, _)) => println!("{{{id}}} needs annotations"),
-                None => unreachable!(),
+        for (id, mut c) in &func_info.type_variables {
+            while let TypeConstraint::Exactly(x) = c {
+                c = func_info.type_variables.get(x).unwrap();
             }
+
+            let ty = match c {
+                TypeConstraint::OneOf(types) => {
+                    let ty = *types.iter().next().unwrap();
+                    if types.len() == 1 {
+                        ty
+                    } else {
+                        panic!("{{{id}}} needs an annotation");
+                    }
+                },
+                TypeConstraint::Exactly(_) => unreachable!(),
+                TypeConstraint::Unknown => TypeAbt::Unknown,
+            };
+
+            self.type_variables.insert(*id, ty);
         }
     }
 }

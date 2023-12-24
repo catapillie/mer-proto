@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap};
 
 use crate::com::{
     abt::{ExprAbt, StmtAbt, StmtAbtKind, TypeAbt},
@@ -8,7 +8,7 @@ use crate::com::{
     syntax::{expr::ExprAst, stmt::StmtAst, types::TypeAst},
 };
 
-use super::Analyser;
+use super::{Analyser, types::TypeConstraint};
 
 pub struct VariableUsage {
     pub captured: bool,
@@ -26,7 +26,7 @@ pub struct FunctionInfo {
     pub ty: TypeAbt,
     pub ty_span: Option<Span>,
 
-    pub type_variables: HashMap<u64, HashSet<TypeAbt>>,
+    pub type_variables: HashMap<u64, TypeConstraint>,
 
     pub used_variables: BTreeMap<u64, VariableUsage>,
     pub code: Option<Box<StmtAbt>>,
@@ -128,6 +128,7 @@ impl<'d> Analyser<'d> {
             self.diagnostics.push(d);
         }
 
+        self.resolve_type_variables();
         self.close_scope();
 
         let info = self.functions.get_mut(&id).unwrap();

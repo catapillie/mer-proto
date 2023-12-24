@@ -42,6 +42,7 @@ impl<'d> Analyser<'d> {
         }
 
         self.resolve_type_variables();
+        // println!("{abt:#?}");
 
         assert!(self.scope.is_root()); // correct scope usage
 

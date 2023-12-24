@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use self::scope::Scope;
 
-use super::diagnostics::Diagnostics;
+use super::{diagnostics::Diagnostics, abt::TypeAbt};
 
 mod scope;
 
@@ -33,6 +33,7 @@ pub struct Analyser<'d> {
     scope: Scope,
     variables: HashMap<u64, VariableInfo>,
     functions: HashMap<u64, FunctionInfo>,
+    type_variables: HashMap<u64, TypeAbt>,
     uid: u64,
 }
 
@@ -43,6 +44,7 @@ impl<'d> Analyser<'d> {
             scope: Scope::root(),
             variables: HashMap::default(),
             functions: HashMap::default(),
+            type_variables: HashMap::default(),
             uid: 0,
         }
     }
