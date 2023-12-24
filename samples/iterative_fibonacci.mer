@@ -1,14 +1,7 @@
-func annotate_u64(x: u64) -> () {
-    return
-}
+var a: u64 = 0
+var b: u64 = 1
 
-var a = 0
-var b = 1
-annotate_u64(a)
-annotate_u64(b)
-
-var i = 20
-annotate_u64(i)
+var i: u64 = 20
 
 while i > 0 do
 {

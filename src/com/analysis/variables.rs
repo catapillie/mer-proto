@@ -2,7 +2,7 @@ use crate::com::{
     abt::{ExprAbt, StmtAbtKind, TypeAbt},
     diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
     span::Span,
-    syntax::expr::ExprAst,
+    syntax::{expr::ExprAst, types::TypeAst},
 };
 
 use super::{functions::VariableUsage, Analyser, Declaration};
@@ -44,6 +44,49 @@ impl<'d> Analyser<'d> {
             Some(id) => self.variables.get(id),
             None => None,
         })
+    }
+
+    pub fn analyse_annotated_variable_definition(
+        &mut self,
+        id: &Option<(String, Span)>,
+        ty: &TypeAst,
+        expr: &ExprAst,
+        span: Span,
+    ) -> StmtAbtKind {
+        let bound_expr = self.analyse_expression(expr);
+        let bound_ty = self.analyse_type(ty);
+
+        let Some((name, id_span)) = id else {
+            return StmtAbtKind::Empty;
+        };
+
+        let expr_ty = self.type_of(&bound_expr);
+        if !self.check_type(bound_ty, expr_ty) {
+            let annotation_span = id_span.join(ty.span);
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::TypeMismatch {
+                    found: expr_ty,
+                    expected: bound_ty,
+                })
+                .with_severity(Severity::Error)
+                .with_span(expr.span)
+                .annotate_primary(Note::ImpliedType(expr_ty), expr.span)
+                .annotate_secondary(
+                    Note::VariableType(name.to_string(), bound_ty),
+                    annotation_span,
+                    NoteSeverity::Annotation,
+                )
+                .done();
+            self.diagnostics.push(d);
+        }
+
+        let decl = self.declare_variable_here(name, bound_ty, span);
+
+        // variable definitions are just (the first) assignment
+        StmtAbtKind::Expr(Box::new(ExprAbt::Assignment(
+            decl.declared,
+            Box::new(bound_expr),
+        )))
     }
 
     pub fn analyse_variable_definition(

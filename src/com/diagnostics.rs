@@ -430,7 +430,7 @@ impl Note {
                 => format!("'{}' gets captured by '{}' here",
                     var_name.bold(),
                     func_name.bold(),
-                )
+                ),
         }
     }
 }

@@ -11,8 +11,10 @@ impl<'d> Analyser<'d> {
         match &stmt.kind {
             StmtAstKind::Empty
                 => StmtAbtKind::Empty,
-            StmtAstKind::VarDef(name, value)
+            StmtAstKind::VarDef(name, None, value)
                 => self.analyse_variable_definition(name, value, stmt.span),
+            StmtAstKind::VarDef(name, Some(ty), value)
+                => self.analyse_annotated_variable_definition(name, ty, value, stmt.span),
             StmtAstKind::Expr(expr)
                 => StmtAbtKind::Expr(Box::new(self.analyse_expression(expr))),
             StmtAstKind::Block(stmts)

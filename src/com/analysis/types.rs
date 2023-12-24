@@ -174,7 +174,8 @@ impl<'d> Analyser<'d> {
 
                 if !xs.contains(&target) {
                     info.type_variables.insert(x, TypeConstraint::Unknown);
-                    panic!("type mismatch: of ty_var x into {target}")
+                    // TODO: error messages
+                    return false;
                 }
 
                 info.type_variables.insert(x, TypeConstraint::OneOf([target].into()));

@@ -11,7 +11,7 @@ pub struct StmtAst {
 #[derive(Debug)]
 pub enum StmtAstKind {
     Empty,
-    VarDef(Option<(String, Span)>, Box<ExprAst>),
+    VarDef(Option<(String, Span)>, Option<Box<TypeAst>>, Box<ExprAst>),
     Expr(Box<ExprAst>),
     Block(Vec<StmtAst>),
     IfThen(Box<ExprAst>, Box<StmtAst>),

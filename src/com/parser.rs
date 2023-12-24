@@ -138,9 +138,12 @@ impl<'a> Parser<'a> {
             self.try_match_token::<VarKw>()?;
 
             let id = self.match_token::<Identifier>().map(|tok| (tok.0, self.last_span()));
+            let ty = self.try_match_token::<Colon>().and_then(|_| Some(Box::new(self.expect_type_expression())));
+
             self.match_token::<Equal>();
             let expr = self.expect_expression();
-            Some(StmtAstKind::VarDef(id, Box::new(expr)))
+
+            Some(StmtAstKind::VarDef(id, ty, Box::new(expr)))
         });
 
         stmt.map(|s| s.wrap(span))
