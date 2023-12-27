@@ -13,6 +13,7 @@ pub struct VariableInfo {
     pub depth: u16,
     pub ty: TypeAbt,
     pub declaration_span: Span,
+    pub is_on_heap: bool,
 }
 
 impl<'d> Analyser<'d> {
@@ -26,6 +27,7 @@ impl<'d> Analyser<'d> {
             depth: self.scope.depth,
             ty,
             declaration_span: span,
+            is_on_heap: false,
         };
         let prev = self.variables.insert(declared, info);
         assert!(prev.is_none(), "ids must be unique");
