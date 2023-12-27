@@ -49,6 +49,7 @@ pub enum ExprAbt {
     Call(u64, Vec<ExprAbt>, TypeAbt),
     Debug(Box<ExprAbt>, TypeAbt),
     Ref(Box<ExprAbt>),
+    VarRef(u64),
 }
 
 #[derive(Debug)]

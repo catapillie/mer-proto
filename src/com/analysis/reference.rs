@@ -11,8 +11,9 @@ impl<'d> Analyser<'d> {
             if let Some(info) = self.variables.get_mut(&var_id) {
                 info.is_on_heap = true;
             }
+            ExprAbt::VarRef(var_id)
+        } else {
+            ExprAbt::Ref(Box::new(bound_expr))
         }
-
-        ExprAbt::Ref(Box::new(bound_expr))
     }
 }

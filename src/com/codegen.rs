@@ -436,7 +436,10 @@ impl Codegen {
                 opcode.write_bytes(&mut self.cursor)?;
                 Ok(())
             }
-            E::Ref(inner) => {
+            E::Ref(_inner) => {
+                todo!()
+            },
+            E::VarRef(_var_id) => {
                 todo!()
             }
         }

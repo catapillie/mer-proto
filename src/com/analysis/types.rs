@@ -41,21 +41,25 @@ impl<'d> Analyser<'d> {
     }
 
     pub fn type_of(&self, expr: &ExprAbt) -> TypeAbt {
+        use ExprAbt as E;
+        use TypeAbt as Ty;
         match expr {
-            ExprAbt::Unknown => TypeAbt::Unknown,
-            ExprAbt::Unit => TypeAbt::Unit,
-            ExprAbt::Integer(_) => TypeAbt::I64,
-            ExprAbt::Decimal(_) => TypeAbt::F64,
-            ExprAbt::Boolean(_) => TypeAbt::Bool,
+            E::Unknown => Ty::Unknown,
+            E::Unit => Ty::Unit,
+            E::Integer(_) => Ty::I64,
+            E::Decimal(_) => Ty::F64,
+            E::Boolean(_) => Ty::Bool,
 
-            ExprAbt::Variable(var_id) => self.variables.get(var_id).unwrap().ty.clone(),
-            ExprAbt::Call(func_id, _, _) => self.functions.get(func_id).unwrap().ty.clone(),
-            ExprAbt::Assignment(id, _) => self.type_of(&ExprAbt::Variable(*id)),
+            E::Variable(var_id) => self.variables.get(var_id).unwrap().ty.clone(),
+            E::Call(func_id, _, _) => self.functions.get(func_id).unwrap().ty.clone(),
+            E::Assignment(id, _) => self.type_of(&E::Variable(*id)),
 
-            ExprAbt::Binary(op, _, _) => op.out_ty.clone(),
-            ExprAbt::Unary(op, _) => op.ty.clone(),
-            ExprAbt::Debug(_, ty) => ty.clone(),
-            ExprAbt::Ref(inner) => TypeAbt::Ref(Box::new(self.type_of(inner))),
+            E::Binary(op, _, _) => op.out_ty.clone(),
+            E::Unary(op, _) => op.ty.clone(),
+            E::Debug(_, ty) => ty.clone(),
+
+            E::Ref(inner) => Ty::Ref(Box::new(self.type_of(inner))),
+            E::VarRef(var_id) => Ty::Ref(Box::new(self.type_of(&E::Variable(*var_id)))),
         }
     }
 }
