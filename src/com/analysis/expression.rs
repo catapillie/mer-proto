@@ -1,5 +1,6 @@
 use crate::com::{
-    abt::ExprAbt,
+    abt::{ExprAbt, TypeAbt},
+    diagnostics::{self, DiagnosticKind, Note, Severity},
     syntax::expr::{ExprAst, ExprAstKind},
 };
 
@@ -37,6 +38,29 @@ impl<'d> Analyser<'d> {
     fn analyse_debug_expression(&mut self, expr: &ExprAst) -> ExprAbt {
         let inner = self.analyse_expression(expr);
         let ty = self.type_of(&inner);
-        ExprAbt::Debug(Box::new(inner), ty)
+
+        match ty {
+            TypeAbt::U8
+            | TypeAbt::U16
+            | TypeAbt::U32
+            | TypeAbt::U64
+            | TypeAbt::I8
+            | TypeAbt::I16
+            | TypeAbt::I32
+            | TypeAbt::I64
+            | TypeAbt::F32
+            | TypeAbt::F64
+            | TypeAbt::Bool => ExprAbt::Debug(Box::new(inner), ty),
+            _ => {
+                let d = diagnostics::create_diagnostic()
+                    .with_kind(DiagnosticKind::InvalidDebugExpression(ty.clone()))
+                    .with_severity(Severity::Error)
+                    .with_span(expr.span)
+                    .annotate_primary(Note::ImpliedType(ty), expr.span)
+                    .done();
+                self.diagnostics.push(d);
+                ExprAbt::Unknown
+            }
+        }
     }
 }

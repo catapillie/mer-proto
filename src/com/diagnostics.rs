@@ -197,6 +197,8 @@ pub enum DiagnosticKind {
         func_name: String,
         var_name: String,
     },
+
+    InvalidDebugExpression(TypeAbt),
 }
 
 #[rustfmt::skip]
@@ -288,6 +290,10 @@ impl DiagnosticKind {
                 => format!("function '{}' captures variable '{}', which is not (yet) allowed",
                     func_name.bold(),
                     var_name.bold(),
+                ),
+            Self::InvalidDebugExpression(ty)
+                => format!("cannot debug value of type '{}'",
+                    ty.to_string().bold(),
                 ),
         }
     }
