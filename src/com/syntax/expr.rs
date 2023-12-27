@@ -20,6 +20,7 @@ pub enum ExprAstKind {
     UnaryOp(UnOpAst, Box<ExprAst>),
     Call(String, Vec<ExprAst>),
     Debug(Box<ExprAst>),
+    Ref(Box<ExprAst>),
 }
 
 impl ExprAstKind {

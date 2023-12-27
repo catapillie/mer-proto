@@ -48,6 +48,7 @@ pub enum ExprAbt {
     Unary(UnOpAbt, Box<ExprAbt>),
     Call(u64, Vec<ExprAbt>, TypeAbt),
     Debug(Box<ExprAbt>, TypeAbt),
+    Ref(Box<ExprAbt>),
 }
 
 #[derive(Debug)]
@@ -116,30 +117,17 @@ pub enum TypeAbt {
     I8, I16, I32, I64,
     F32, F64,
     Bool,
+    Ref(Box<TypeAbt>),
 }
 
 impl TypeAbt {
     /// Determines whether [`self`] is of the specified type.
     /// If [`self`] is [`TypeAbt::Unknown`], then the check is true.
     pub fn is(&self, ty: &Self) -> bool {
-        if !ty.is_known() {
-            return true; // ignored
-        }
-
-        match self {
-            Self::Unknown => true, // ignored too
-            Self::Unit => matches!(ty, Self::Unit),
-            Self::U8 => matches!(ty, Self::U8),
-            Self::U16 => matches!(ty, Self::U16),
-            Self::U32 => matches!(ty, Self::U32),
-            Self::U64 => matches!(ty, Self::U64),
-            Self::I8 => matches!(ty, Self::I8),
-            Self::I16 => matches!(ty, Self::I16),
-            Self::I32 => matches!(ty, Self::I32),
-            Self::I64 => matches!(ty, Self::I64),
-            Self::F32 => matches!(ty, Self::F32),
-            Self::F64 => matches!(ty, Self::F64),
-            Self::Bool => matches!(ty, Self::Bool),
+        if !self.is_known() || !ty.is_known() {
+            true
+        } else {
+            self == ty
         }
     }
 
@@ -164,6 +152,7 @@ impl Display for TypeAbt {
             Self::F32 => write!(f, "f32"),
             Self::F64 => write!(f, "f64"),
             Self::Bool => write!(f, "bool"),
+            Self::Ref(inner) => write!(f, "&({inner})")
         }
     }
 }

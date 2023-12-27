@@ -210,7 +210,7 @@ impl Codegen {
                     TypeAbt::F32 => NativeType::f32,
                     TypeAbt::F64 => NativeType::f64,
                     TypeAbt::Bool => NativeType::bool,
-                    TypeAbt::Unknown => unreachable!(),
+                    _ => unreachable!(),
                 };
                 Opcode::dbg(ty).write_bytes(&mut self.cursor)?;
                 Ok(())
@@ -435,6 +435,9 @@ impl Codegen {
 
                 opcode.write_bytes(&mut self.cursor)?;
                 Ok(())
+            }
+            E::Ref(inner) => {
+                todo!()
             }
         }
     }

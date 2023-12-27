@@ -55,6 +55,7 @@ impl<'d> Analyser<'d> {
             ExprAbt::Binary(op, _, _) => op.out_ty.clone(),
             ExprAbt::Unary(op, _) => op.ty.clone(),
             ExprAbt::Debug(_, ty) => ty.clone(),
+            ExprAbt::Ref(inner) => TypeAbt::Ref(Box::new(self.type_of(inner))),
         }
     }
 }

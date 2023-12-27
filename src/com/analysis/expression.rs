@@ -29,6 +29,8 @@ impl<'d> Analyser<'d> {
                 => self.analyse_call_expression(callee, args, expr.span),
             ExprAstKind::Debug(inner)
                 => self.analyse_debug_expression(inner),
+            ExprAstKind::Ref(expr)
+                => self.analyse_reference_expression(expr),
         }
     }
 

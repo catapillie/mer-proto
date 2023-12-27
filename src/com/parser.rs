@@ -516,6 +516,24 @@ impl<'a> Parser<'a> {
 
     fn parse_primary_expression(&mut self) -> Option<ExprAst> {
         let (expr, span) = take_span!(self => {
+            if self.try_match_token::<Ampersand>().is_some() {
+                let expr = match self.parse_primary_expression() {
+                    Some(expr) => expr,
+                    None => {
+                        let d = diagnostics::create_diagnostic()
+                            .with_kind(DiagnosticKind::ExpectedExpression)
+                            .with_severity(Severity::Error)
+                            .with_pos(self.last_boundary)
+                            .annotate_primary(Note::Here, Span::at(self.last_boundary))
+                            .done();
+                        self.diagnostics.push(d);
+                        ExprAstKind::Bad.wrap(Span::at(self.last_boundary))
+                    },
+                };
+
+                return Some(ExprAstKind::Ref(Box::new(expr)))
+            }
+
             if let Some(num) = self.try_match_token::<Integer>() {
                 return Some(ExprAstKind::Integer(num.0));
             }
