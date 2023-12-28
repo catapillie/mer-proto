@@ -34,12 +34,11 @@ impl<'d> Analyser<'d> {
                 .without_span()
                 .done();
             self.diagnostics.push(d);
-        }
-
-        assert!(self.scope.is_root()); // correct scope usage
-
+        }        
         self.functions.get_mut(&main_fn_id).unwrap().code = Some(Box::new(abt));
 
+        assert!(self.scope.is_root()); // correct scope usage
+        
         ProgramAbt {
             main_fn_id,
             functions: self.functions,

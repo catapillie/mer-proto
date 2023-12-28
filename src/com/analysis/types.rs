@@ -11,6 +11,7 @@ impl<'d> Analyser<'d> {
         match &ty.kind {
             TypeAstKind::Bad => TypeAbt::Unknown,
             TypeAstKind::Unit => TypeAbt::Unit,
+            TypeAstKind::Ref(ty) => TypeAbt::Ref(Box::new(self.analyse_type(ty))),
             TypeAstKind::Declared(id) => {
                 match id.as_str() {
                     "u8" => return TypeAbt::U8,

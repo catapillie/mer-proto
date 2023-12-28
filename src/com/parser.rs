@@ -620,6 +620,13 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_type_expression(&mut self) -> Option<TypeAst> {
+        if self.try_match_token::<Ampersand>().is_some() {
+            let span = self.last_span();
+            let ty = self.expect_type_expression();
+            let span = span.join(ty.span);
+            return Some(TypeAstKind::Ref(Box::new(ty)).wrap(span));
+        }
+
         if let Some(id) = self.try_match_token::<Identifier>() {
             return Some(TypeAstKind::Declared(id.0).wrap(self.last_span()));
         }
