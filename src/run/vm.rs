@@ -11,6 +11,13 @@ use byteorder::ReadBytesExt;
 
 const INITIAL_STACK_CAPACITY: usize = 512;
 const INITIAL_CALLSTACK_CAPACITY: usize = 64;
+const HEAP_SIZE: usize = 1_000_000; // 16 MB
+
+#[derive(Copy, Clone)]
+enum V {
+    Ptr(usize),
+    Val(Value),
+}
 
 struct Frame {
     back: Option<u64>,
@@ -20,7 +27,8 @@ struct Frame {
 
 pub struct VM<'a> {
     cursor: Cursor<&'a [u8]>,
-    stack: Vec<Value>,
+    stack: Vec<V>,
+    heap: Slab<V>,
     frames: Vec<Frame>,
     done: bool,
 }
@@ -30,6 +38,7 @@ impl<'a> VM<'a> {
         Self {
             cursor: Cursor::new(program),
             stack: Vec::with_capacity(INITIAL_STACK_CAPACITY),
+            heap: Slab::with_capacity(HEAP_SIZE),
             frames: Vec::with_capacity(INITIAL_CALLSTACK_CAPACITY),
             done: false,
         }
@@ -77,7 +86,7 @@ impl<'a> VM<'a> {
 
                 opcode::dbg => {
                     self.dup();
-                    let value = self.pop();
+                    let value = self.pop_value();
 
                     let ty = self.read_u8();
                     match ty {
@@ -108,7 +117,7 @@ impl<'a> VM<'a> {
                 opcode::ld_loc => self.ld_loc(),
                 opcode::st_loc => self.st_loc(),
 
-                opcode::ld_unit => self.push(Value::make_unit(())),
+                opcode::ld_unit => self.push(V::Val(Value::make_unit(()))),
                 opcode::ld_u8 => push_value!(self => read_u8, make_u8),
                 opcode::ld_u16 => push_value!(self => read_u16, make_u16),
                 opcode::ld_u32 => push_value!(self => read_u32, make_u32),
@@ -135,9 +144,26 @@ impl<'a> VM<'a> {
                 opcode::bitor => bitwise_binary_op!(self => ops::BitOr::bitor, bitor),
                 opcode::bitxor => bitwise_binary_op!(self => ops::BitXor::bitxor, bitxor),
 
+                opcode::heap => {
+                    let value = self.pop();
+                    let ptr = self.heap.insert(value);
+                    self.push(V::Ptr(ptr));
+                }
+                opcode::deref => {
+                    let ptr = self.pop_ptr();
+                    let value = match self.heap.get(ptr) {
+                        Some(value) => value,
+                        None => {
+                            msg::error("accessing unallocated memory in heap");
+                            process::exit(1);
+                        }
+                    };
+                    self.push(*value);
+                }
+
                 opcode::neg => {
                     let ty = self.read_u8();
-                    let value = self.pop();
+                    let value = self.pop_value();
 
                     let result = match ty {
                         native_type::bool => Value::make_bool(!value.get_bool()),
@@ -152,7 +178,7 @@ impl<'a> VM<'a> {
                             process::exit(1);
                         }
                     };
-                    self.push(result);
+                    self.push(V::Val(result));
                 }
 
                 _ => {
@@ -162,7 +188,7 @@ impl<'a> VM<'a> {
             }
         }
 
-        self.pop()
+        self.pop_value()
     }
 
     fn halt(&mut self) {
@@ -175,15 +201,35 @@ impl<'a> VM<'a> {
         self.done = true;
     }
 
-    fn push(&mut self, value: Value) {
+    fn push(&mut self, value: V) {
         self.stack.push(value);
     }
 
-    fn pop(&mut self) -> Value {
+    fn pop(&mut self) -> V {
         match self.stack.pop() {
             Some(value) => value,
             None => {
                 msg::error("stack underflow");
+                process::exit(1);
+            }
+        }
+    }
+
+    fn pop_value(&mut self) -> Value {
+        match self.pop() {
+            V::Val(value) => value,
+            V::Ptr(_) => {
+                msg::error("pointers cannot be used as values");
+                process::exit(1);
+            }
+        }
+    }
+
+    fn pop_ptr(&mut self) -> usize {
+        match self.pop() {
+            V::Ptr(ptr) => ptr,
+            V::Val(_) => {
+                msg::error("values cannot be used as pointers");
                 process::exit(1);
             }
         }
@@ -206,7 +252,7 @@ impl<'a> VM<'a> {
 
     fn jmp_if(&mut self) {
         let to = self.read_u32();
-        let guard = self.pop().get_bool();
+        let guard = self.pop_value().get_bool();
         if guard {
             self.cursor.set_position(to as u64);
         }
@@ -237,7 +283,7 @@ impl<'a> VM<'a> {
 
         // push non-parameter locals
         for _ in 0..(local_count - param_count) {
-            self.push(Value::make_u8(0)); // uninitialized
+            self.push(V::Val(Value::make_u8(0))); // uninitialized
         }
     }
 
@@ -311,7 +357,7 @@ impl<'a> VM<'a> {
 macro_rules! push_value {
     ($self:ident => $read_fn:ident, $make_fn:ident) => {{
         let value = $self.$read_fn();
-        $self.push(Value::$make_fn(value));
+        $self.push(V::Val(Value::$make_fn(value)));
     }};
 }
 
@@ -324,9 +370,9 @@ macro_rules! binary_op {
             match $self.read_u8() {
                 $(
                     $type => {
-                        let b = $self.pop().$get_fn();
-                        let a = $self.pop().$get_fn();
-                        $self.push(Value::$make_fn($op_fn(&a, &b)))
+                        let b = $self.pop_value().$get_fn();
+                        let a = $self.pop_value().$get_fn();
+                        $self.push(V::Val(Value::$make_fn($op_fn(&a, &b))));
                     },
                 )*
                 _ => {
@@ -400,3 +446,4 @@ use bitwise_binary_op;
 use comparison_binary_op;
 use numeral_binary_op;
 use push_value;
+use slab::Slab;
