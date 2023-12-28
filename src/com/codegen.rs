@@ -66,7 +66,7 @@ impl Codegen {
 
         for info in abt.functions.values() {
             self.function_positions.insert(info.id, self.position());
-            self.gen_function(info)?;
+            self.gen_function(info, abt)?;
         }
 
         for (pos, id) in self.call_placeholders.clone() {
@@ -77,7 +77,7 @@ impl Codegen {
         Ok(self.cursor.into_inner())
     }
 
-    fn gen_function(&mut self, info: &FunctionInfo) -> io::Result<()> {
+    fn gen_function(&mut self, info: &FunctionInfo, abt: &ProgramAbt) -> io::Result<()> {
         let param_count: u8 = info.args.len().try_into().unwrap();
         let local_count: u8 = info.used_variables.len().try_into().unwrap();
         let opcode = Opcode::function(info.name.clone(), param_count, local_count);
@@ -97,28 +97,32 @@ impl Codegen {
             .code
             .as_ref()
             .unwrap_or_else(|| panic!("unresolved function code {}", info.name));
-        self.gen_statement(code)?;
+        self.gen_statement(code, abt)?;
         Ok(())
     }
 
-    fn gen_statement(&mut self, stmt: &StmtAbt) -> io::Result<()> {
+    fn gen_statement(&mut self, stmt: &StmtAbt, abt: &ProgramAbt) -> io::Result<()> {
         use StmtAbtKind as S;
         match &stmt.kind {
             S::Empty => {}
-            S::Block(stmts) => self.gen_block(stmts)?,
+            S::Block(stmts) => {
+                for stmt in stmts {
+                    self.gen_statement(stmt, abt)?;
+                }
+            }
             S::Expr(expr) => {
-                self.gen_expression(expr)?;
+                self.gen_expression(expr, abt)?;
                 Opcode::pop.write_bytes(&mut self.cursor)?;
             }
             S::IfThen(guard, body) => {
                 // if ...
-                self.gen_expression(guard)?;
+                self.gen_expression(guard, abt)?;
                 Opcode::neg(NativeType::bool).write_bytes(&mut self.cursor)?;
                 self.cursor.write_u8(opcode::jmp_if)?;
                 let cursor_from = self.gen_u32_placeholder()?;
 
                 // then ...
-                self.gen_statement(body.as_ref())?;
+                self.gen_statement(body.as_ref(), abt)?;
 
                 // write saved jump address
                 let cursor_to = self.position();
@@ -126,19 +130,19 @@ impl Codegen {
             }
             S::IfThenElse(guard, body_then, body_else) => {
                 // if ... then
-                self.gen_expression(guard)?;
+                self.gen_expression(guard, abt)?;
                 Opcode::neg(NativeType::bool).write_bytes(&mut self.cursor)?;
                 self.cursor.write_u8(opcode::jmp_if)?;
                 let cursor_guard_end = self.gen_u32_placeholder()?;
 
                 // then ...
-                self.gen_statement(body_then)?;
+                self.gen_statement(body_then, abt)?;
                 self.cursor.write_u8(opcode::jmp)?;
                 let cursor_body_then_end = self.gen_u32_placeholder()?;
 
                 // else ...
                 let cursor_body_else_start = self.position();
-                self.gen_statement(body_else)?;
+                self.gen_statement(body_else, abt)?;
                 let cursor_body_else_end = self.position();
 
                 // write saved jump adresses
@@ -148,13 +152,13 @@ impl Codegen {
             S::WhileDo(guard, body) => {
                 // while ...
                 let cursor_guard_start = self.position();
-                self.gen_expression(guard)?;
+                self.gen_expression(guard, abt)?;
                 Opcode::neg(NativeType::bool).write_bytes(&mut self.cursor)?;
                 self.cursor.write_u8(opcode::jmp_if)?;
                 let cursor_guard_end = self.gen_u32_placeholder()?;
 
                 // do ...
-                self.gen_statement(body)?;
+                self.gen_statement(body, abt)?;
                 self.cursor.write_u8(opcode::jmp)?;
                 self.cursor.write_u32::<LE>(cursor_guard_start)?;
 
@@ -165,38 +169,27 @@ impl Codegen {
             S::DoWhile(body, guard) => {
                 // do ...
                 let cursor_stmt_start = self.position();
-                self.gen_statement(body)?;
+                self.gen_statement(body, abt)?;
 
                 // while ...
-                self.gen_expression(guard)?;
+                self.gen_expression(guard, abt)?;
                 Opcode::jmp_if(cursor_stmt_start).write_bytes(&mut self.cursor)?;
             }
-            S::Return(expr) => self.gen_return(expr)?,
+            S::Return(expr) => {
+                self.gen_expression(expr, abt)?;
+                Opcode::ret.write_bytes(&mut self.cursor)?;
+            }
         }
 
         Ok(())
     }
 
-    fn gen_block(&mut self, stmts: &Vec<StmtAbt>) -> io::Result<()> {
-        for stmt in stmts {
-            self.gen_statement(stmt)?;
-        }
-
-        Ok(())
-    }
-
-    fn gen_return(&mut self, expr: &ExprAbt) -> io::Result<()> {
-        self.gen_expression(expr)?;
-        Opcode::ret.write_bytes(&mut self.cursor)?;
-        Ok(())
-    }
-
-    fn gen_expression(&mut self, expr: &ExprAbt) -> io::Result<()> {
+    fn gen_expression(&mut self, expr: &ExprAbt, abt: &ProgramAbt) -> io::Result<()> {
         use super::abt::ExprAbt as E;
         match expr {
             E::Unknown => unreachable!(),
             E::Debug(inner, ty) => {
-                self.gen_expression(inner)?;
+                self.gen_expression(inner, abt)?;
                 let ty = match ty {
                     TypeAbt::Unit => NativeType::unit,
                     TypeAbt::U8 => NativeType::u8,
@@ -227,19 +220,38 @@ impl Codegen {
                 Ok(())
             }
             E::Variable(var) => {
+                let info = abt.variables.get(var).unwrap();
                 let id = *self.current_locals.get(var).unwrap();
-                Opcode::ld_loc(id).write_bytes(&mut self.cursor)
+                Opcode::ld_loc(id).write_bytes(&mut self.cursor)?;
+
+                if info.is_on_heap {
+                    Opcode::deref.write_bytes(&mut self.cursor)?;
+                }
+
+                Ok(())
             }
             E::Assignment(var, expr) => {
-                self.gen_expression(expr)?;
+                self.gen_expression(expr, abt)?;
+
                 let id = *self.current_locals.get(var).unwrap();
+                let info = abt.variables.get(var).unwrap();
+                if info.is_on_heap {
+                    Opcode::heap.write_bytes(&mut self.cursor)?;
+                }
+
                 Opcode::st_loc(id).write_bytes(&mut self.cursor)?;
                 Opcode::ld_loc(id).write_bytes(&mut self.cursor)?;
+
                 Ok(())
             }
             E::Call(id, params, _) => {
-                for param in params {
-                    self.gen_expression(param)?;
+                let info = abt.functions.get(id).unwrap();
+                for (param, arg_id) in params.iter().zip(info.arg_ids.iter()) {
+                    let arg_info = abt. variables.get(arg_id).unwrap();
+                    self.gen_expression(param, abt)?;
+                    if arg_info.is_on_heap {
+                        Opcode::heap.write_bytes(&mut self.cursor)?;
+                    }
                 }
                 self.cursor.write_u8(opcode::call)?;
                 self.add_fn_addr_placeholder(*id)?;
@@ -253,13 +265,13 @@ impl Codegen {
 
                 // short-circuiting logic
                 match &op.kind {
-                    K::And => return self.gen_short_circuit_and(left, right),
-                    K::Or => return self.gen_short_circuit_or(left, right),
+                    K::And => return self.gen_short_circuit_and(left, right, abt),
+                    K::Or => return self.gen_short_circuit_or(left, right, abt),
                     _ => {}
                 }
 
-                self.gen_expression(left)?;
-                self.gen_expression(right)?;
+                self.gen_expression(left, abt)?;
+                self.gen_expression(right, abt)?;
 
                 let opcode = match (&op.in_ty, &op.kind) {
                     (Ty::U8, K::Add) => O::add(Nt::u8),
@@ -408,7 +420,7 @@ impl Codegen {
                 Ok(())
             }
             E::Unary(op, expr) => {
-                self.gen_expression(expr)?;
+                self.gen_expression(expr, abt)?;
 
                 use TypeAbt as Ty;
                 use UnOpAbtKind as K;
@@ -436,23 +448,32 @@ impl Codegen {
                 opcode.write_bytes(&mut self.cursor)?;
                 Ok(())
             }
-            E::Ref(_inner) => {
-                todo!()
-            },
-            E::VarRef(_var_id) => {
-                todo!()
+            E::Ref(expr) => {
+                self.gen_expression(expr, abt)?;
+                Opcode::heap.write_bytes(&mut self.cursor)?;
+                Ok(())
+            }
+            E::VarRef(var_id) => {
+                let id = *self.current_locals.get(var_id).unwrap();
+                Opcode::ld_loc(id).write_bytes(&mut self.cursor)?;
+                Ok(())
             }
         }
     }
 
-    fn gen_short_circuit_and(&mut self, left: &ExprAbt, right: &ExprAbt) -> io::Result<()> {
-        self.gen_expression(left)?;
+    fn gen_short_circuit_and(
+        &mut self,
+        left: &ExprAbt,
+        right: &ExprAbt,
+        abt: &ProgramAbt,
+    ) -> io::Result<()> {
+        self.gen_expression(left, abt)?;
         self.cursor.write_u8(opcode::dup)?;
         Opcode::neg(NativeType::bool).write_bytes(&mut self.cursor)?;
         self.cursor.write_u8(opcode::jmp_if)?;
         let cursor_a = self.gen_u32_placeholder()?;
 
-        self.gen_expression(right)?;
+        self.gen_expression(right, abt)?;
         Opcode::bitand(NativeType::bool).write_bytes(&mut self.cursor)?;
         let cursor_b = self.position();
 
@@ -460,13 +481,18 @@ impl Codegen {
         Ok(())
     }
 
-    fn gen_short_circuit_or(&mut self, left: &ExprAbt, right: &ExprAbt) -> Result<(), io::Error> {
-        self.gen_expression(left)?;
+    fn gen_short_circuit_or(
+        &mut self,
+        left: &ExprAbt,
+        right: &ExprAbt,
+        abt: &ProgramAbt,
+    ) -> Result<(), io::Error> {
+        self.gen_expression(left, abt)?;
         self.cursor.write_u8(opcode::dup)?;
         self.cursor.write_u8(opcode::jmp_if)?;
         let cursor_a = self.gen_u32_placeholder()?;
 
-        self.gen_expression(right)?;
+        self.gen_expression(right, abt)?;
         Opcode::bitor(NativeType::bool).write_bytes(&mut self.cursor)?;
         let cursor_b = self.position();
 
