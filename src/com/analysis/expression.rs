@@ -32,6 +32,8 @@ impl<'d> Analyser<'d> {
                 => self.analyse_debug_expression(inner),
             ExprAstKind::Ref(expr)
                 => self.analyse_reference_expression(expr),
+            ExprAstKind::Deref(expr)
+                => self.analyse_dereference_expression(expr),
         }
     }
 
@@ -51,6 +53,7 @@ impl<'d> Analyser<'d> {
             | TypeAbt::F32
             | TypeAbt::F64
             | TypeAbt::Bool => ExprAbt::Debug(Box::new(inner), ty),
+            TypeAbt::Unknown => ExprAbt::Unknown,
             _ => {
                 let d = diagnostics::create_diagnostic()
                     .with_kind(DiagnosticKind::InvalidDebugExpression(ty.clone()))

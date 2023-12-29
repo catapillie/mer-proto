@@ -50,6 +50,7 @@ pub enum ExprAbt {
     Debug(Box<ExprAbt>, TypeAbt),
     Ref(Box<ExprAbt>),
     VarRef(u64),
+    Deref(Box<ExprAbt>),
 }
 
 #[derive(Debug)]

@@ -534,6 +534,24 @@ impl<'a> Parser<'a> {
                 return Some(ExprAstKind::Ref(Box::new(expr)))
             }
 
+            if self.try_match_token::<At>().is_some() {
+                let expr = match self.parse_primary_expression() {
+                    Some(expr) => expr,
+                    None => {
+                        let d = diagnostics::create_diagnostic()
+                            .with_kind(DiagnosticKind::ExpectedExpression)
+                            .with_severity(Severity::Error)
+                            .with_pos(self.last_boundary)
+                            .annotate_primary(Note::Here, Span::at(self.last_boundary))
+                            .done();
+                        self.diagnostics.push(d);
+                        ExprAstKind::Bad.wrap(Span::at(self.last_boundary))
+                    },
+                };
+
+                return Some(ExprAstKind::Deref(Box::new(expr)))
+            }
+
             if let Some(num) = self.try_match_token::<Integer>() {
                 return Some(ExprAstKind::Integer(num.0));
             }
@@ -945,6 +963,7 @@ impl<'a> Parser<'a> {
             match_by_string!(self, "&" => Ampersand);
             match_by_string!(self, "|" => Bar);
             match_by_string!(self, "^" => Caret);
+            match_by_string!(self, "@" => At);
 
             if let Some((result, span)) = self.try_consume_number() {
                 return match result {

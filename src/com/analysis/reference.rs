@@ -1,4 +1,8 @@
-use crate::com::{syntax::expr::ExprAst, abt::ExprAbt};
+use crate::com::{
+    abt::{ExprAbt, TypeAbt},
+    diagnostics::{self, DiagnosticKind, Note, Severity},
+    syntax::expr::ExprAst,
+};
 
 use super::Analyser;
 
@@ -14,6 +18,25 @@ impl<'d> Analyser<'d> {
             ExprAbt::VarRef(var_id)
         } else {
             ExprAbt::Ref(Box::new(bound_expr))
+        }
+    }
+
+    pub fn analyse_dereference_expression(&mut self, expr: &ExprAst) -> ExprAbt {
+        let bound_expr = self.analyse_expression(expr);
+        let ty = self.type_of(&bound_expr);
+
+        match ty {
+            TypeAbt::Ref(_) => ExprAbt::Deref(Box::new(bound_expr)),
+            _ => {
+                let d = diagnostics::create_diagnostic()
+                    .with_kind(DiagnosticKind::InvalidDereference(ty.clone()))
+                    .with_severity(Severity::Error)
+                    .with_span(expr.span)
+                    .annotate_primary(Note::ImpliedType(ty), expr.span)
+                    .done();
+                self.diagnostics.push(d);
+                ExprAbt::Unknown
+            }
         }
     }
 }

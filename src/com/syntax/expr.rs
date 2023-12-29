@@ -21,6 +21,7 @@ pub enum ExprAstKind {
     Call(String, Vec<ExprAst>),
     Debug(Box<ExprAst>),
     Ref(Box<ExprAst>),
+    Deref(Box<ExprAst>),
 }
 
 impl ExprAstKind {

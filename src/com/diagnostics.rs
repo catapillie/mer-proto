@@ -199,6 +199,8 @@ pub enum DiagnosticKind {
     },
 
     InvalidDebugExpression(TypeAbt),
+
+    InvalidDereference(TypeAbt),
 }
 
 #[rustfmt::skip]
@@ -293,6 +295,10 @@ impl DiagnosticKind {
                 ),
             Self::InvalidDebugExpression(ty)
                 => format!("cannot debug value of type '{}'",
+                    ty.to_string().bold(),
+                ),
+            Self::InvalidDereference(ty)
+                => format!("cannot dereference value of type '{}'",
                     ty.to_string().bold(),
                 ),
         }

@@ -61,6 +61,8 @@ gen_tokens! {
         self => (">="),
     GreaterThan ">"
         self => ("<"),
+    At "@"
+        self => ("@"),
 
     RightArrow "->"
         self => ("->"),

@@ -458,6 +458,11 @@ impl Codegen {
                 Opcode::ld_loc(id).write_bytes(&mut self.cursor)?;
                 Ok(())
             }
+            E::Deref(expr) => {
+                self.gen_expression(expr, abt)?;
+                Opcode::deref.write_bytes(&mut self.cursor)?;
+                Ok(())
+            }
         }
     }
 
