@@ -20,6 +20,7 @@ opcodes! {
 
     0xe0 alloc
     0xe1 ld_heap
+    0xe2 st_heap
 
     0xf0 entry_point(u32)
     0xf1 function(String, u8, u8)

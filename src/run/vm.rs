@@ -154,11 +154,23 @@ impl<'a> VM<'a> {
                     let value = match self.heap.get(ptr) {
                         Some(value) => value,
                         None => {
-                            msg::error("accessing unallocated memory in heap");
+                            msg::error("reading from unallocated memory in heap");
                             process::exit(1);
                         }
                     };
                     self.push(*value);
+                }
+                opcode::st_heap => {
+                    let ptr = self.pop_ptr();
+                    let value = self.pop();
+                    let heap_value = match self.heap.get_mut(ptr) {
+                        Some(heap_value) => heap_value,
+                        None => {
+                            msg::error("writing to unallocated memory in heap");
+                            process::exit(1);
+                        }
+                    };
+                    *heap_value = value;
                 }
 
                 opcode::neg => {

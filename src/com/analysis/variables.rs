@@ -64,6 +64,7 @@ impl<'d> Analyser<'d> {
         // variable definitions are just (the first) assignment
         StmtAbtKind::Expr(Box::new(ExprAbt::Assignment(
             decl.declared,
+            0,
             Box::new(bound_expr),
         )))
     }

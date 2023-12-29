@@ -66,11 +66,28 @@ impl<'d> Analyser<'d> {
         ExprAbt::Unknown
     }
 
+    fn as_ptr_dereference(mut expr: &ExprAbt) -> Option<(u64, usize)> {
+        let mut deref_count = 0;
+        while let ExprAbt::Deref(inner) = expr {
+            expr = inner;
+            deref_count += 1;
+        }
+
+        match expr {
+            ExprAbt::Variable(var_id) if deref_count >= 1 => Some((*var_id, deref_count)),
+            _ => None,
+        }
+    }
+
     fn analyse_assignment(&mut self, left: &ExprAst, right: &ExprAst) -> ExprAbt {
         let bound_left = self.analyse_expression(left);
         let bound_right = self.analyse_expression(right);
 
-        let ExprAbt::Variable(var_id) = bound_left else {
+        let (var_id, deref_count) = if let Some(deref) = Self::as_ptr_dereference(&bound_left) {
+            deref
+        } else if let ExprAbt::Variable(var_id) = bound_left {
+            (var_id, 0)
+        } else {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::AssigneeMustBeVariable)
                 .with_severity(Severity::Error)
@@ -84,16 +101,24 @@ impl<'d> Analyser<'d> {
         let right_ty = self.type_of(&bound_right);
         let info = self.variables.get(&var_id).unwrap();
 
-        if !right_ty.is(&info.ty) {
+        let mut expected_type = info.ty.clone();
+        for _ in 0..deref_count {
+            expected_type = match expected_type {
+                TypeAbt::Ref(ty) => *ty,
+                _ => unreachable!(),
+            }
+        }
+
+        if !right_ty.is(&expected_type) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::TypeMismatch {
                     found: right_ty,
-                    expected: info.ty.clone(),
+                    expected: expected_type.clone(),
                 })
                 .with_severity(Severity::Error)
                 .with_span(right.span)
                 .annotate_primary(
-                    Note::MustBeOfType(info.ty.clone())
+                    Note::MustBeOfType(expected_type)
                         .so()
                         .dddot_front()
                         .num(2),
@@ -111,7 +136,7 @@ impl<'d> Analyser<'d> {
             return ExprAbt::Unknown;
         }
 
-        ExprAbt::Assignment(var_id, Box::new(bound_right))
+        ExprAbt::Assignment(var_id, deref_count, Box::new(bound_right))
     }
 
     fn integer_binary_operation(op: BinOpAst, ty: TypeAbt) -> Option<BinOpAbt> {

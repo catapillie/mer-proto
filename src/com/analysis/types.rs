@@ -53,7 +53,16 @@ impl<'d> Analyser<'d> {
 
             E::Variable(var_id) => self.variables.get(var_id).unwrap().ty.clone(),
             E::Call(func_id, _, _) => self.functions.get(func_id).unwrap().ty.clone(),
-            E::Assignment(id, _) => self.type_of(&E::Variable(*id)),
+            E::Assignment(id, deref_count, _) => {
+                let mut result_ty = self.type_of(&E::Variable(*id));
+                for _ in 0..(*deref_count) {
+                    result_ty = match result_ty {
+                        TypeAbt::Ref(ty) => *ty,
+                        _ => unreachable!(),
+                    }
+                }
+                result_ty
+            },
 
             E::Binary(op, _, _) => op.out_ty.clone(),
             E::Unary(op, _) => op.ty.clone(),
