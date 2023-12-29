@@ -258,7 +258,7 @@ impl<'d> Analyser<'d> {
                 .with_severity(Severity::Error)
                 .with_span(span)
                 .annotate_primary(
-                    Note::ImpliedType(ty.clone()).but().dddot_front().num(2),
+                    Note::OfType(ty.clone()).but().dddot_front().num(2),
                     span,
                 );
 

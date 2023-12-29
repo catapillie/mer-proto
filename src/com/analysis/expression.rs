@@ -60,7 +60,7 @@ impl<'d> Analyser<'d> {
                     .with_kind(DiagnosticKind::InvalidDebugExpression(ty.clone()))
                     .with_severity(Severity::Error)
                     .with_span(expr.span)
-                    .annotate_primary(Note::ImpliedType(ty), expr.span)
+                    .annotate_primary(Note::OfType(ty), expr.span)
                     .done();
                 self.diagnostics.push(d);
                 ExprAbt::Unknown

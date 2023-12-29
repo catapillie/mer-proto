@@ -325,7 +325,7 @@ pub enum Note {
     MissingWhile,
     CannotAssign,
     MustBeOfType(TypeAbt),
-    ImpliedType(TypeAbt),
+    OfType(TypeAbt),
     VariableDeclaration(String),
     VariableType(String, TypeAbt),
     ArgumentType(String, TypeAbt),
@@ -408,8 +408,8 @@ impl Note {
                 => format!("this must be of type '{}'",
                     ty.to_string().bold()
                 ),
-            Self::ImpliedType(ty)
-                => format!("this is implied to be of type '{}'",
+            Self::OfType(ty)
+                => format!("this is be of type '{}'",
                     ty.to_string().bold()
                 ),
             Self::VariableDeclaration(name)
