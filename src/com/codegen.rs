@@ -225,7 +225,7 @@ impl Codegen {
                 Opcode::ld_loc(id).write_bytes(&mut self.cursor)?;
 
                 if info.is_on_heap {
-                    Opcode::deref.write_bytes(&mut self.cursor)?;
+                    Opcode::ld_heap.write_bytes(&mut self.cursor)?;
                 }
 
                 Ok(())
@@ -236,7 +236,7 @@ impl Codegen {
                 let id = *self.current_locals.get(var).unwrap();
                 let info = abt.variables.get(var).unwrap();
                 if info.is_on_heap {
-                    Opcode::heap.write_bytes(&mut self.cursor)?;
+                    Opcode::alloc.write_bytes(&mut self.cursor)?;
                 }
 
                 Opcode::st_loc(id).write_bytes(&mut self.cursor)?;
@@ -250,7 +250,7 @@ impl Codegen {
                     let arg_info = abt. variables.get(arg_id).unwrap();
                     self.gen_expression(param, abt)?;
                     if arg_info.is_on_heap {
-                        Opcode::heap.write_bytes(&mut self.cursor)?;
+                        Opcode::alloc.write_bytes(&mut self.cursor)?;
                     }
                 }
                 self.cursor.write_u8(opcode::call)?;
@@ -450,7 +450,7 @@ impl Codegen {
             }
             E::Ref(expr) => {
                 self.gen_expression(expr, abt)?;
-                Opcode::heap.write_bytes(&mut self.cursor)?;
+                Opcode::alloc.write_bytes(&mut self.cursor)?;
                 Ok(())
             }
             E::VarRef(var_id) => {
@@ -460,7 +460,7 @@ impl Codegen {
             }
             E::Deref(expr) => {
                 self.gen_expression(expr, abt)?;
-                Opcode::deref.write_bytes(&mut self.cursor)?;
+                Opcode::ld_heap.write_bytes(&mut self.cursor)?;
                 Ok(())
             }
         }

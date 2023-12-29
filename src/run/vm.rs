@@ -144,12 +144,12 @@ impl<'a> VM<'a> {
                 opcode::bitor => bitwise_binary_op!(self => ops::BitOr::bitor, bitor),
                 opcode::bitxor => bitwise_binary_op!(self => ops::BitXor::bitxor, bitxor),
 
-                opcode::heap => {
+                opcode::alloc => {
                     let value = self.pop();
                     let ptr = self.heap.insert(value);
                     self.push(V::Ptr(ptr));
                 }
-                opcode::deref => {
+                opcode::ld_heap => {
                     let ptr = self.pop_ptr();
                     let value = match self.heap.get(ptr) {
                         Some(value) => value,
