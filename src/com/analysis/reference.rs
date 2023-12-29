@@ -25,6 +25,10 @@ impl<'d> Analyser<'d> {
         let bound_expr = self.analyse_expression(expr);
         let ty = self.type_of(&bound_expr);
 
+        if matches!(bound_expr, ExprAbt::Unknown) {
+            return ExprAbt::Unknown;
+        }
+
         match ty {
             TypeAbt::Ref(_) => ExprAbt::Deref(Box::new(bound_expr)),
             _ => {
