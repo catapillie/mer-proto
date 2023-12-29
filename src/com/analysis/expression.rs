@@ -52,7 +52,8 @@ impl<'d> Analyser<'d> {
             | TypeAbt::I64
             | TypeAbt::F32
             | TypeAbt::F64
-            | TypeAbt::Bool => ExprAbt::Debug(Box::new(inner), ty),
+            | TypeAbt::Bool
+            | TypeAbt::Unit => ExprAbt::Debug(Box::new(inner), ty),
             TypeAbt::Unknown => ExprAbt::Unknown,
             _ => {
                 let d = diagnostics::create_diagnostic()
