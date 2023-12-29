@@ -59,14 +59,9 @@ impl<'d> Analyser<'d> {
         let Some((name, _)) = id else {
             return StmtAbtKind::Empty;
         };
-        let decl = self.declare_variable_here(name, self.type_of(&bound_expr), span);
 
-        // variable definitions are just (the first) assignment
-        StmtAbtKind::Expr(Box::new(ExprAbt::Assignment(
-            decl.declared,
-            0,
-            Box::new(bound_expr),
-        )))
+        let decl = self.declare_variable_here(name, self.type_of(&bound_expr), span);
+        StmtAbtKind::VarInit(decl.declared, Box::new(bound_expr))
     }
 
     pub fn analyse_variable_expression(&mut self, name: &str, span: Span) -> ExprAbt {

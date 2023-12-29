@@ -37,6 +37,7 @@ impl<'d> Analyser<'d> {
             }
             StmtAbtKind::Empty => false,
             StmtAbtKind::Expr(_) => false,
+            StmtAbtKind::VarInit(_, _) => false,
             StmtAbtKind::IfThen(_, _) => false,
             StmtAbtKind::IfThenElse(_, body_then, body_else) => {
                 self.analyse_control_flow(body_then.as_ref())

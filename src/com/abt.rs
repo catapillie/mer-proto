@@ -22,6 +22,7 @@ pub enum StmtAbtKind {
     Empty,
     Block(Vec<StmtAbt>),
     Expr(Box<ExprAbt>),
+    VarInit(u64, Box<ExprAbt>),
     IfThen(Box<ExprAbt>, Box<StmtAbt>),
     IfThenElse(Box<ExprAbt>, Box<StmtAbt>, Box<StmtAbt>),
     WhileDo(Box<ExprAbt>, Box<StmtAbt>),

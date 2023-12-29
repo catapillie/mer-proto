@@ -114,6 +114,21 @@ impl Codegen {
                 self.gen_expression(expr, abt)?;
                 Opcode::pop.write_bytes(&mut self.cursor)?;
             }
+            S::VarInit(var_id, expr) => {
+                // = <value>
+                self.gen_expression(expr, abt)?;
+
+                let id = *self.current_locals.get(var_id).unwrap();
+                let info = abt.variables.get(var_id).unwrap();
+
+                // if variable is heap-allocated, allocate the value on the heap, keep the address
+                if info.is_on_heap {
+                    Opcode::alloc.write_bytes(&mut self.cursor)?;
+                }
+
+                // write value
+                Opcode::st_loc(id).write_bytes(&mut self.cursor)?;
+            }
             S::IfThen(guard, body) => {
                 // if ...
                 self.gen_expression(guard, abt)?;
@@ -145,7 +160,7 @@ impl Codegen {
                 self.gen_statement(body_else, abt)?;
                 let cursor_body_else_end = self.position();
 
-                // write saved jump adresses
+                // write saved jump addresses
                 self.patch_u32_placeholder(cursor_body_then_end, cursor_body_else_end)?;
                 self.patch_u32_placeholder(cursor_guard_end, cursor_body_else_start)?;
             }
@@ -230,25 +245,45 @@ impl Codegen {
 
                 Ok(())
             }
-            E::Assignment(var, _, expr) => {
-                todo!();
+            E::Assignment(var_id, deref_count, expr) => {
+                // = <value>
                 self.gen_expression(expr, abt)?;
+                Opcode::dup.write_bytes(&mut self.cursor)?;
+                
+                let id = *self.current_locals.get(var_id).unwrap();
+                let info = abt.variables.get(var_id).unwrap();
+                if *deref_count == 0 {
+                    // simple variable assignment
+                    if info.is_on_heap {
+                        Opcode::ld_loc(id).write_bytes(&mut self.cursor)?;
+                        Opcode::st_heap.write_bytes(&mut self.cursor)?;
+                    } else {
+                        Opcode::st_loc(id).write_bytes(&mut self.cursor)?;
+                    }
+                } else {
+                    // assignment to a n-dereferenced pointer
+                    // we dereference the variable n - 1 times so we have the address, (and not the value)
+                    Opcode::ld_loc(id).write_bytes(&mut self.cursor)?;
+                    for _ in 1..(*deref_count) {
+                        Opcode::ld_heap.write_bytes(&mut self.cursor)?;
+                    }
 
-                let id = *self.current_locals.get(var).unwrap();
-                let info = abt.variables.get(var).unwrap();
-                if info.is_on_heap {
-                    Opcode::alloc.write_bytes(&mut self.cursor)?;
+                    // if variable is on heap, then the value we have is an address to an address, so read from heap again
+                    if info.is_on_heap {
+                        Opcode::ld_heap.write_bytes(&mut self.cursor)?;
+                    }
+
+                    // write the value at the address (on the heap)
+                    Opcode::st_heap.write_bytes(&mut self.cursor)?;
                 }
 
-                Opcode::st_loc(id).write_bytes(&mut self.cursor)?;
-                Opcode::ld_loc(id).write_bytes(&mut self.cursor)?;
 
                 Ok(())
             }
             E::Call(id, params, _) => {
                 let info = abt.functions.get(id).unwrap();
                 for (param, arg_id) in params.iter().zip(info.arg_ids.iter()) {
-                    let arg_info = abt. variables.get(arg_id).unwrap();
+                    let arg_info = abt.variables.get(arg_id).unwrap();
                     self.gen_expression(param, abt)?;
                     if arg_info.is_on_heap {
                         Opcode::alloc.write_bytes(&mut self.cursor)?;

@@ -1,4 +1,13 @@
+func bump(n: &i64) -> i64
+{
+    var prev = @n 
+    @n = prev + 1
+    return prev
+}
+
 var x = 0
-var p = &x
+debug bump(&x)
+debug bump(&x)
 debug x
+
 return
