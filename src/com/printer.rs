@@ -2,8 +2,6 @@ use std::{collections::BTreeMap, ops::Add};
 
 use colored::{Color, Colorize};
 
-use crate::msg;
-
 use super::{
     diagnostics::{Diagnostic, NoteSeverity, Severity},
     span::Span,
@@ -13,11 +11,11 @@ pub fn print_diagnostic(path: &str, lines: &[&str], diagnostic: &Diagnostic) {
     let msg = diagnostic.kind.msg();
     let color = match diagnostic.severity {
         Severity::Error => {
-            msg::error(msg);
+            // msg::error(msg);
             Color::BrightRed
         }
         Severity::Warning => {
-            msg::warn(msg);
+            // msg::warn(msg);
             Color::BrightYellow
         }
     };

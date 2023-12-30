@@ -1,8 +1,5 @@
 use self::{abt::ProgramAbt, analysis::Analyser, codegen::Codegen, parser::Parser};
-use crate::{
-    com::diagnostics::{Diagnostics, Severity},
-    msg,
-};
+use crate::com::diagnostics::{Diagnostics, Severity};
 use colored::Colorize;
 use std::{
     fs::{self},
@@ -30,10 +27,10 @@ pub fn compile_to_bytecode(path: &str, source: String) -> Vec<u8> {
     match Codegen::new().gen(&abt) {
         Ok(vec) => vec,
         Err(e) => {
-            msg::error(format!(
-                "io error occurred during bytecode generation:\n      {}",
-                e.to_string().italic()
-            ));
+            // msg::error(format!(
+            //     "io error occurred during bytecode generation:\n      {}",
+            //     e.to_string().italic()
+            // ));
             process::exit(1);
         }
     }
@@ -47,16 +44,18 @@ pub fn compile_then_write(path: &str, source: String) {
     let out_path = path_buf.to_string_lossy().into_owned();
 
     match fs::write(path_buf, program.as_slice()) {
-        Ok(()) => msg::ok(format!(
-            "compilation to '{}' finished successfully",
-            out_path.bold()
-        )),
+        Ok(()) => {
+            // msg::ok(format!(
+            //     "compilation to '{}' finished successfully",
+            //     out_path.bold()
+            // ))
+        },
         Err(e) => {
-            msg::error(format!(
-                "compilation was successful, but couldn't write to file '{}':\n      {}",
-                out_path.bold(),
-                e.to_string().italic()
-            ));
+            // msg::error(format!(
+            //     "compilation was successful, but couldn't write to file '{}':\n      {}",
+            //     out_path.bold(),
+            //     e.to_string().italic()
+            // ));
             process::exit(1);
         }
     }
@@ -84,11 +83,11 @@ pub fn analyse(path: &str, source: String) -> Option<ProgramAbt> {
         }
 
         if fatal {
-            msg::error("cannot compile with errors -- aborting");
+            // msg::error("cannot compile with errors -- aborting");
             return None;
         }
     }
-    msg::ok("analysis finished successfully");
+    // msg::ok("analysis finished successfully");
 
     Some(abt)
 }

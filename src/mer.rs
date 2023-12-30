@@ -3,13 +3,11 @@ use std::{fs, process};
 use cmd::{Command, CompileCommand, DisassembleCommand, RunCommand};
 use colored::Colorize;
 
+use merlib::{com, run};
+
 mod cli;
 mod cmd;
-mod com;
 mod msg;
-mod run;
-
-mod tests;
 
 fn main() {
     match cli::parse_command() {

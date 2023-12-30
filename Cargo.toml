@@ -5,6 +5,10 @@ authors = ["catapillie"]
 description = "mer programming language"
 edition = "2021"
 
+[lib]
+name = "merlib"
+path = "src/lib.rs"
+
 [[bin]]
 name = "mer"
 path = "src/mer.rs"

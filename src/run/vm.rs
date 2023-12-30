@@ -6,7 +6,6 @@ use std::{
 };
 
 use super::{native_type, opcode, value::Value};
-use crate::msg;
 use byteorder::ReadBytesExt;
 
 const INITIAL_STACK_CAPACITY: usize = 512;
@@ -72,7 +71,7 @@ impl<'a> VM<'a> {
         let entry_point = self.read_u32() as u64;
 
         if !matches!(first, opcode::entry_point) {
-            msg::error("no entry point defined");
+            // msg::error("no entry point defined");
             process::exit(1);
         }
 
@@ -103,7 +102,7 @@ impl<'a> VM<'a> {
                         native_type::f32 => println!("{}", value.get_f32()),
                         native_type::f64 => println!("{}", value.get_f64()),
                         _ => {
-                            msg::error("invalid 'dbg' operation");
+                            // msg::error("invalid 'dbg' operation");
                             process::exit(1);
                         }
                     }
@@ -154,7 +153,7 @@ impl<'a> VM<'a> {
                     let value = match self.heap.get(ptr) {
                         Some(value) => value,
                         None => {
-                            msg::error("reading from unallocated memory in heap");
+                            // msg::error("reading from unallocated memory in heap");
                             process::exit(1);
                         }
                     };
@@ -166,7 +165,7 @@ impl<'a> VM<'a> {
                     let heap_value = match self.heap.get_mut(ptr) {
                         Some(heap_value) => heap_value,
                         None => {
-                            msg::error("writing to unallocated memory in heap");
+                            // msg::error("writing to unallocated memory in heap");
                             process::exit(1);
                         }
                     };
@@ -186,7 +185,7 @@ impl<'a> VM<'a> {
                         native_type::f32 => Value::make_f32(-value.get_f32()),
                         native_type::f64 => Value::make_f64(-value.get_f64()),
                         _ => {
-                            msg::error("invalid 'neg' unary operation");
+                            // msg::error("invalid 'neg' unary operation");
                             process::exit(1);
                         }
                     };
@@ -194,7 +193,7 @@ impl<'a> VM<'a> {
                 }
 
                 _ => {
-                    msg::error("encountered illegal opcode");
+                    // msg::error("encountered illegal opcode");
                     process::exit(1);
                 }
             }
@@ -208,7 +207,7 @@ impl<'a> VM<'a> {
             self.destroy_frame();
         }
         if !self.stack.is_empty() {
-            msg::warn("stack remained non-empty after halt opcode");
+            // msg::warn("stack remained non-empty after halt opcode");
         }
         self.done = true;
     }
@@ -221,7 +220,7 @@ impl<'a> VM<'a> {
         match self.stack.pop() {
             Some(value) => value,
             None => {
-                msg::error("stack underflow");
+                // msg::error("stack underflow");
                 process::exit(1);
             }
         }
@@ -231,7 +230,7 @@ impl<'a> VM<'a> {
         match self.pop() {
             V::Val(value) => value,
             V::Ptr(_) => {
-                msg::error("pointers cannot be used as values");
+                // msg::error("pointers cannot be used as values");
                 process::exit(1);
             }
         }
@@ -241,7 +240,7 @@ impl<'a> VM<'a> {
         match self.pop() {
             V::Ptr(ptr) => ptr,
             V::Val(_) => {
-                msg::error("values cannot be used as pointers");
+                // msg::error("values cannot be used as pointers");
                 process::exit(1);
             }
         }
@@ -251,7 +250,7 @@ impl<'a> VM<'a> {
         match self.stack.last() {
             Some(last) => self.push(*last),
             None => {
-                msg::error("stack underflow");
+                // msg::error("stack underflow");
                 process::exit(1);
             }
         }
@@ -302,7 +301,7 @@ impl<'a> VM<'a> {
     // returns (param_count, local_count)
     fn read_function_header(&mut self) -> (u8, u8) {
         if !matches!(self.next_opcode(), opcode::function) {
-            msg::error("jumped to invalid function");
+            // msg::error("jumped to invalid function");
             process::exit(1);
         }
 
@@ -388,7 +387,7 @@ macro_rules! binary_op {
                     },
                 )*
                 _ => {
-                    msg::error(format!("invalid '{}' binary operation", stringify!($op_name)));
+                    // msg::error(format!("invalid '{}' binary operation", stringify!($op_name)));
                     process::exit(1);
                 }
             }
