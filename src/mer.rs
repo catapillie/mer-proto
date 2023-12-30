@@ -3,7 +3,7 @@ use std::{fs, process};
 use cmd::{Command, CompileCommand, DisassembleCommand, RunCommand};
 use colored::Colorize;
 
-use merlib::{com, run};
+use merlib::{com, runtime};
 
 mod cli;
 mod cmd;
@@ -89,7 +89,7 @@ fn run_run(command: RunCommand) {
                 }
             };
 
-            run::run(program);
+            runtime::run(program);
         }
         RunCommand::NoPath => {
             msg::error("no path provided");
@@ -117,7 +117,7 @@ fn run_disassemble(command: DisassembleCommand) {
                 }
             };
 
-            run::disassemble(&program);
+            runtime::disassemble(&program);
         }
         DisassembleCommand::NoPath => {
             msg::error("no path provided");

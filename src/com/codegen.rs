@@ -8,7 +8,7 @@ use byteorder::LE;
 
 use crate::{
     com::abt::{BinOpAbtKind, StmtAbtKind, TypeAbt, UnOpAbtKind},
-    run::{
+    runtime::{
         native_type::NativeType,
         opcode::{self, Opcode},
     },
