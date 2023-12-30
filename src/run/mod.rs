@@ -1,18 +1,30 @@
-use std::io::{Cursor, Read};
+use std::{
+    io::{Cursor, Read},
+    process,
+};
 
 use byteorder::ReadBytesExt;
 use colored::Colorize;
 
 use self::{native_type::NativeType, vm::VM};
 
+mod value;
+
+pub mod error;
 pub mod native_type;
 pub mod opcode;
-pub mod value;
 pub mod vm;
 
 pub fn run(program: Vec<u8>) {
-    let mut vm = VM::new(program.as_slice());
-    vm.run();
+    let vm = VM::new(program.as_slice());
+    let res = vm.run::<()>();
+    match res {
+        Ok(()) => {}
+        Err(err) => {
+            println!("{} {}", "error".bright_red(), err);
+            process::exit(1);
+        }
+    }
 }
 
 pub fn disassemble(program: &Vec<u8>) -> Option<()> {

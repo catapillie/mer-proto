@@ -2,10 +2,9 @@ use std::{
     cmp,
     io::{Cursor, Seek, SeekFrom},
     ops::{self},
-    process::{self},
 };
 
-use super::{native_type, opcode, value::Value};
+use super::{error::Error, native_type, opcode, value::Value};
 use byteorder::ReadBytesExt;
 
 const INITIAL_STACK_CAPACITY: usize = 512;
@@ -14,7 +13,7 @@ const HEAP_SIZE: usize = 1_000_000; // 16 MB
 
 #[derive(Copy, Clone)]
 enum V {
-    Ptr(usize),
+    Addr(usize),
     Val(Value),
 }
 
@@ -52,43 +51,44 @@ impl<'a> VM<'a> {
         });
     }
 
-    fn destroy_frame(&mut self) {
+    fn destroy_frame(&mut self) -> Result<(), Error> {
         let frame = self.frames.pop().unwrap();
         for _ in 0..frame.local_count {
-            self.pop();
+            self.pop()?;
         }
 
         let Some(ip) = frame.back else {
-            self.halt();
-            return;
+            self.halt()?;
+            return Ok(());
         };
 
         self.cursor.set_position(ip);
+        Ok(())
     }
 
-    pub fn run(&mut self) -> Value {
+    pub fn run<T>(mut self) -> Result<T, Error>
+    where
+        T: From<Value>,
+    {
         let first = self.next_opcode();
         let entry_point = self.read_u32() as u64;
 
         if !matches!(first, opcode::entry_point) {
-            // msg::error("no entry point defined");
-            process::exit(1);
+            return Err(Error::NoEntryPoint);
         }
 
-        self.call_fn(entry_point, None);
+        self.call_fn(entry_point, None)?;
 
         while !self.done {
             match self.next_opcode() {
                 opcode::nop => continue,
                 opcode::pop => _ = self.pop(),
-                opcode::dup => self.dup(),
+                opcode::dup => self.dup()?,
 
                 opcode::dbg => {
-                    self.dup();
-                    let value = self.pop_value();
-
-                    let ty = self.read_u8();
-                    match ty {
+                    self.dup()?;
+                    let value = self.pop_value()?;
+                    match self.read_u8() {
                         native_type::unit => println!("{:?}", value.get_unit()),
                         native_type::bool => println!("{}", value.get_bool()),
                         native_type::u8 => println!("{}", value.get_u8()),
@@ -101,20 +101,17 @@ impl<'a> VM<'a> {
                         native_type::i64 => println!("{}", value.get_i64()),
                         native_type::f32 => println!("{}", value.get_f32()),
                         native_type::f64 => println!("{}", value.get_f64()),
-                        _ => {
-                            // msg::error("invalid 'dbg' operation");
-                            process::exit(1);
-                        }
+                        _ => return Err(Error::InvalidNativeType),
                     }
                 }
 
                 opcode::jmp => self.jmp(),
-                opcode::jmp_if => self.jmp_if(),
-                opcode::ret => self.ret(),
-                opcode::call => self.call(),
+                opcode::jmp_if => self.jmp_if()?,
+                opcode::ret => self.ret()?,
+                opcode::call => self.call()?,
 
                 opcode::ld_loc => self.ld_loc(),
-                opcode::st_loc => self.st_loc(),
+                opcode::st_loc => self.st_loc()?,
 
                 opcode::ld_unit => self.push(V::Val(Value::make_unit(()))),
                 opcode::ld_u8 => push_value!(self => read_u8, make_u8),
@@ -144,37 +141,31 @@ impl<'a> VM<'a> {
                 opcode::bitxor => bitwise_binary_op!(self => ops::BitXor::bitxor, bitxor),
 
                 opcode::alloc => {
-                    let value = self.pop();
+                    let value = self.pop()?;
                     let ptr = self.heap.insert(value);
-                    self.push(V::Ptr(ptr));
+                    self.push(V::Addr(ptr));
                 }
                 opcode::ld_heap => {
-                    let ptr = self.pop_ptr();
+                    let ptr = self.pop_ptr()?;
                     let value = match self.heap.get(ptr) {
                         Some(value) => value,
-                        None => {
-                            // msg::error("reading from unallocated memory in heap");
-                            process::exit(1);
-                        }
+                        None => return Err(Error::InvalidMemoryAccess),
                     };
                     self.push(*value);
                 }
                 opcode::st_heap => {
-                    let ptr = self.pop_ptr();
-                    let value = self.pop();
+                    let ptr = self.pop_ptr()?;
+                    let value = self.pop()?;
                     let heap_value = match self.heap.get_mut(ptr) {
                         Some(heap_value) => heap_value,
-                        None => {
-                            // msg::error("writing to unallocated memory in heap");
-                            process::exit(1);
-                        }
+                        None => return Err(Error::InvalidMemoryWrite),
                     };
                     *heap_value = value;
                 }
 
                 opcode::neg => {
                     let ty = self.read_u8();
-                    let value = self.pop_value();
+                    let value = self.pop_value()?;
 
                     let result = match ty {
                         native_type::bool => Value::make_bool(!value.get_bool()),
@@ -184,75 +175,61 @@ impl<'a> VM<'a> {
                         native_type::i64 => Value::make_i64(-value.get_i64()),
                         native_type::f32 => Value::make_f32(-value.get_f32()),
                         native_type::f64 => Value::make_f64(-value.get_f64()),
-                        _ => {
-                            // msg::error("invalid 'neg' unary operation");
-                            process::exit(1);
-                        }
+                        _ => return Err(Error::InvalidUnaryOperation),
                     };
                     self.push(V::Val(result));
                 }
 
-                _ => {
-                    // msg::error("encountered illegal opcode");
-                    process::exit(1);
-                }
+                _ => return Err(Error::IllegalOpcode),
             }
         }
 
-        self.pop_value()
+        Ok(self.pop_value()?.into())
     }
 
-    fn halt(&mut self) {
+    fn halt(&mut self) -> Result<(), Error> {
         while !self.frames.is_empty() {
-            self.destroy_frame();
+            self.destroy_frame()?;
         }
         if !self.stack.is_empty() {
-            // msg::warn("stack remained non-empty after halt opcode");
+            return Err(Error::HaltWithNonEmptyStack);
         }
         self.done = true;
+        Ok(())
     }
 
     fn push(&mut self, value: V) {
         self.stack.push(value);
     }
 
-    fn pop(&mut self) -> V {
+    fn pop(&mut self) -> Result<V, Error> {
         match self.stack.pop() {
-            Some(value) => value,
-            None => {
-                // msg::error("stack underflow");
-                process::exit(1);
-            }
+            Some(value) => Ok(value),
+            None => Err(Error::StackUnderflow),
         }
     }
 
-    fn pop_value(&mut self) -> Value {
-        match self.pop() {
-            V::Val(value) => value,
-            V::Ptr(_) => {
-                // msg::error("pointers cannot be used as values");
-                process::exit(1);
-            }
+    fn pop_value(&mut self) -> Result<Value, Error> {
+        match self.pop()? {
+            V::Val(value) => Ok(value),
+            V::Addr(_) => Err(Error::UnexpectedAddress),
         }
     }
 
-    fn pop_ptr(&mut self) -> usize {
-        match self.pop() {
-            V::Ptr(ptr) => ptr,
-            V::Val(_) => {
-                // msg::error("values cannot be used as pointers");
-                process::exit(1);
-            }
+    fn pop_ptr(&mut self) -> Result<usize, Error> {
+        match self.pop()? {
+            V::Addr(ptr) => Ok(ptr),
+            V::Val(_) => Err(Error::UnexpectedValue),
         }
     }
 
-    fn dup(&mut self) {
+    fn dup(&mut self) -> Result<(), Error> {
         match self.stack.last() {
-            Some(last) => self.push(*last),
-            None => {
-                // msg::error("stack underflow");
-                process::exit(1);
-            }
+            Some(last) => {
+                self.push(*last);
+                Ok(())
+            },
+            None => Err(Error::StackUnderflow),
         }
     }
 
@@ -261,48 +238,46 @@ impl<'a> VM<'a> {
         self.cursor.set_position(to);
     }
 
-    fn jmp_if(&mut self) {
+    fn jmp_if(&mut self) -> Result<(), Error> {
         let to = self.read_u32();
-        let guard = self.pop_value().get_bool();
+        let guard = self.pop_value()?.get_bool();
         if guard {
             self.cursor.set_position(to as u64);
         }
+        Ok(())
     }
 
-    fn ret(&mut self) {
-        let val = self.pop();
-        self.destroy_frame();
+    fn ret(&mut self) -> Result<(), Error> {
+        let val = self.pop()?;
+        self.destroy_frame()?;
         self.push(val);
+        Ok(())
     }
 
-    fn ld_loc(&mut self) {
-        let index = self.read_u8() as usize;
-        let offset = self.frames.last().unwrap().local_offset;
-        self.push(self.stack[offset + index]);
-    }
-
-    fn call(&mut self) {
+    fn call(&mut self) -> Result<(), Error> {
         let fp = self.read_u32() as u64;
         let back = self.cursor.position();
-        self.call_fn(fp, Some(back));
+        self.call_fn(fp, Some(back))?;
+        Ok(())
     }
 
-    fn call_fn(&mut self, fp: u64, back: Option<u64>) {
+    fn call_fn(&mut self, fp: u64, back: Option<u64>) -> Result<(), Error> {
         self.cursor.set_position(fp);
-        let (param_count, local_count) = self.read_function_header();
+        let (param_count, local_count) = self.read_function_header()?;
         self.create_frame(back, param_count, local_count);
 
         // push non-parameter locals
         for _ in 0..(local_count - param_count) {
             self.push(V::Val(Value::make_u8(0))); // uninitialized
         }
+
+        Ok(())
     }
 
     // returns (param_count, local_count)
-    fn read_function_header(&mut self) -> (u8, u8) {
+    fn read_function_header(&mut self) -> Result<(u8, u8), Error> {
         if !matches!(self.next_opcode(), opcode::function) {
-            // msg::error("jumped to invalid function");
-            process::exit(1);
+            return Err(Error::InvalidFunctionCall);
         }
 
         let n = self.read_u16() as usize;
@@ -311,13 +286,20 @@ impl<'a> VM<'a> {
         let param_count = self.read_u8();
         let local_count = self.read_u8();
 
-        (param_count, local_count)
+        Ok((param_count, local_count))
     }
 
-    fn st_loc(&mut self) {
+    fn ld_loc(&mut self) {
         let index = self.read_u8() as usize;
         let offset = self.frames.last().unwrap().local_offset;
-        self.stack[offset + index] = self.pop();
+        self.push(self.stack[offset + index]);
+    }
+
+    fn st_loc(&mut self) -> Result<(), Error> {
+        let index = self.read_u8() as usize;
+        let offset = self.frames.last().unwrap().local_offset;
+        self.stack[offset + index] = self.pop()?;
+        Ok(())
     }
 
     fn next_opcode(&mut self) -> u8 {
@@ -381,14 +363,13 @@ macro_rules! binary_op {
             match $self.read_u8() {
                 $(
                     $type => {
-                        let b = $self.pop_value().$get_fn();
-                        let a = $self.pop_value().$get_fn();
+                        let b = $self.pop_value()?.$get_fn();
+                        let a = $self.pop_value()?.$get_fn();
                         $self.push(V::Val(Value::$make_fn($op_fn(&a, &b))));
                     },
                 )*
                 _ => {
-                    // msg::error(format!("invalid '{}' binary operation", stringify!($op_name)));
-                    process::exit(1);
+                    return Err(Error::InvalidBinaryOperation)
                 }
             }
         }
