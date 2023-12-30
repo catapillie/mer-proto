@@ -128,7 +128,7 @@ impl<'d> Analyser<'d> {
         info.code = Some(Box::new(bound_body));
 
         let var_count = info.used_variables.len();
-        if var_count > 256 {
+        if var_count > 255 {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::TooManyVariables(name.clone(), var_count))
                 .with_severity(Severity::Error)

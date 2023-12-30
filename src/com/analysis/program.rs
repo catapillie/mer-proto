@@ -1,7 +1,8 @@
 use crate::com::{
     abt::{ProgramAbt, TypeAbt},
+    analysis::FunctionInfo,
     diagnostics::{self, DiagnosticKind, Severity},
-    syntax::stmt::{StmtAst, StmtAstKind}, analysis::FunctionInfo,
+    syntax::stmt::{StmtAst, StmtAstKind},
 };
 
 use super::Analyser;
@@ -9,18 +10,21 @@ use super::Analyser;
 impl<'d> Analyser<'d> {
     pub fn analyse_program(mut self, ast: &StmtAst) -> ProgramAbt {
         let main_fn_id = 0;
-        self.functions.insert(main_fn_id, FunctionInfo {
-            id: main_fn_id,
-            name: "<main>".to_string(),
-            span: None,
-            depth: 0,
-            args: vec![],
-            arg_ids: vec![],
-            ty: TypeAbt::Unit,
-            ty_span: None,
-            used_variables: Default::default(),
-            code: None,
-        });
+        self.functions.insert(
+            main_fn_id,
+            FunctionInfo {
+                id: main_fn_id,
+                name: "<main>".to_string(),
+                span: None,
+                depth: 0,
+                args: vec![],
+                arg_ids: vec![],
+                ty: TypeAbt::Unit,
+                ty_span: None,
+                used_variables: Default::default(),
+                code: None,
+            },
+        );
 
         self.scope.depth = 1;
         self.reach_top_level_declarations(ast);
@@ -34,11 +38,24 @@ impl<'d> Analyser<'d> {
                 .without_span()
                 .done();
             self.diagnostics.push(d);
-        }        
-        self.functions.get_mut(&main_fn_id).unwrap().code = Some(Box::new(abt));
+        }
 
-        assert!(self.scope.is_root()); // correct scope usage
-        
+        let info = self.functions.get_mut(&main_fn_id).unwrap();
+        info.code = Some(Box::new(abt));
+
+        let var_count = info.used_variables.len();
+        if var_count > 255 {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::TooManyTopLevelVariables(var_count))
+                .with_severity(Severity::Error)
+                .without_span()
+                .done();
+            self.diagnostics.push(d);
+        }
+
+        // correct scope usage
+        assert!(self.scope.is_root());
+
         ProgramAbt {
             main_fn_id,
             functions: self.functions,
