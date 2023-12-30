@@ -52,4 +52,3 @@ impl Display for Span {
         }
     }
 }
-    

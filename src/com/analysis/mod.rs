@@ -13,8 +13,8 @@ mod statement;
 mod types;
 
 mod functions;
-mod variables;
 mod reference;
+mod variables;
 
 mod operations;
 

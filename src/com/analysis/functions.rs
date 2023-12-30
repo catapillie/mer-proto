@@ -257,10 +257,7 @@ impl<'d> Analyser<'d> {
                 })
                 .with_severity(Severity::Error)
                 .with_span(span)
-                .annotate_primary(
-                    Note::OfType(ty.clone()).but().dddot_front().num(2),
-                    span,
-                );
+                .annotate_primary(Note::OfType(ty.clone()).but().dddot_front().num(2), span);
 
             let d = match return_ty.1 {
                 Some((Some(span), name)) => d

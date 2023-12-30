@@ -155,7 +155,7 @@ impl Display for TypeAbt {
             Self::F32 => write!(f, "f32"),
             Self::F64 => write!(f, "f64"),
             Self::Bool => write!(f, "bool"),
-            Self::Ref(inner) => write!(f, "&{inner}")
+            Self::Ref(inner) => write!(f, "&{inner}"),
         }
     }
 }

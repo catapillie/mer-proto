@@ -62,7 +62,7 @@ impl<'d> Analyser<'d> {
                     }
                 }
                 result_ty
-            },
+            }
 
             E::Binary(op, _, _) => op.out_ty.clone(),
             E::Unary(op, _) => op.ty.clone(),

@@ -26,8 +26,7 @@ macro_rules! matches_output {
     (
         $name:ident<$ty:ty>($expect:expr)
         $src:literal
-    )
-    => {
+    ) => {
         #[test]
         fn $name() {
             check_output::<$ty>($src, $expect);

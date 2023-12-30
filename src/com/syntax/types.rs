@@ -11,7 +11,7 @@ pub enum TypeAstKind {
     Bad,
     Unit,
     Declared(String),
-    Ref(Box<TypeAst>)
+    Ref(Box<TypeAst>),
 }
 
 impl TypeAstKind {

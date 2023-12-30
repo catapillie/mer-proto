@@ -249,7 +249,7 @@ impl Codegen {
                 // = <value>
                 self.gen_expression(expr, abt)?;
                 Opcode::dup.write_bytes(&mut self.cursor)?;
-                
+
                 let id = *self.current_locals.get(var_id).unwrap();
                 let info = abt.variables.get(var_id).unwrap();
                 if *deref_count == 0 {
@@ -276,7 +276,6 @@ impl Codegen {
                     // write the value at the address (on the heap)
                     Opcode::st_heap.write_bytes(&mut self.cursor)?;
                 }
-
 
                 Ok(())
             }

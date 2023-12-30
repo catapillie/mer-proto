@@ -93,8 +93,8 @@ impl<'s> Printer<'s> {
                     println!(" {:>max_line_len$} ╨ ", " ");
                     println!(" {:>max_line_len$}...", " ");
                     println!(" {:>max_line_len$} ╥ ", " ");
-                },
-                _ => {},
+                }
+                _ => {}
             }
             prev_index = Some(index);
 
