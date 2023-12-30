@@ -88,8 +88,8 @@ fn run_run(command: RunCommand) {
                     process::exit(e.raw_os_error().unwrap_or(1));
                 }
             };
-
-            runtime::run(program);
+            
+            todo!();
         }
         RunCommand::NoPath => {
             msg::error("no path provided");
@@ -117,7 +117,7 @@ fn run_disassemble(command: DisassembleCommand) {
                 }
             };
 
-            runtime::disassemble(&program);
+            todo!();
         }
         DisassembleCommand::NoPath => {
             msg::error("no path provided");
