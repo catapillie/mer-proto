@@ -128,7 +128,7 @@ macro_rules! opcodes {
             pub const $name: u8 = $byte;
         )*
 
-        pub fn name(opcode: u8) -> Option<&'static str> {
+        pub fn name_of(opcode: u8) -> Option<&'static str> {
             match opcode {
                 $(
                     $byte => Some(stringify!($name)),

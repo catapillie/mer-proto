@@ -7,7 +7,7 @@ use colored::Colorize;
 use super::{read_opcode, write_opcode};
 use crate::runtime::{
     native_type::NativeType,
-    opcode::{all_opcode_bytes, name, Opcode},
+    opcode::{all_opcode_bytes, name_of, Opcode},
 };
 
 // this test will fail if not all opcode variants are handled at least once
@@ -109,7 +109,7 @@ fn write_then_read_match() {
         assert!(
             tested_opcode_bytes.contains(&byte),
             "missing test case for opcode::{}",
-            name(byte).unwrap().bold().underline()
+            name_of(byte).unwrap().bold().underline()
         );
     }
 }

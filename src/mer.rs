@@ -3,7 +3,10 @@ use std::{fs, process};
 use cmd::{Command, CompileCommand, DisassembleCommand, RunCommand};
 use colored::Colorize;
 
-use merlib::{com, runtime};
+use merlib::{
+    com,
+    runtime::{self, VM},
+};
 
 mod cli;
 mod cmd;
@@ -88,7 +91,7 @@ fn run_run(command: RunCommand) {
                     process::exit(e.raw_os_error().unwrap_or(1));
                 }
             };
-            
+
             todo!();
         }
         RunCommand::NoPath => {
@@ -117,7 +120,13 @@ fn run_disassemble(command: DisassembleCommand) {
                 }
             };
 
-            todo!();
+            match VM::new(&program).run::<()>() {
+                Ok(()) => (),
+                Err(error) => {
+                    msg::error(error.to_string());
+                    process::exit(1);
+                }
+            }
         }
         DisassembleCommand::NoPath => {
             msg::error("no path provided");
