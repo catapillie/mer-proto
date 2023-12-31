@@ -1,6 +1,5 @@
-use std::io::{self, Cursor, Write};
-
 use byteorder::WriteBytesExt;
+use std::io::{self, Cursor, Write};
 
 use super::native_type::NativeType;
 
@@ -103,7 +102,7 @@ impl Opcode {
             Opcode::neg(ty) => cursor.write_u8((*ty).into())?,
             _ => {}
         }
-
+        
         Ok(())
     }
 }
@@ -140,7 +139,7 @@ macro_rules! opcodes {
 
         #[allow(non_camel_case_types)]
         #[allow(dead_code)]
-        #[derive(Debug)]
+        #[derive(Debug, PartialEq, Clone)]
         #[repr(u8)]
         pub enum Opcode {
             $(
@@ -156,6 +155,11 @@ macro_rules! opcodes {
                     )*
                 }
             }
+        }
+
+        #[cfg(test)]
+        pub fn all_opcode_bytes() -> Vec<u8> {
+            vec![$($byte),*]
         }
     };
 }

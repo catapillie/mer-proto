@@ -28,7 +28,7 @@ macro_rules! types {
 
         #[allow(non_camel_case_types)]
         #[allow(dead_code)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Debug, Copy, Clone, Eq, PartialEq)]
         #[repr(u8)]
         pub enum NativeType {
             $(
