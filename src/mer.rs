@@ -1,4 +1,4 @@
-use std::{fs, path::PathBuf, process};
+use std::{collections::HashMap, fs, path::PathBuf, process};
 
 use cmd::{Command, CompileCommand, DisassembleCommand, RunCommand};
 use colored::Colorize;
@@ -6,7 +6,7 @@ use colored::Colorize;
 use merlib::{
     binaries,
     com::{self, AnalysisStage},
-    runtime::VM,
+    runtime::{Opcode, VM},
 };
 
 mod cli;
@@ -188,14 +188,140 @@ fn dis(command: DisassembleCommand) {
             let opcodes = match binaries::disassemble(&bytes) {
                 Ok(opcodes) => opcodes,
                 Err(err) => {
-                    msg::error(format!("failed to disassemble program: {}", err.to_string().bold()));
+                    msg::error(format!(
+                        "failed to disassemble program: {}",
+                        err.to_string().bold()
+                    ));
                     process::exit(1);
-                },
+                }
             };
 
+            let mut map = HashMap::new();
             for (offset, opcode) in opcodes.iter() {
-                println!("{offset} {opcode:?}");
+                map.insert(offset, opcode.clone());
             }
+
+            println!();
+            println!("         ╥");
+            for (offset, opcode) in opcodes.iter() {
+                match opcode {
+                    Opcode::entry_point(addr) => {
+                        let Some(Opcode::function(name, _, _)) = map.get(&(*addr as u64)) else {
+                            unreachable!()
+                        };
+                        println!(
+                            "{offset:0>8} ╟─── !! entry-point -> {} [{addr:0>8}]",
+                            name.bold()
+                        )
+                    }
+                    Opcode::function(name, param_count, local_count) => {
+                        println!(
+                            "{offset:0>8} ║ :: {} ({} params, {} locals)",
+                            name.bold(),
+                            param_count.to_string().bold(),
+                            local_count.to_string().bold()
+                        )
+                    }
+                    Opcode::call(addr) => {
+                        let Some(Opcode::function(name, _, _)) = map.get(&(*addr as u64)) else {
+                            unreachable!()
+                        };
+                        println!(
+                            "{offset:0>8} ║ {op:>20} -> {} [{addr:0>8}]",
+                            name.bold(),
+                            op = opcode.name(),
+                        )
+                    }
+                    Opcode::jmp(addr) | Opcode::jmp_if(addr) => println!(
+                        "{offset:0>8} ║ {op:>20} -> {}",
+                        format!("{addr:0>8}").bold(),
+                        op = opcode.name()
+                    ),
+                    Opcode::ld_loc(loc) | Opcode::st_loc(loc) => {
+                        println!(
+                            "{offset:0>8} ║ {op:>20} {}",
+                            loc.to_string().bold(),
+                            op = opcode.name(),
+                        )
+                    }
+                    Opcode::ld_u8(num) => println!(
+                        "{offset:0>8} ║ {op:>20} {}",
+                        num.to_string().bold(),
+                        op = opcode.name()
+                    ),
+                    Opcode::ld_u16(num) => println!(
+                        "{offset:0>8} ║ {op:>20} {}",
+                        num.to_string().bold(),
+                        op = opcode.name()
+                    ),
+                    Opcode::ld_u32(num) => println!(
+                        "{offset:0>8} ║ {op:>20} {}",
+                        num.to_string().bold(),
+                        op = opcode.name()
+                    ),
+                    Opcode::ld_u64(num) => println!(
+                        "{offset:0>8} ║ {op:>20} {}",
+                        num.to_string().bold(),
+                        op = opcode.name()
+                    ),
+                    Opcode::ld_i8(num) => println!(
+                        "{offset:0>8} ║ {op:>20} {}",
+                        format!("{num:+}").bold(),
+                        op = opcode.name()
+                    ),
+                    Opcode::ld_i16(num) => println!(
+                        "{offset:0>8} ║ {op:>20} {}",
+                        format!("{num:+}").bold(),
+                        op = opcode.name()
+                    ),
+                    Opcode::ld_i32(num) => println!(
+                        "{offset:0>8} ║ {op:>20} {}",
+                        format!("{num:+}").bold(),
+                        op = opcode.name()
+                    ),
+                    Opcode::ld_i64(num) => println!(
+                        "{offset:0>8} ║ {op:>20} {}",
+                        format!("{num:+}").bold(),
+                        op = opcode.name()
+                    ),
+                    Opcode::ld_f32(num) => println!(
+                        "{offset:0>8} ║ {op:>20} {}",
+                        format!("{num:8.8}").bold(),
+                        op = opcode.name()
+                    ),
+                    Opcode::ld_f64(num) => println!(
+                        "{offset:0>8} ║ {op:>20} {}",
+                        format!("{num:8.8}").bold(),
+                        op = opcode.name()
+                    ),
+                    Opcode::dbg(ty)
+                    | Opcode::add(ty)
+                    | Opcode::sub(ty)
+                    | Opcode::mul(ty)
+                    | Opcode::div(ty)
+                    | Opcode::rem(ty)
+                    | Opcode::eq(ty)
+                    | Opcode::ne(ty)
+                    | Opcode::le(ty)
+                    | Opcode::lt(ty)
+                    | Opcode::ge(ty)
+                    | Opcode::gt(ty)
+                    | Opcode::bitand(ty)
+                    | Opcode::bitor(ty)
+                    | Opcode::bitxor(ty)
+                    | Opcode::neg(ty) => {
+                        println!(
+                            "{offset:0>8} ║ {op:>20} <{}>",
+                            ty.to_string().bold(),
+                            op = opcode.name(),
+                        )
+                    }
+                    _ => {
+                        println!("{offset:0>8} ║ {op:>20}", op = opcode.name(),)
+                    }
+                }
+            }
+            println!("         ╨");
         }
         DisassembleCommand::NoPath => {
             msg::error("no path provided");

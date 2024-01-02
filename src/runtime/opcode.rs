@@ -155,6 +155,14 @@ macro_rules! opcodes {
                     )*
                 }
             }
+
+            pub fn name(&self) -> &'static str {
+                match self {
+                    $(
+                        Self::$name $(($(to_underscore!($type)),*))? => stringify!($name),
+                    )*
+                }
+            }
         }
 
         #[cfg(test)]
