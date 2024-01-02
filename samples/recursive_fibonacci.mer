@@ -5,6 +5,11 @@ func fib(n: i64) -> i64
     else return fib(n - 1) + fib(n - 2)
 }
 
-fib(40)
+var i = 0
+while i < 20 do
+{
+    debug fib(i)
+    i = i + 1
+}
 
 return

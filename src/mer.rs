@@ -13,6 +13,8 @@ mod cli;
 mod cmd;
 mod msg;
 
+mod tests;
+
 fn main() {
     match cli::parse_command() {
         Command::Compile(command) => compile(command),
