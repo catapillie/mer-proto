@@ -7,20 +7,22 @@ use super::{
     span::Span,
 };
 
-pub fn print_diagnostic(path: &str, lines: &[&str], diagnostic: &Diagnostic) {
+pub fn print_diagnostic(path: &str, source: &str, diagnostic: &Diagnostic) {
+    let lines = source.lines().collect::<Vec<_>>().into_boxed_slice();
+
     let msg = diagnostic.kind.msg();
     let color = match diagnostic.severity {
         Severity::Error => {
-            // msg::error(msg);
+            println!("{} {msg}", "error".bright_red());
             Color::BrightRed
         }
         Severity::Warning => {
-            // msg::warn(msg);
+            println!("{} {msg}", "warning".bright_yellow());
             Color::BrightYellow
         }
     };
 
-    let mut printer = Printer::new(lines);
+    let mut printer = Printer::new(&lines);
     for (span, note, severity) in &diagnostic.annotations {
         let note_color = match severity {
             NoteSeverity::Default => color,

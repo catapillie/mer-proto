@@ -34,6 +34,18 @@ impl Diagnostics {
     pub fn done(self) -> Vec<Diagnostic> {
         self.diagnostics
     }
+
+    pub fn is_fatal(&self) -> bool {
+        self.diagnostics
+            .iter()
+            .any(|d| d.severity == Severity::Error)
+    }
+}
+
+impl Default for Diagnostics {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[derive(Debug)]
