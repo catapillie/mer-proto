@@ -12,7 +12,9 @@ mod syntax;
 mod tokens;
 
 pub use compilation::AnalysisStage;
-pub use compilation::{analyse_program, compile_to_bytecode, write_bytecode};
+pub use compilation::{
+    analyse_program, analyse_program_with_type, compile_to_bytecode, write_bytecode,
+};
 pub use diagnostics::{Diagnostic, DiagnosticKind, Diagnostics, Note, NoteSeverity, Severity};
 pub use pos::Pos;
 pub use printer::print_diagnostic;

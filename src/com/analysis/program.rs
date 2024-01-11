@@ -8,7 +8,7 @@ use crate::com::{
 use super::Analyser;
 
 impl<'d> Analyser<'d> {
-    pub fn analyse_program(mut self, ast: &StmtAst) -> ProgramAbt {
+    pub fn analyse_program(mut self, ast: &StmtAst, expected_type: TypeAbt) -> ProgramAbt {
         let main_fn_id = 0;
         self.functions.insert(
             main_fn_id,
@@ -19,7 +19,7 @@ impl<'d> Analyser<'d> {
                 depth: 0,
                 args: vec![],
                 arg_ids: vec![],
-                ty: TypeAbt::Unit,
+                ty: expected_type,
                 ty_span: None,
                 used_variables: Default::default(),
                 code: None,

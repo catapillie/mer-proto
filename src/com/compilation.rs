@@ -1,7 +1,11 @@
 use std::{fs, io, path::Path};
 
 use super::{
-    abt::ProgramAbt, analysis::Analyser, codegen::Codegen, diagnostics::Diagnostics, parser::Parser,
+    abt::{ProgramAbt, TypeAbt},
+    analysis::Analyser,
+    codegen::Codegen,
+    diagnostics::Diagnostics,
+    parser::Parser,
 };
 
 pub enum AnalysisStage {
@@ -10,10 +14,14 @@ pub enum AnalysisStage {
 }
 
 pub fn analyse_program(source: &str) -> AnalysisStage {
+    analyse_program_with_type(source, TypeAbt::Unit)
+}
+
+pub fn analyse_program_with_type(source: &str, expected_type: TypeAbt) -> AnalysisStage {
     let mut diagnostics = Diagnostics::new();
 
     let ast = Parser::new(source, &mut diagnostics).parse_program();
-    let abt = Analyser::new(&mut diagnostics).analyse_program(&ast);
+    let abt = Analyser::new(&mut diagnostics).analyse_program(&ast, expected_type);
 
     if diagnostics.is_fatal() {
         AnalysisStage::CannotCompile(diagnostics)
