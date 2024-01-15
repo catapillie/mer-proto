@@ -1,0 +1,19 @@
+var result = 0
+
+var x = -1.0
+x
+var x = false
+var y = -1.0
+
+if true then
+{
+    var x = 195903
+    result = x
+}
+else
+{
+    var y = 15564
+    result = y
+}
+
+return result == 195903 and x == false and y == -1.0

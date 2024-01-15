@@ -12,6 +12,21 @@ check_program_output!(return_f64 => (f64, TypeAbt::F64) 3.1415);
 check_program_output!(return_unit => ((), TypeAbt::Unit) ());
 check_program_output!(return_bool => (bool, TypeAbt::Bool) false);
 
+check_program_output!(arithmetic_00 => (i64, TypeAbt::I64) 1000);
+check_program_output!(arithmetic_01 => (f64, TypeAbt::F64) 3.7);
+check_program_output!(arithmetic_02 => (i64, TypeAbt::I64) 24);
+check_program_output!(arithmetic_03 => (i64, TypeAbt::I64) 17);
+check_program_output!(arithmetic_04 => (f64, TypeAbt::F64) -0.5);
+
+check_program_output!(boolean_00 => (bool, TypeAbt::Bool) false);
+check_program_output!(boolean_01 => (bool, TypeAbt::Bool) true);
+check_program_output!(boolean_02 => (bool, TypeAbt::Bool) false);
+check_program_output!(boolean_03 => (bool, TypeAbt::Bool) true);
+
+check_program_output!(variables_decl => (i64, TypeAbt::I64) 7);
+check_program_output!(variables_shadow => (bool, TypeAbt::Bool) true);
+check_program_output!(variables_assign => (bool, TypeAbt::Bool) true);
+
 macro_rules! check_program_output {
     ($name:ident => ($expected_ty:ty, $type_abt:expr) $expected:expr) => {
         #[test]

@@ -1,0 +1,1 @@
+return ((true and not false) or (not true and false)) == true ^ false
