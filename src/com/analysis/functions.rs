@@ -12,6 +12,7 @@ use super::Analyser;
 
 pub struct VariableUsage {
     pub captured: bool,
+    pub used: bool,
 }
 
 pub struct FunctionInfo {
@@ -321,5 +322,24 @@ impl<'d> Analyser<'d> {
         }
 
         StmtAbtKind::Return(Box::new(bound_expr))
+    }
+
+    pub fn analyse_function_variable_usage(&mut self) {
+        let id = self.scope.current_func_id;
+        let info = self.functions.get(&id).unwrap();
+        for (var_id, usage) in &info.used_variables {
+            if usage.used {
+                continue;
+            }
+
+            let var_info = self.variables.get(var_id).unwrap();
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::UnusedVariable(var_info.name.clone()))
+                .with_span(var_info.declaration_span)
+                .with_severity(Severity::Warning)
+                .annotate_primary(Note::Here, var_info.declaration_span)
+                .done();
+            self.diagnostics.push(d);
+        }
     }
 }

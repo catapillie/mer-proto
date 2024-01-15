@@ -53,6 +53,8 @@ impl<'d> Analyser<'d> {
             self.diagnostics.push(d);
         }
 
+        self.analyse_function_variable_usage();
+
         // correct scope usage
         assert!(self.scope.is_root());
 

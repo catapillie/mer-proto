@@ -174,6 +174,7 @@ pub enum DiagnosticKind {
     AssigneeMustBeVariable,
     TooManyVariables(String, usize),
     TooManyTopLevelVariables(usize),
+    UnusedVariable(String),
 
     UnknownFunction(String),
     InvalidArgCount {
@@ -271,6 +272,10 @@ impl DiagnosticKind {
             Self::TooManyTopLevelVariables(count)
                 => format!("the top level program uses {} variables, which is more than the allowed maximum (255)",
                     count.to_string().bold(),
+                ),
+            Self::UnusedVariable(name)
+                => format!("variable '{}' is never used",
+                    name.bold(),
                 ),
             Self::UnknownFunction(name)
                 => format!("unknown function '{}'", name.bold()),

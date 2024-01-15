@@ -34,9 +34,13 @@ impl<'d> Analyser<'d> {
 
         let func_id = self.scope.current_func_id;
         let func_info = self.functions.get_mut(&func_id).unwrap();
-        func_info
-            .used_variables
-            .insert(declared, VariableUsage { captured: false });
+        func_info.used_variables.insert(
+            declared,
+            VariableUsage {
+                captured: false,
+                used: false,
+            },
+        );
 
         Declaration { declared, shadowed }
     }
@@ -87,8 +91,14 @@ impl<'d> Analyser<'d> {
         func_info
             .used_variables
             .entry(id)
-            .and_modify(|u| u.captured = captured)
-            .or_insert(VariableUsage { captured });
+            .and_modify(|u| {
+                u.captured = captured;
+                u.used = true;
+            })
+            .or_insert(VariableUsage {
+                captured,
+                used: false,
+            });
 
         if captured {
             let func_name = func_info.name.clone();
