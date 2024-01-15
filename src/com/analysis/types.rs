@@ -53,8 +53,12 @@ impl<'d> Analyser<'d> {
 
             E::Variable(var_id) => self.variables.get(var_id).unwrap().ty.clone(),
             E::Call(func_id, _, _) => self.functions.get(func_id).unwrap().ty.clone(),
-            E::Assignment(id, deref_count, _) => {
-                let mut result_ty = self.type_of(&E::Variable(*id));
+            E::Assignment {
+                var_id,
+                deref_count,
+                expr: _,
+            } => {
+                let mut result_ty = self.type_of(&E::Variable(*var_id));
                 for _ in 0..(*deref_count) {
                     result_ty = match result_ty {
                         TypeAbt::Ref(ty) => *ty,

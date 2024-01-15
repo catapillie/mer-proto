@@ -133,7 +133,11 @@ impl<'d> Analyser<'d> {
             return ExprAbt::Unknown;
         }
 
-        ExprAbt::Assignment(var_id, deref_count, Box::new(bound_right))
+        ExprAbt::Assignment {
+            var_id,
+            deref_count,
+            expr: Box::new(bound_right),
+        }
     }
 
     fn integer_binary_operation(op: BinOpAst, ty: TypeAbt) -> Option<BinOpAbt> {

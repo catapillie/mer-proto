@@ -44,7 +44,11 @@ pub enum ExprAbt {
     Decimal(f64),
     Boolean(bool),
     Variable(u64),
-    Assignment(u64, usize, Box<ExprAbt>),
+    Assignment {
+        var_id: u64,
+        deref_count: usize,
+        expr: Box<ExprAbt>,
+    },
     Binary(BinOpAbt, Box<ExprAbt>, Box<ExprAbt>),
     Unary(UnOpAbt, Box<ExprAbt>),
     Call(u64, Vec<ExprAbt>, TypeAbt),

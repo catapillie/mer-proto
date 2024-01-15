@@ -245,7 +245,11 @@ impl Codegen {
 
                 Ok(())
             }
-            E::Assignment(var_id, deref_count, expr) => {
+            E::Assignment {
+                var_id,
+                deref_count,
+                expr,
+            } => {
                 // = <value>
                 self.gen_expression(expr, abt)?;
                 Opcode::dup.write_bytes(&mut self.cursor)?;
