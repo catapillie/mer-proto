@@ -8,7 +8,7 @@ use merlib::{
 };
 
 check_program_output!(return_i64 => (i64, TypeAbt::I64) 10);
-check_program_output!(return_f64 => (f64, TypeAbt::F64) 3.1415);
+check_program_output!(return_f64 => (f64, TypeAbt::F64) 6.2584);
 check_program_output!(return_unit => ((), TypeAbt::Unit) ());
 check_program_output!(return_bool => (bool, TypeAbt::Bool) false);
 
