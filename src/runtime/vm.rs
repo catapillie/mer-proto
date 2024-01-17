@@ -9,13 +9,7 @@ use byteorder::ReadBytesExt;
 
 const INITIAL_STACK_CAPACITY: usize = 512;
 const INITIAL_CALLSTACK_CAPACITY: usize = 64;
-const HEAP_SIZE: usize = 1_000_000; // 16 MB
-
-#[derive(Copy, Clone)]
-enum V {
-    Addr(usize),
-    Val(Value),
-}
+const HEAP_SIZE: usize = 1_000_000; // 8 MB
 
 struct Frame {
     back: Option<u64>,
@@ -25,8 +19,8 @@ struct Frame {
 
 pub struct VM<'a> {
     cursor: Cursor<&'a [u8]>,
-    stack: Vec<V>,
-    heap: Slab<V>,
+    stack: Vec<Value>,
+    heap: Slab<Value>,
     frames: Vec<Frame>,
     done: bool,
 }
@@ -87,7 +81,7 @@ impl<'a> VM<'a> {
 
                 opcode::dbg => {
                     self.dup()?;
-                    let value = self.pop_value()?;
+                    let value = self.pop()?;
                     match self.read_u8() {
                         native_type::unit => println!("{:?}", value.get_unit()),
                         native_type::bool => println!("{}", value.get_bool()),
@@ -113,7 +107,7 @@ impl<'a> VM<'a> {
                 opcode::ld_loc => self.ld_loc(),
                 opcode::st_loc => self.st_loc()?,
 
-                opcode::ld_unit => self.push(V::Val(Value::make_unit(()))),
+                opcode::ld_unit => self.push(Value::make_unit(())),
                 opcode::ld_u8 => push_value!(self => read_u8, make_u8),
                 opcode::ld_u16 => push_value!(self => read_u16, make_u16),
                 opcode::ld_u32 => push_value!(self => read_u32, make_u32),
@@ -143,10 +137,10 @@ impl<'a> VM<'a> {
                 opcode::alloc => {
                     let value = self.pop()?;
                     let ptr = self.heap.insert(value);
-                    self.push(V::Addr(ptr));
+                    self.push(Value::make_usize(ptr));
                 }
                 opcode::ld_heap => {
-                    let ptr = self.pop_ptr()?;
+                    let ptr = self.pop()?.get_usize();
                     let value = match self.heap.get(ptr) {
                         Some(value) => value,
                         None => return Err(Error::InvalidMemoryAccess),
@@ -154,7 +148,7 @@ impl<'a> VM<'a> {
                     self.push(*value);
                 }
                 opcode::st_heap => {
-                    let ptr = self.pop_ptr()?;
+                    let ptr = self.pop()?.get_usize();
                     let value = self.pop()?;
                     let heap_value = match self.heap.get_mut(ptr) {
                         Some(heap_value) => heap_value,
@@ -165,7 +159,7 @@ impl<'a> VM<'a> {
 
                 opcode::neg => {
                     let ty = self.read_u8();
-                    let value = self.pop_value()?;
+                    let value = self.pop()?;
 
                     let result = match ty {
                         native_type::bool => Value::make_bool(!value.get_bool()),
@@ -177,14 +171,14 @@ impl<'a> VM<'a> {
                         native_type::f64 => Value::make_f64(-value.get_f64()),
                         _ => return Err(Error::InvalidUnaryOperation),
                     };
-                    self.push(V::Val(result));
+                    self.push(result);
                 }
 
                 _ => return Err(Error::IllegalOpcode),
             }
         }
 
-        Ok(self.pop_value()?.into())
+        Ok(self.pop()?.into())
     }
 
     fn halt(&mut self) -> Result<(), Error> {
@@ -198,28 +192,14 @@ impl<'a> VM<'a> {
         Ok(())
     }
 
-    fn push(&mut self, value: V) {
+    fn push(&mut self, value: Value) {
         self.stack.push(value);
     }
 
-    fn pop(&mut self) -> Result<V, Error> {
+    fn pop(&mut self) -> Result<Value, Error> {
         match self.stack.pop() {
             Some(value) => Ok(value),
             None => Err(Error::StackUnderflow),
-        }
-    }
-
-    fn pop_value(&mut self) -> Result<Value, Error> {
-        match self.pop()? {
-            V::Val(value) => Ok(value),
-            V::Addr(_) => Err(Error::UnexpectedAddress),
-        }
-    }
-
-    fn pop_ptr(&mut self) -> Result<usize, Error> {
-        match self.pop()? {
-            V::Addr(ptr) => Ok(ptr),
-            V::Val(_) => Err(Error::UnexpectedValue),
         }
     }
 
@@ -240,7 +220,7 @@ impl<'a> VM<'a> {
 
     fn jmp_if(&mut self) -> Result<(), Error> {
         let to = self.read_u32();
-        let guard = self.pop_value()?.get_bool();
+        let guard = self.pop()?.get_bool();
         if guard {
             self.cursor.set_position(to as u64);
         }
@@ -268,7 +248,7 @@ impl<'a> VM<'a> {
 
         // push non-parameter locals
         for _ in 0..(local_count - param_count) {
-            self.push(V::Val(Value::make_u8(0))); // uninitialized
+            self.push(Value::make_u8(0)); // uninitialized
         }
 
         Ok(())
@@ -350,7 +330,7 @@ impl<'a> VM<'a> {
 macro_rules! push_value {
     ($self:ident => $read_fn:ident, $make_fn:ident) => {{
         let value = $self.$read_fn();
-        $self.push(V::Val(Value::$make_fn(value)));
+        $self.push(Value::$make_fn(value));
     }};
 }
 
@@ -363,9 +343,9 @@ macro_rules! binary_op {
             match $self.read_u8() {
                 $(
                     $type => {
-                        let b = $self.pop_value()?.$get_fn();
-                        let a = $self.pop_value()?.$get_fn();
-                        $self.push(V::Val(Value::$make_fn($op_fn(&a, &b))));
+                        let b = $self.pop()?.$get_fn();
+                        let a = $self.pop()?.$get_fn();
+                        $self.push(Value::$make_fn($op_fn(&a, &b)));
                     },
                 )*
                 _ => {

@@ -12,6 +12,7 @@ pub union Value {
     i64: i64,
     f32: f32,
     f64: f64,
+    usize: usize,
 }
 
 impl Value {
@@ -27,6 +28,7 @@ impl Value {
     init_fn! { make_i64(i64: i64) }
     init_fn! { make_f32(f32: f32) }
     init_fn! { make_f64(f64: f64) }
+    init_fn! { make_usize(usize: usize) }
 
     getter_fn! { get_unit(unit: ()) }
     getter_fn! { get_bool(bool: bool) }
@@ -40,6 +42,7 @@ impl Value {
     getter_fn! { get_i64(i64: i64) }
     getter_fn! { get_f32(f32: f32) }
     getter_fn! { get_f64(f64: f64) }
+    getter_fn! { get_usize(usize: usize) }
 }
 
 impl_from! {
