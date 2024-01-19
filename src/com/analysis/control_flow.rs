@@ -38,7 +38,10 @@ impl<'d> Analyser<'d> {
             StmtAbtKind::Empty => false,
             StmtAbtKind::Expr(expr) => self.expression_terminates(expr),
             StmtAbtKind::VarInit(_, expr) => self.expression_terminates(expr),
-            StmtAbtKind::IfThen(guard, _) => self.expression_terminates(guard),
+            StmtAbtKind::IfThen(guard, body) => {
+                self.analyse_control_flow(body); // analyse but discard
+                self.expression_terminates(guard) // only the guard determines the termination
+            }
             StmtAbtKind::IfThenElse(guard, body_then, body_else) => {
                 (self.analyse_control_flow(body_then.as_ref())
                     & self.analyse_control_flow(body_else.as_ref()))
