@@ -27,6 +27,13 @@ check_program_output!(variables_decl => (i64, TypeAbt::I64) 7);
 check_program_output!(variables_shadow => (bool, TypeAbt::Bool) true);
 check_program_output!(variables_assign => (bool, TypeAbt::Bool) true);
 
+check_program_output!(flow_if_then => (bool, TypeAbt::Bool) true);
+check_program_output!(flow_if_then_else => (bool, TypeAbt::Bool) true);
+check_program_output!(flow_if_then_else_nested => (bool, TypeAbt::Bool) true);
+check_program_output!(flow_while_do => (bool, TypeAbt::Bool) true);
+check_program_output!(flow_do_while => (bool, TypeAbt::Bool) true);
+check_program_output!(flow_while_do_nested => (bool, TypeAbt::Bool) true);
+
 macro_rules! check_program_output {
     ($name:ident => ($expected_ty:ty, $type_abt:expr) $expected:expr) => {
         #[test]

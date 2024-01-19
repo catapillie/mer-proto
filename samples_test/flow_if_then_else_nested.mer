@@ -1,0 +1,20 @@
+var x = 1
+
+if true and false or false then 
+{
+    x = x + 2
+    if x == 3 then
+        x = 5
+    else
+        x = x + 2
+}
+else
+{
+    x = x + 3
+    if x == 5 - 1 then
+        x = x + 1
+    else
+        x = x - 1
+}
+
+return x == 5

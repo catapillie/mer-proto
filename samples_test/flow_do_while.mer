@@ -1,0 +1,14 @@
+var a = 739011
+var b = 99999999
+
+do
+{
+    var q = a / b
+    var r = a - q * b
+    a = b
+    b = r
+}
+while b != 0
+
+debug a
+return a == 3

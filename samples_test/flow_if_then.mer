@@ -1,0 +1,7 @@
+var x = 0
+var y = 0
+
+if true then x = 1
+if false then y = 1
+
+return x == 1 and y == 0
