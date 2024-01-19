@@ -78,6 +78,9 @@ impl<'d> Analyser<'d> {
                 Ty::Ref(ty) => *ty,
                 _ => unreachable!(),
             },
+
+            E::Todo => Ty::Never,
+            E::Unreachable => Ty::Never,
         }
     }
 }

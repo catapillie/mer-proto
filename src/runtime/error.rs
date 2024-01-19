@@ -32,4 +32,9 @@ pub enum Error {
 
     #[error("invalid function call (jump to invalid address)")]
     InvalidFunctionCall,
+
+    #[error("reached 'todo' opcode")]
+    Todo,
+    #[error("reached 'unreachable' opcode")]
+    Unreachable,
 }

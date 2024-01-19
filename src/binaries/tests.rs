@@ -84,6 +84,8 @@ fn write_then_read_match() {
         Opcode::bitxor(NativeType::bool),
         Opcode::neg(NativeType::i16),
         Opcode::neg(NativeType::bool),
+        Opcode::todo,
+        Opcode::unreachable,
     ];
 
     let all_opcode_bytes = HashSet::<_>::from_iter(all_opcode_bytes());

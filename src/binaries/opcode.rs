@@ -104,6 +104,9 @@ where
 
         opcode::neg => Ok(Opcode::neg(read_native_type(cursor)?)),
 
+        opcode::todo => Ok(Opcode::todo),
+        opcode::unreachable => Ok(Opcode::unreachable),
+
         _ => Err(OpcodeError::IllegalOpcode),
     }
 }
@@ -300,5 +303,8 @@ where
             write_native_type(cursor, ty)?;
             Ok(())
         }
+
+        Opcode::todo => cursor.write_u8(opcode::todo),
+        Opcode::unreachable => cursor.write_u8(opcode::unreachable),
     }
 }

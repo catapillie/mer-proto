@@ -22,6 +22,8 @@ pub enum ExprAstKind {
     Debug(Box<ExprAst>),
     Ref(Box<ExprAst>),
     Deref(Box<ExprAst>),
+    Todo,
+    Unreachable,
 }
 
 impl ExprAstKind {

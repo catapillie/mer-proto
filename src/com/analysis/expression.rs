@@ -34,6 +34,10 @@ impl<'d> Analyser<'d> {
                 => self.analyse_reference_expression(expr),
             ExprAstKind::Deref(expr)
                 => self.analyse_dereference_expression(expr),
+            ExprAstKind::Todo
+                => ExprAbt::Todo,
+            ExprAstKind::Unreachable
+                => ExprAbt::Unreachable,
         }
     }
 

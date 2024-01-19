@@ -97,6 +97,11 @@ gen_tokens! {
     FalseKw "'false' literal"
         self => ("'false' literal"),
 
+    TodoKw "'todo' keyword"
+        self => ("'todo' keyword"),
+    UnreachableKw "'unreachable' keyword"
+        self => ("'unreachable' keyword"),
+
     Identifier(String) "identifier"
         self => ("identifier '{}'", self.0),
     Integer(i64) "integer"

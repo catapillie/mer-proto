@@ -174,6 +174,9 @@ impl<'a> VM<'a> {
                     self.push(result);
                 }
 
+                opcode::todo => return Err(Error::Todo),
+                opcode::unreachable => return Err(Error::Unreachable),
+
                 _ => return Err(Error::IllegalOpcode),
             }
         }

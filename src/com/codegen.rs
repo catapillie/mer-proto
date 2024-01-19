@@ -202,6 +202,8 @@ impl Codegen {
         use super::abt::ExprAbt as E;
         match expr {
             E::Unknown => unreachable!(),
+            E::Todo => Opcode::todo.write_bytes(&mut self.cursor),
+            E::Unreachable => Opcode::unreachable.write_bytes(&mut self.cursor),
             E::Debug(inner, ty) => {
                 self.gen_expression(inner, abt)?;
                 let ty = match ty {

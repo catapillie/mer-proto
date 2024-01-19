@@ -51,6 +51,9 @@ opcodes! {
     0x2d bitor(NativeType)
     0x2e bitxor(NativeType)
     0x2f neg(NativeType)
+
+    0xfe todo
+    0xfd unreachable
 }
 
 impl Opcode {

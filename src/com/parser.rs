@@ -560,6 +560,14 @@ impl<'a> Parser<'a> {
                 return Some(ExprAstKind::Decimal(num.0));
             }
 
+            if self.try_match_token::<TodoKw>().is_some() {
+                return Some(ExprAstKind::Todo);
+            }
+
+            if self.try_match_token::<UnreachableKw>().is_some() {
+                return Some(ExprAstKind::Unreachable);
+            }
+
             if self.try_match_token::<MalformedNumeral>().is_some() {
                 return Some(ExprAstKind::Bad)
             }
@@ -629,7 +637,7 @@ impl<'a> Parser<'a> {
             let span = self.last_span();
             if self.try_match_token::<RightParen>().is_some() {
                 let span = span.join(self.last_span());
-                return Some(TypeAstKind::Unit.wrap(span))
+                return Some(TypeAstKind::Unit.wrap(span));
             }
 
             let ty = self.expect_type_expression();
@@ -987,6 +995,8 @@ impl<'a> Parser<'a> {
                     "xor" => XorKw.wrap(span),
                     "not" => NotKw.wrap(span),
                     "debug" => DebugKw.wrap(span),
+                    "todo" => TodoKw.wrap(span),
+                    "unreachable" => UnreachableKw.wrap(span),
                     _ => Identifier(id).wrap(span),
                 };
             }

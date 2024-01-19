@@ -56,6 +56,8 @@ pub enum ExprAbt {
     Ref(Box<ExprAbt>),
     VarRef(u64),
     Deref(Box<ExprAbt>),
+    Todo,
+    Unreachable,
 }
 
 #[derive(Debug)]
@@ -119,6 +121,7 @@ impl UnOpAbtKind {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum TypeAbt {
     Unknown,
+    Never, // bottom type
     Unit,
     U8, U16, U32, U64,
     I8, I16, I32, I64,
@@ -134,7 +137,7 @@ impl TypeAbt {
         if !self.is_known() || !ty.is_known() {
             true
         } else {
-            self == ty
+            matches!(self, Self::Never) || self == ty
         }
     }
 
@@ -147,6 +150,7 @@ impl Display for TypeAbt {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Unknown => write!(f, "unknown"),
+            Self::Never => write!(f, "!"),
             Self::Unit => write!(f, "()"),
             Self::U8 => write!(f, "u8"),
             Self::U16 => write!(f, "u16"),

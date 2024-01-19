@@ -1,0 +1,15 @@
+func step(x: f64) -> f64
+{
+    if x < 0.0 then return 0.0
+    if x >= 0.0 then return 1.0
+    return unreachable
+}
+
+var f = -1.0
+while f <= 1.0 do
+{
+    debug step(f)
+    f = f + 0.2
+}
+
+return
