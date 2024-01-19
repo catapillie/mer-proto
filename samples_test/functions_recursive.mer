@@ -1,0 +1,12 @@
+func succ(n: i64) -> i64
+    = n + 1
+
+func sum(a: i64, b: i64) -> i64
+{
+    if a == 0 then
+        return b
+    else
+        return sum(a - 1, succ(b))
+}
+
+return sum(0, 0) == 0 and sum(1, 2) == 3 and sum(50, -2) == 48

@@ -1,0 +1,19 @@
+func very_outer(a: f64, b: f64) -> bool
+{
+    func outer(x: f64, y: f64) -> bool
+    {
+        func inner(a: f64, b: f64) -> bool
+        {
+            func inner_left(x: f64, y: f64) -> bool
+                = x == y
+            func inner_right(y: f64, x: f64) -> bool
+                = x == y
+            return inner_left(a, b) and inner_right(a, b)
+        }
+        return inner(x, y)
+    }
+
+    return outer(a, b) and outer(a, b)
+}
+
+return very_outer(1.0, 1.0) and not very_outer(1.0, 2.0)

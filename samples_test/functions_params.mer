@@ -1,0 +1,6 @@
+func dot(ax: f64, ay: f64, az: f64, bx: f64, by: f64, bz: f64) -> f64
+    = ax * bx + ay * by + az * bz
+
+var test_one = dot(1.0, 0.0, 1.0, 0.0, 0.0, 1.0) == 1.0
+var test_two = dot(3.0, -2.0, -1.5, -3.0, 2.0, 1.5) == -15.25
+return test_one and test_two

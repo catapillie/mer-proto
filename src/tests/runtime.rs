@@ -44,6 +44,13 @@ check_program_output!(references_assign_one => (bool, TypeAbt::Bool) true);
 check_program_output!(references_assign_two => (bool, TypeAbt::Bool) true);
 check_program_output!(references_assign_three => (bool, TypeAbt::Bool) true);
 
+check_program_output!(functions_expr => (bool, TypeAbt::Bool) true);
+check_program_output!(functions_params => (bool, TypeAbt::Bool) true);
+check_program_output!(functions_body => (bool, TypeAbt::Bool) true);
+check_program_output!(functions_nested => (bool, TypeAbt::Bool) true);
+check_program_output!(functions_recursive => (bool, TypeAbt::Bool) true);
+check_program_output!(functions_unit => ((), TypeAbt::Unit) ());
+
 macro_rules! check_program_output {
     ($name:ident => ($expected_ty:ty, $type_abt:expr) $expected:expr) => {
         #[test]

@@ -1,0 +1,11 @@
+func id(x: i64) -> i64
+    = x
+
+func succ(x: i64) -> i64
+    = x + 1
+
+func pred(x: i64) -> i64
+    = x - 1
+
+var x = 42
+return id(x) == x and succ(x) == x + 1 and pred(x) == x - 1

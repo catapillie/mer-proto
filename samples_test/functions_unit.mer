@@ -1,0 +1,10 @@
+func unit() -> ()
+{
+    return
+}
+
+unit()
+unit()
+unit()
+
+return unit()

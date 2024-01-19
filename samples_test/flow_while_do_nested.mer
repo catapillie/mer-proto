@@ -1,5 +1,5 @@
-var w = 1024
-var h = 1024
+var w = 64
+var h = 64
 
 var s = 0
 

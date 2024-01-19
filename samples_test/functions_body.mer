@@ -1,0 +1,12 @@
+func sum(n: i64) -> i64
+{
+    var s = 0
+    while n > 0 do
+    {
+        s = s + n
+        n = n - 1
+    }
+    return s
+}
+
+return sum(-205) == 0 and sum(10) == 55 and sum(1) == 1
