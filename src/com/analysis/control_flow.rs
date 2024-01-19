@@ -36,28 +36,28 @@ impl<'d> Analyser<'d> {
                 does_return
             }
             StmtAbtKind::Empty => false,
-            StmtAbtKind::Expr(expr) => self.expression_terminates(expr),
-            StmtAbtKind::VarInit(_, expr) => self.expression_terminates(expr),
+            StmtAbtKind::Expr(expr) => Self::expression_terminates(expr),
+            StmtAbtKind::VarInit(_, expr) => Self::expression_terminates(expr),
             StmtAbtKind::IfThen(guard, body) => {
                 self.analyse_control_flow(body); // analyse but discard
-                self.expression_terminates(guard) // only the guard determines the termination
+                Self::expression_terminates(guard) // only the guard determines the termination
             }
             StmtAbtKind::IfThenElse(guard, body_then, body_else) => {
                 (self.analyse_control_flow(body_then.as_ref())
                     & self.analyse_control_flow(body_else.as_ref()))
-                    | self.expression_terminates(guard)
+                    | Self::expression_terminates(guard)
             }
             StmtAbtKind::WhileDo(guard, body) => {
-                self.analyse_control_flow(body.as_ref()) | self.expression_terminates(guard)
+                self.analyse_control_flow(body.as_ref()) | Self::expression_terminates(guard)
             }
             StmtAbtKind::DoWhile(body, guard) => {
-                self.analyse_control_flow(body.as_ref()) | self.expression_terminates(guard)
+                self.analyse_control_flow(body.as_ref()) | Self::expression_terminates(guard)
             }
             StmtAbtKind::Return(_) => true,
         }
     }
 
-    fn expression_terminates(&mut self, expr: &ExprAbt) -> bool {
+    fn expression_terminates(expr: &ExprAbt) -> bool {
         match expr {
             ExprAbt::Unknown => false,
             ExprAbt::Unit => false,
@@ -69,16 +69,16 @@ impl<'d> Analyser<'d> {
                 var_id: _,
                 deref_count: _,
                 expr,
-            } => self.expression_terminates(expr),
+            } => Self::expression_terminates(expr),
             ExprAbt::Binary(_, left, right) => {
-                self.expression_terminates(left) || self.expression_terminates(right)
+                Self::expression_terminates(left) || Self::expression_terminates(right)
             }
-            ExprAbt::Unary(_, expr) => self.expression_terminates(expr),
-            ExprAbt::Call(_, args, _) => args.iter().any(|expr| self.expression_terminates(expr)),
-            ExprAbt::Debug(expr, _) => self.expression_terminates(expr),
-            ExprAbt::Ref(expr) => self.expression_terminates(expr),
+            ExprAbt::Unary(_, expr) => Self::expression_terminates(expr),
+            ExprAbt::Call(_, args, _) => args.iter().any(Self::expression_terminates),
+            ExprAbt::Debug(expr, _) => Self::expression_terminates(expr),
+            ExprAbt::Ref(expr) => Self::expression_terminates(expr),
             ExprAbt::VarRef(_) => false,
-            ExprAbt::Deref(expr) => self.expression_terminates(expr),
+            ExprAbt::Deref(expr) => Self::expression_terminates(expr),
             ExprAbt::Todo => true,
             ExprAbt::Unreachable => true,
         }
