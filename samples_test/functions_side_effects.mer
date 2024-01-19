@@ -1,0 +1,10 @@
+func sqr(x: &f64) -> f64
+{
+    var xx = (@x) * (@x)
+    @x = xx
+    return xx
+}
+
+var x = 20.0
+var y = 3.0
+return x + sqr(&x) == 420.0 and x == 400.0 and sqr(&y) + y == 18.0 and y == 9.0

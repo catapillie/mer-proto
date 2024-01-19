@@ -49,6 +49,7 @@ check_program_output!(functions_params => (bool, TypeAbt::Bool) true);
 check_program_output!(functions_body => (bool, TypeAbt::Bool) true);
 check_program_output!(functions_nested => (bool, TypeAbt::Bool) true);
 check_program_output!(functions_recursive => (bool, TypeAbt::Bool) true);
+check_program_output!(functions_side_effects => (bool, TypeAbt::Bool) true);
 check_program_output!(functions_unit => ((), TypeAbt::Unit) ());
 
 macro_rules! check_program_output {
