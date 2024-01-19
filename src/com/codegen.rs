@@ -146,23 +146,22 @@ impl Codegen {
             S::IfThenElse(guard, body_then, body_else) => {
                 // if ... then
                 self.gen_expression(guard, abt)?;
-                Opcode::neg(NativeType::bool).write_bytes(&mut self.cursor)?;
                 self.cursor.write_u8(opcode::jmp_if)?;
                 let cursor_guard_end = self.gen_u32_placeholder()?;
 
-                // then ...
-                self.gen_statement(body_then, abt)?;
-                self.cursor.write_u8(opcode::jmp)?;
-                let cursor_body_then_end = self.gen_u32_placeholder()?;
-
                 // else ...
-                let cursor_body_else_start = self.position();
                 self.gen_statement(body_else, abt)?;
-                let cursor_body_else_end = self.position();
+                self.cursor.write_u8(opcode::jmp)?;
+                let cursor_body_else_end = self.gen_u32_placeholder()?;
+
+                // then ...
+                let cursor_body_then_start = self.position();
+                self.gen_statement(body_then, abt)?;
+                let cursor_body_then_end = self.position();
 
                 // write saved jump addresses
-                self.patch_u32_placeholder(cursor_body_then_end, cursor_body_else_end)?;
-                self.patch_u32_placeholder(cursor_guard_end, cursor_body_else_start)?;
+                self.patch_u32_placeholder(cursor_body_else_end, cursor_body_then_end)?;
+                self.patch_u32_placeholder(cursor_guard_end, cursor_body_then_start)?;
             }
             S::WhileDo(guard, body) => {
                 // while ...
