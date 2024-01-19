@@ -5,6 +5,9 @@ authors = ["catapillie"]
 description = "mer programming language"
 edition = "2021"
 
+[profile.release]
+lto = "thin"
+
 [lib]
 name = "merlib"
 path = "src/lib.rs"
