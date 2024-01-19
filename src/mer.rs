@@ -5,7 +5,7 @@ use colored::Colorize;
 
 use merlib::{
     binaries,
-    com::{self, AnalysisStage},
+    com::{self, AnalysisStage, Severity},
     runtime::{Opcode, VM},
 };
 
@@ -70,11 +70,22 @@ fn compile(command: CompileCommand) {
             let abt = match com::analyse_program(&source) {
                 AnalysisStage::Ok(abt, diagnostics) => {
                     let diagnostics = diagnostics.done();
+                    let error_count = diagnostics
+                        .iter()
+                        .filter(|d| matches!(d.severity, Severity::Error))
+                        .count();
+                    let warning_count = diagnostics
+                        .iter()
+                        .filter(|d| matches!(d.severity, Severity::Warning))
+                        .count();
                     if diagnostics.is_empty() {
                         msg::ok("analysis finished normally")
                     } else {
-                        let len = diagnostics.len();
-                        msg::warn(format!("analysis finished with {len} errors"));
+                        msg::warn(format!(
+                            "analysis finished with {} error(s) and {} warning(s)",
+                            error_count.to_string().bold(),
+                            warning_count.to_string().bold(),
+                        ));
                         for diagnostic in diagnostics.into_iter() {
                             com::print_diagnostic(&path, &source, &diagnostic);
                             println!();
