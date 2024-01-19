@@ -77,7 +77,7 @@ impl<'d> Analyser<'d> {
             ExprAbt::Call(_, args, _) => args.iter().any(|expr| self.expression_terminates(expr)),
             ExprAbt::Debug(expr, _) => self.expression_terminates(expr),
             ExprAbt::Ref(expr) => self.expression_terminates(expr),
-            ExprAbt::VarRef(_) => todo!(),
+            ExprAbt::VarRef(_) => false,
             ExprAbt::Deref(expr) => self.expression_terminates(expr),
             ExprAbt::Todo => true,
             ExprAbt::Unreachable => true,
