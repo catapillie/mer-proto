@@ -34,6 +34,16 @@ check_program_output!(flow_while_do => (bool, TypeAbt::Bool) true);
 check_program_output!(flow_do_while => (bool, TypeAbt::Bool) true);
 check_program_output!(flow_while_do_nested => (bool, TypeAbt::Bool) true);
 
+check_program_output!(references_one => (bool, TypeAbt::Bool) true);
+check_program_output!(references_two => (bool, TypeAbt::Bool) true);
+check_program_output!(references_three => (bool, TypeAbt::Bool) true);
+
+check_program_output!(references_immediate_alloc => (bool, TypeAbt::Bool) true);
+check_program_output!(references_deref => (bool, TypeAbt::Bool) true);
+check_program_output!(references_assign_one => (bool, TypeAbt::Bool) true);
+check_program_output!(references_assign_two => (bool, TypeAbt::Bool) true);
+check_program_output!(references_assign_three => (bool, TypeAbt::Bool) true);
+
 macro_rules! check_program_output {
     ($name:ident => ($expected_ty:ty, $type_abt:expr) $expected:expr) => {
         #[test]

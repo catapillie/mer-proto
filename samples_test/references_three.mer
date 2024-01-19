@@ -1,0 +1,3 @@
+var x = 140
+var pppx = &&&x
+return @@@pppx == x

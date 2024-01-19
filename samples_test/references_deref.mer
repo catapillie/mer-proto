@@ -1,0 +1,7 @@
+var x = 500
+var ppppx = &&&&x
+var pppx = @ppppx
+var ppx = @pppx
+var px = @ppx
+var y = @px
+return x == y

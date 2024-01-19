@@ -1,0 +1,6 @@
+var x = -1
+var pp = &&x
+
+@@pp = 10
+
+return x == 10
