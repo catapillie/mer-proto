@@ -1,5 +1,5 @@
 use crate::com::{
-    abt::{StmtAbt, StmtAbtKind},
+    abt::{ExprAbt, StmtAbt, StmtAbtKind},
     diagnostics::{self, DiagnosticKind, Note, Severity},
     span::Span,
 };
@@ -36,16 +36,48 @@ impl<'d> Analyser<'d> {
                 does_return
             }
             StmtAbtKind::Empty => false,
-            StmtAbtKind::Expr(_) => false,
-            StmtAbtKind::VarInit(_, _) => false,
-            StmtAbtKind::IfThen(_, _) => false,
-            StmtAbtKind::IfThenElse(_, body_then, body_else) => {
-                self.analyse_control_flow(body_then.as_ref())
-                    && self.analyse_control_flow(body_else.as_ref())
+            StmtAbtKind::Expr(expr) => self.expression_terminates(expr),
+            StmtAbtKind::VarInit(_, expr) => self.expression_terminates(expr),
+            StmtAbtKind::IfThen(guard, _) => self.expression_terminates(guard),
+            StmtAbtKind::IfThenElse(guard, body_then, body_else) => {
+                (self.analyse_control_flow(body_then.as_ref())
+                    & self.analyse_control_flow(body_else.as_ref()))
+                    | self.expression_terminates(guard)
             }
-            StmtAbtKind::WhileDo(_, body) => self.analyse_control_flow(body.as_ref()),
-            StmtAbtKind::DoWhile(body, _) => self.analyse_control_flow(body.as_ref()),
+            StmtAbtKind::WhileDo(guard, body) => {
+                self.analyse_control_flow(body.as_ref()) | self.expression_terminates(guard)
+            }
+            StmtAbtKind::DoWhile(body, guard) => {
+                self.analyse_control_flow(body.as_ref()) | self.expression_terminates(guard)
+            }
             StmtAbtKind::Return(_) => true,
+        }
+    }
+
+    fn expression_terminates(&mut self, expr: &ExprAbt) -> bool {
+        match expr {
+            ExprAbt::Unknown => false,
+            ExprAbt::Unit => false,
+            ExprAbt::Integer(_) => false,
+            ExprAbt::Decimal(_) => false,
+            ExprAbt::Boolean(_) => false,
+            ExprAbt::Variable(_) => false,
+            ExprAbt::Assignment {
+                var_id: _,
+                deref_count: _,
+                expr,
+            } => self.expression_terminates(expr),
+            ExprAbt::Binary(_, left, right) => {
+                self.expression_terminates(left) || self.expression_terminates(right)
+            }
+            ExprAbt::Unary(_, expr) => self.expression_terminates(expr),
+            ExprAbt::Call(_, args, _) => args.iter().any(|expr| self.expression_terminates(expr)),
+            ExprAbt::Debug(expr, _) => self.expression_terminates(expr),
+            ExprAbt::Ref(expr) => self.expression_terminates(expr),
+            ExprAbt::VarRef(_) => todo!(),
+            ExprAbt::Deref(expr) => self.expression_terminates(expr),
+            ExprAbt::Todo => true,
+            ExprAbt::Unreachable => true,
         }
     }
 }
