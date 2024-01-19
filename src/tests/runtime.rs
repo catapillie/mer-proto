@@ -59,7 +59,8 @@ macro_rules! check_program_output {
             // analysis
             let path = format!("./samples_test/{}.mer", stringify!($name));
             let source = fs::read_to_string(&path).unwrap();
-            let AnalysisStage::Ok(abt, diagnostics) = com::analyse_program_with_type(&source, $type_abt)
+            let AnalysisStage::Ok(abt, diagnostics) =
+                com::analyse_program_with_type(&source, $type_abt)
             else {
                 panic!("failed to analyse sample {}", path.bold().underline());
             };
@@ -88,12 +89,14 @@ macro_rules! check_program_output {
             });
 
             // executes properly
-            let val = VM::new(&bytecode).run::<$expected_ty>().unwrap_or_else(|err| {
-                panic!(
-                    "sample {} failed to execute properly: {err}",
-                    path.bold().underline()
-                )
-            });
+            let val = VM::new(&bytecode)
+                .run::<$expected_ty>()
+                .unwrap_or_else(|err| {
+                    panic!(
+                        "sample {} failed to execute properly: {err}",
+                        path.bold().underline()
+                    )
+                });
 
             // check result
             assert_eq!(val, $expected);

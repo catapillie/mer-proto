@@ -211,7 +211,7 @@ impl<'a> VM<'a> {
             Some(last) => {
                 self.push(*last);
                 Ok(())
-            },
+            }
             None => Err(Error::StackUnderflow),
         }
     }
