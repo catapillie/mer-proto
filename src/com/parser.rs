@@ -615,7 +615,7 @@ impl<'a> Parser<'a> {
             span = span.join(self.last_span());
             expr = ExprAstKind::Call(Box::new(expr), params).wrap(span);
         }
-        
+
         Some(expr)
     }
 
@@ -636,6 +636,37 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_type_expression(&mut self) -> Option<TypeAst> {
+        let (ty, span) = take_span!(self => {
+            let mut types = Vec::new();
+            while let Some(ty) = self.parse_primary_type_expression() {
+                types.push(ty);
+                if matches!(self.look_ahead, Token::RightArrow(_, _)) {
+                    break;
+                }
+            }
+
+            if types.is_empty() {
+                return None;
+            }
+
+            if self.try_match_token::<RightArrow>().is_some() {
+                let ret_ty = self.expect_type_expression();
+                return Some(TypeAstKind::Func(types, Box::new(ret_ty)));
+            }
+
+            if types.len() > 1 {
+                self.match_token::<RightArrow>();
+                let ret_ty = self.expect_type_expression();
+                Some(TypeAstKind::Func(types, Box::new(ret_ty)))
+            } else {
+                Some(types.swap_remove(0).kind)
+            }
+        });
+
+        Some(ty?.wrap(span))
+    }
+
+    fn parse_primary_type_expression(&mut self) -> Option<TypeAst> {
         if self.try_match_token::<LeftParen>().is_some() {
             let span = self.last_span();
             if self.try_match_token::<RightParen>().is_some() {
@@ -657,6 +688,13 @@ impl<'a> Parser<'a> {
 
         if let Some(id) = self.try_match_token::<Identifier>() {
             return Some(TypeAstKind::Declared(id.0).wrap(self.last_span()));
+        }
+
+        if self.try_match_token::<RightArrow>().is_some() {
+            let span = self.last_span();
+            let ty = self.expect_type_expression();
+            let span = span.join(ty.span);
+            return Some(TypeAstKind::Func(vec![], Box::new(ty)).wrap(span));
         }
 
         None

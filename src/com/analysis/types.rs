@@ -38,6 +38,11 @@ impl<'d> Analyser<'d> {
 
                 TypeAbt::Unknown
             }
+            TypeAstKind::Func(arg_tys, ret_ty) => {
+                let bound_arg_tys = arg_tys.iter().map(|ty| self.analyse_type(ty)).collect();
+                let bound_ret_ty = self.analyse_type(ret_ty);
+                TypeAbt::Func(bound_arg_tys, Box::new(bound_ret_ty))
+            }
         }
     }
 
