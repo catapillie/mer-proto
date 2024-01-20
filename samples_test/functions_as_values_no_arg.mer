@@ -1,0 +1,31 @@
+func zero() -> ()
+{
+    debug 0
+    return
+}
+
+func one() -> ()
+{
+    debug 1
+    return
+}
+
+func two() -> ()
+{
+    debug 0
+    return
+}
+
+func choose_callback(id: i64) -> -> ()
+{
+    if id == 0 then return zero
+    if id == 1 then return one
+    if id == 2 then return two
+    unreachable
+}
+
+choose_callback(0)()
+choose_callback(1)()
+choose_callback(2)()
+
+return true

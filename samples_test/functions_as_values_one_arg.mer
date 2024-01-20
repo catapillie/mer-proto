@@ -1,0 +1,16 @@
+func zero(n: i64) -> i64 = 0 * n
+func one(n: i64) -> i64 = 1 * n
+func two(n: i64) -> i64 = 2 * n
+
+func choose_callback(id: i64) -> i64 -> i64
+{
+    if id == 0 then return zero
+    if id == 1 then return one
+    if id == 2 then return two
+    unreachable
+}
+
+var t0 = choose_callback(0)(10) == 0
+var t1 = choose_callback(1)(24) == 24
+var t2 = choose_callback(2)(-9) == -18
+return t0 and t1 and t2

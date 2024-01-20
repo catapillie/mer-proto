@@ -52,6 +52,14 @@ check_program_output!(functions_recursive => (bool, TypeAbt::Bool) true);
 check_program_output!(functions_side_effects => (bool, TypeAbt::Bool) true);
 check_program_output!(functions_unit => ((), TypeAbt::Unit) ());
 
+check_program_output!(functions_as_values_no_arg => (bool, TypeAbt::Bool) true);
+check_program_output!(functions_as_values_one_arg => (bool, TypeAbt::Bool) true);
+check_program_output!(functions_as_values_many_args => (bool, TypeAbt::Bool) true);
+
+check_program_output!(indirect_call_no_arg => ((), TypeAbt::Unit) ());
+check_program_output!(indirect_call_one_arg => ((), TypeAbt::Unit) ());
+check_program_output!(indirect_call_many_args => ((), TypeAbt::Unit) ());
+
 macro_rules! check_program_output {
     ($name:ident => ($expected_ty:ty, $type_abt:expr) $expected:expr) => {
         #[test]

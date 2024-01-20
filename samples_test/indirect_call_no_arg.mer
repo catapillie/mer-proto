@@ -1,0 +1,10 @@
+func f() -> ()
+{
+    return
+}
+
+var my_function = f
+my_function()
+my_function()
+my_function()
+return

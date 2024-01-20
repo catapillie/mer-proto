@@ -1,0 +1,24 @@
+func dot(xa: f64, ya: f64, za: f64, xb: f64, yb: f64, zb: f64) -> f64
+    = xa * xb + ya * yb + za * zb
+
+
+var calc = dot
+
+var x = -1.0
+while x <= 1.0 do
+{
+    var y = -1.0
+    while y <= 1.0 do
+    {
+        var z = -1.0
+        while z <= 1.0 do
+        {
+            debug calc(x, y, z, 1.0, 0.0, 0.0)
+            z = z + 0.2
+        }
+        y = y + 0.2
+    }
+    x = x + 0.2
+}
+
+return

@@ -1,0 +1,16 @@
+func zero(a: f64, b: f64, c: f64) -> f64 = b * b - 4.0 * a * c
+func one(a: f64, b: f64, c: f64) -> f64 = a * a + b * b + c * c
+func two(a: f64, b: f64, c: f64) -> f64 = a + b + c
+
+func choose_callback(id: i64) -> f64 f64 f64 -> f64
+{
+    if id == 0 then return zero
+    if id == 1 then return one
+    if id == 2 then return two
+    unreachable
+}
+
+var t0 = choose_callback(0)(-3.5, -4.0, -1.25) == -1.5
+var t1 = choose_callback(1)(2.0, 3.0, 4.0) == 29.0
+var t2 = choose_callback(2)(-1.5, 2.0, -0.5) == 0.0
+return t0 and t1 and t2
