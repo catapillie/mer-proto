@@ -435,7 +435,7 @@ impl Note {
                     ty.to_string().bold()
                 ),
             Self::OfType(ty)
-                => format!("this is be of type '{}'",
+                => format!("this is of type '{}'",
                     ty.to_string().bold()
                 ),
             Self::VariableDeclaration(name)
