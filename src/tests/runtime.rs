@@ -40,6 +40,7 @@ check_program_output!(references_three => (bool, TypeAbt::Bool) true);
 
 check_program_output!(references_immediate_alloc => (bool, TypeAbt::Bool) true);
 check_program_output!(references_deref => (bool, TypeAbt::Bool) true);
+check_program_output!(references_of_args => (bool, TypeAbt::Bool) true);
 check_program_output!(references_assign_one => (bool, TypeAbt::Bool) true);
 check_program_output!(references_assign_two => (bool, TypeAbt::Bool) true);
 check_program_output!(references_assign_three => (bool, TypeAbt::Bool) true);
@@ -52,6 +53,7 @@ check_program_output!(functions_recursive => (bool, TypeAbt::Bool) true);
 check_program_output!(functions_side_effects => (bool, TypeAbt::Bool) true);
 check_program_output!(functions_unit => ((), TypeAbt::Unit) ());
 
+check_program_output!(functions_as_values_heap => ((), TypeAbt::Unit) ());
 check_program_output!(functions_as_values_no_arg => (bool, TypeAbt::Bool) true);
 check_program_output!(functions_as_values_one_arg => (bool, TypeAbt::Bool) true);
 check_program_output!(functions_as_values_many_args => (bool, TypeAbt::Bool) true);

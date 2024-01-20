@@ -1,0 +1,14 @@
+func nothing() -> ()
+{
+    return
+}
+
+func still_nothing() -> &(-> ())
+    = &nothing
+
+var n = &nothing
+
+(@n)()
+(@still_nothing())()
+
+return
