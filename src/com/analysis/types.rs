@@ -59,16 +59,12 @@ impl<'d> Analyser<'d> {
                     .iter()
                     .map(|(_, ty)| ty.clone())
                     .collect::<Vec<_>>();
-                let return_ty = info.ty.clone();
-                let arg_ty = if args.is_empty() {
-                    vec![Ty::Unit]
-                } else {
-                    args
-                };
-                Ty::Func(arg_ty, Box::new(return_ty))
+                Ty::Func(args, Box::new(info.ty.clone()))
             }
 
             E::Call(func_id, _, _) => self.functions.get(func_id).unwrap().ty.clone(),
+            E::IndirectCall(_, _, ty) => ty.clone(),
+
             E::Assignment {
                 var_id,
                 deref_count,

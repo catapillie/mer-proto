@@ -53,6 +53,7 @@ pub enum ExprAbt {
     Binary(BinOpAbt, Box<ExprAbt>, Box<ExprAbt>),
     Unary(UnOpAbt, Box<ExprAbt>),
     Call(u64, Vec<ExprAbt>, TypeAbt),
+    IndirectCall(Box<ExprAbt>, Vec<ExprAbt>, TypeAbt),
     Debug(Box<ExprAbt>, TypeAbt),
     Ref(Box<ExprAbt>),
     VarRef(u64),
@@ -147,7 +148,7 @@ impl TypeAbt {
         match self {
             TypeAbt::Unknown => false,
             TypeAbt::Ref(inner) => inner.is_known(),
-            TypeAbt::Func(args, ty) => args.iter().any(Self::is_known) && ty.is_known(),
+            TypeAbt::Func(args, ty) => args.iter().all(Self::is_known) && ty.is_known(),
             _ => true,
         }
     }
@@ -176,13 +177,16 @@ impl TypeAbt {
                 if paren {
                     write!(f, "(")?;
                 }
-                let mut iter = args.iter();
-                write!(f, "{}", iter.next().unwrap())?;
-                for arg in iter {
-                    write!(f, ", ")?;
-                    arg.fmt_paren(f, true)?;
+                if let Some((head, tail)) = args.split_first() {
+                    head.fmt_paren(f, true)?;
+                    for arg in tail {
+                        write!(f, ", ")?;
+                        arg.fmt_paren(f, true)?;
+                    }
+                    write!(f, " -> {to}")?;
+                } else {
+                    write!(f, "-> {to}")?;
                 }
-                write!(f, " -> {to}")?;
                 if paren {
                     write!(f, ")")?;
                 }

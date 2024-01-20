@@ -250,7 +250,7 @@ impl Codegen {
                 self.cursor.write_u8(opcode::ld_u32)?;
                 self.add_fn_addr_placeholder(*func)?;
                 Ok(())
-            },
+            }
             E::Assignment {
                 var_id,
                 deref_count,
@@ -300,6 +300,14 @@ impl Codegen {
                 }
                 self.cursor.write_u8(opcode::call)?;
                 self.add_fn_addr_placeholder(*id)?;
+                Ok(())
+            }
+            E::IndirectCall(callee, args, _) => {
+                for arg in args {
+                    self.gen_expression(arg, abt)?;
+                }
+                self.gen_expression(callee, abt)?;
+                Opcode::call_addr.write_bytes(&mut self.cursor)?;
                 Ok(())
             }
             E::Binary(op, left, right) => {

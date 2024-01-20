@@ -155,21 +155,21 @@ impl<'d> Analyser<'d> {
             .collect::<Vec<_>>();
 
         if matches!(bound_callee, ExprAbt::Unknown) {
-            return ExprAbt::Unknown
+            return ExprAbt::Unknown;
         };
 
-        // let Some(info) = self.get_function(name) else {
-        //     let d = diagnostics::create_diagnostic()
-        //         .with_kind(DiagnosticKind::UnknownFunction(name.to_string()))
-        //         .with_severity(Severity::Error)
-        //         .with_span(span)
-        //         .annotate_primary(Note::Unknown, span)
-        //         .done();
-        //     self.diagnostics.push(d);
-        //     return ExprAbt::Unknown;
-        // };
-
-        let ExprAbt::Function(id) = bound_callee else {
+        if let ExprAbt::Function(id) = bound_callee {
+            self.analyse_immediate_call(args, bound_args, span, id)
+        } else if let TypeAbt::Func(func_args, func_return_ty) = self.type_of(&bound_callee) {
+            self.analyse_indirect_call(
+                args,
+                bound_args,
+                func_args,
+                *func_return_ty,
+                bound_callee,
+                span,
+            )
+        } else {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::InvalidCallee)
                 .with_span(callee.span)
@@ -177,9 +177,17 @@ impl<'d> Analyser<'d> {
                 .annotate_primary(Note::NotFunction(self.type_of(&bound_callee)), callee.span)
                 .done();
             self.diagnostics.push(d);
-            return ExprAbt::Unknown;
-        };
+            ExprAbt::Unknown
+        }
+    }
 
+    fn analyse_immediate_call(
+        &mut self,
+        args: &[ExprAst],
+        bound_args: Vec<ExprAbt>,
+        span: Span,
+        id: u64,
+    ) -> ExprAbt {
         let info = self.functions.get(&id).unwrap();
 
         let func_span = info.span.unwrap();
@@ -196,33 +204,35 @@ impl<'d> Analyser<'d> {
             .zip(func_args.iter().map(|(_, arg_ty)| arg_ty))
         {
             let ty_param = self.type_of(bound_arg);
-            if !ty_param.is(arg_ty) {
-                let arg_id = func_arg_ids.get(i).unwrap();
-                let arg_info = self.variables.get(arg_id).unwrap();
-                let arg_name = arg_info.name.clone();
-                let arg_span = arg_info.declaration_span;
-                let d = diagnostics::create_diagnostic()
-                    .with_kind(DiagnosticKind::TypeMismatch {
-                        found: ty_param.clone(),
-                        expected: arg_ty.clone(),
-                    })
-                    .with_severity(Severity::Error)
-                    .with_span(span)
-                    .annotate_secondary(
-                        Note::ArgumentType(arg_name, arg_ty.clone())
-                            .dddot_back()
-                            .num(1),
-                        arg_span,
-                        NoteSeverity::Annotation,
-                    )
-                    .annotate_primary(
-                        Note::MustBeOfType(arg_ty.clone()).so().dddot_front().num(2),
-                        span,
-                    )
-                    .done();
-                self.diagnostics.push(d);
-                invalid = true;
+            if ty_param.is(arg_ty) {
+                continue;
             }
+
+            let arg_id = func_arg_ids.get(i).unwrap();
+            let arg_info = self.variables.get(arg_id).unwrap();
+            let arg_name = arg_info.name.clone();
+            let arg_span = arg_info.declaration_span;
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::TypeMismatch {
+                    found: ty_param.clone(),
+                    expected: arg_ty.clone(),
+                })
+                .with_severity(Severity::Error)
+                .with_span(span)
+                .annotate_secondary(
+                    Note::ArgumentType(arg_name, arg_ty.clone())
+                        .dddot_back()
+                        .num(1),
+                    arg_span,
+                    NoteSeverity::Annotation,
+                )
+                .annotate_primary(
+                    Note::MustBeOfType(arg_ty.clone()).so().dddot_front().num(2),
+                    span,
+                )
+                .done();
+            self.diagnostics.push(d);
+            invalid = true;
         }
 
         if bound_args.len() != func_args.len() {
@@ -256,6 +266,60 @@ impl<'d> Analyser<'d> {
             ExprAbt::Unknown
         } else {
             ExprAbt::Call(id, bound_args, ty.clone())
+        }
+    }
+
+    fn analyse_indirect_call(
+        &mut self,
+        args: &[ExprAst],
+        bound_args: Vec<ExprAbt>,
+        func_args: Vec<TypeAbt>,
+        func_return_ty: TypeAbt,
+        bound_callee: ExprAbt,
+        span: Span,
+    ) -> ExprAbt {
+        let mut invalid = false;
+        for ((bound_arg, span), arg_ty) in bound_args
+            .iter()
+            .zip(args.iter().map(|arg| arg.span))
+            .zip(&func_args)
+        {
+            let ty = self.type_of(bound_arg);
+            if ty.is(arg_ty) {
+                continue;
+            }
+
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::TypeMismatch {
+                    found: ty,
+                    expected: arg_ty.clone(),
+                })
+                .with_span(span)
+                .with_severity(Severity::Error)
+                .annotate_primary(Note::MustBeOfType(arg_ty.clone()), span)
+                .done();
+            self.diagnostics.push(d);
+            invalid = true;
+        }
+
+        if bound_args.len() != func_args.len() {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::InvalidArgCount {
+                    got: bound_args.len(),
+                    expected: func_args.len(),
+                })
+                .with_span(span)
+                .with_severity(Severity::Error)
+                .annotate_primary(Note::Here, span)
+                .done();
+            self.diagnostics.push(d);
+            invalid = true;
+        }
+
+        if invalid {
+            ExprAbt::Unknown
+        } else {
+            ExprAbt::IndirectCall(Box::new(bound_callee), bound_args, func_return_ty)
         }
     }
 

@@ -13,6 +13,7 @@ opcodes! {
     0xc1 jmp_if(u32)
     0xc2 ret
     0xc3 call(u32)
+    0xc4 call_addr
 
     0xd0 ld_loc(u8)
     0xd1 st_loc(u8)

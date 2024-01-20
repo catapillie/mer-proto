@@ -76,6 +76,9 @@ impl<'d> Analyser<'d> {
             }
             ExprAbt::Unary(_, expr) => Self::expression_terminates(expr),
             ExprAbt::Call(_, args, _) => args.iter().any(Self::expression_terminates),
+            ExprAbt::IndirectCall(callee, args, _) => {
+                Self::expression_terminates(callee) && args.iter().any(Self::expression_terminates)
+            }
             ExprAbt::Debug(expr, _) => Self::expression_terminates(expr),
             ExprAbt::Ref(expr) => Self::expression_terminates(expr),
             ExprAbt::VarRef(_) => false,

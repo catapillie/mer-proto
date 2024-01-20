@@ -103,6 +103,7 @@ impl<'a> VM<'a> {
                 opcode::jmp_if => self.jmp_if()?,
                 opcode::ret => self.ret()?,
                 opcode::call => self.call()?,
+                opcode::call_addr => self.call_addr()?,
 
                 opcode::ld_loc => self.ld_loc(),
                 opcode::st_loc => self.st_loc()?,
@@ -239,6 +240,13 @@ impl<'a> VM<'a> {
 
     fn call(&mut self) -> Result<(), Error> {
         let fp = self.read_u32() as u64;
+        let back = self.cursor.position();
+        self.call_fn(fp, Some(back))?;
+        Ok(())
+    }
+
+    fn call_addr(&mut self) -> Result<(), Error> {
+        let fp = self.pop()?.get_u32() as u64;
         let back = self.cursor.position();
         self.call_fn(fp, Some(back))?;
         Ok(())

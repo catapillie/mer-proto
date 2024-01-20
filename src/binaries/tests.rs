@@ -29,6 +29,7 @@ fn write_then_read_match() {
         Opcode::ret,
         Opcode::call(5),
         Opcode::call(18),
+        Opcode::call_addr,
         Opcode::ld_loc(0),
         Opcode::ld_loc(1),
         Opcode::ld_loc(2),
