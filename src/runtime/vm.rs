@@ -157,6 +157,12 @@ impl<'a> VM<'a> {
                     };
                     *heap_value = value;
                 }
+                opcode::realloc_loc => {
+                    let index = self.read_u8() as usize;
+                    let offset = self.frames.last().unwrap().local_offset;
+                    let ptr = self.heap.insert(self.stack[offset + index]);
+                    self.stack[offset + index] = Value::make_usize(ptr);
+                }
 
                 opcode::neg => {
                     let ty = self.read_u8();

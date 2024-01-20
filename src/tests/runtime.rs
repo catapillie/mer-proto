@@ -57,6 +57,7 @@ check_program_output!(functions_as_values_heap => ((), TypeAbt::Unit) ());
 check_program_output!(functions_as_values_no_arg => (bool, TypeAbt::Bool) true);
 check_program_output!(functions_as_values_one_arg => (bool, TypeAbt::Bool) true);
 check_program_output!(functions_as_values_many_args => (bool, TypeAbt::Bool) true);
+check_program_output!(functions_as_values_ref_of_args => (bool, TypeAbt::Bool) true);
 
 check_program_output!(indirect_call_no_arg => ((), TypeAbt::Unit) ());
 check_program_output!(indirect_call_one_arg => ((), TypeAbt::Unit) ());

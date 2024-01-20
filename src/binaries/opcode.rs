@@ -60,6 +60,7 @@ where
         opcode::alloc => Ok(Opcode::alloc),
         opcode::ld_heap => Ok(Opcode::ld_heap),
         opcode::st_heap => Ok(Opcode::st_heap),
+        opcode::realloc_loc => Ok(Opcode::realloc_loc(cursor.read_u8()?)),
 
         opcode::entry_point => Ok(Opcode::entry_point(cursor.read_u32::<LE>()?)),
         opcode::function => {
@@ -158,6 +159,11 @@ where
         Opcode::alloc => cursor.write_u8(opcode::alloc),
         Opcode::ld_heap => cursor.write_u8(opcode::ld_heap),
         Opcode::st_heap => cursor.write_u8(opcode::st_heap),
+        Opcode::realloc_loc(loc) => {
+            cursor.write_u8(opcode::realloc_loc)?;
+            cursor.write_u8(*loc)?;
+            Ok(())
+        }
 
         Opcode::entry_point(addr) => {
             cursor.write_u8(opcode::entry_point)?;

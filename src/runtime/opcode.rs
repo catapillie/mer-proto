@@ -21,6 +21,7 @@ opcodes! {
     0xe0 alloc
     0xe1 ld_heap
     0xe2 st_heap
+    0xe3 realloc_loc(u8)
 
     0xf0 entry_point(u32)
     0xf1 function(String, u8, u8)
@@ -78,6 +79,7 @@ impl Opcode {
             Opcode::call(fp) => cursor.write_u32::<byteorder::LE>(*fp)?,
             Opcode::ld_loc(loc) => cursor.write_u8(*loc)?,
             Opcode::st_loc(loc) => cursor.write_u8(*loc)?,
+            Opcode::realloc_loc(loc) => cursor.write_u8(*loc)?,
             Opcode::entry_point(fp) => cursor.write_u32::<byteorder::LE>(*fp)?,
             Opcode::function(name, param_count, local_count) => {
                 let len = name.len() as u16;

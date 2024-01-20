@@ -1,0 +1,28 @@
+func unbump(x: &i64) -> ()
+{
+    @x = @x - 1
+    return
+}
+
+func bump(x: &i64) -> ()
+{
+    @x = @x + 1
+    return
+}
+
+func nth_bump(n: i64, x: i64) -> i64
+{
+    while n > 0 do
+    {
+        bump(&x)
+        unbump(&n)
+    }
+    return x
+}
+
+var add_pos = nth_bump
+
+var x = 12
+var y = 18
+
+return add_pos(x, y) == 30 and x == 12 and y == 18 and add_pos(x, y) == add_pos(12, 18)

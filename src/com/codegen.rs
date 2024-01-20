@@ -93,6 +93,21 @@ impl Codegen {
             self.current_locals.insert(id, loc);
         }
 
+        /*
+         * before we generate the code, some of the functions arguments may be marked as heap-allocated.
+         * we need the function to replace its arguments by pointers to corresponding to the re-allocated arguments.
+         * it is not possible to allocate the arguments directly when generating an expression,
+         * because functions may be used as values, and in that case, there is no way to know
+         * whether the arguments of the function (as a value) being called are heap-allocated.
+         * we make each function re-allocate its own arguments when they are marked as heap-allocated.
+         */
+        for arg_id in &info.arg_ids {
+            let is_on_heap = abt.variables[arg_id].is_on_heap;
+            if is_on_heap {
+                Opcode::realloc_loc(self.current_locals[arg_id]).write_bytes(&mut self.cursor)?;
+            }
+        }
+
         let code = info
             .code
             .as_ref()
@@ -290,13 +305,8 @@ impl Codegen {
                 Ok(())
             }
             E::Call(id, params, _) => {
-                let info = abt.functions.get(id).unwrap();
-                for (param, arg_id) in params.iter().zip(info.arg_ids.iter()) {
-                    let arg_info = abt.variables.get(arg_id).unwrap();
+                for param in params {
                     self.gen_expression(param, abt)?;
-                    if arg_info.is_on_heap {
-                        Opcode::alloc.write_bytes(&mut self.cursor)?;
-                    }
                 }
                 self.cursor.write_u8(opcode::call)?;
                 self.add_fn_addr_placeholder(*id)?;
