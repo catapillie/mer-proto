@@ -2,7 +2,7 @@ use std::fs;
 
 use colored::Colorize;
 use merlib::{
-    binaries,
+    binary,
     com::{self, AnalysisStage},
     runtime::VM,
 };
@@ -40,7 +40,7 @@ fn all_samples_work() {
         });
 
         // disassembles properly
-        binaries::disassemble(&bytecode).unwrap_or_else(|err| {
+        binary::disassemble(&bytecode).unwrap_or_else(|err| {
             panic!(
                 "sample {} failed to disassemble: {err}",
                 path.bold().underline()

@@ -4,7 +4,7 @@ use cmd::{Command, CompileCommand, DisassembleCommand, RunCommand};
 use colored::Colorize;
 
 use merlib::{
-    binaries,
+    binary,
     com::{self, AnalysisStage, Severity},
     runtime::{Opcode, VM},
 };
@@ -198,7 +198,7 @@ fn dis(command: DisassembleCommand) {
                 }
             };
 
-            let opcodes = match binaries::disassemble(&bytes) {
+            let opcodes = match binary::disassemble(&bytes) {
                 Ok(opcodes) => opcodes,
                 Err(err) => {
                     msg::error(format!(

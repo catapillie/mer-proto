@@ -7,7 +7,7 @@ use byteorder::WriteBytesExt;
 use byteorder::LE;
 
 use crate::{
-    binaries,
+    binary,
     com::abt::{BinOpAbtKind, StmtAbtKind, TypeAbt, UnOpAbtKind},
     runtime::{
         native_type::NativeType,
@@ -82,7 +82,7 @@ impl Codegen {
         let param_count: u8 = info.args.len().try_into().unwrap();
         let local_count: u8 = info.used_variables.len().try_into().unwrap();
         let opcode = Opcode::function(info.name.clone(), param_count, local_count);
-        binaries::write_opcode(&mut self.cursor, &opcode)?;
+        binary::write_opcode(&mut self.cursor, &opcode)?;
 
         self.current_locals.clear();
         for (loc, id) in info
@@ -105,7 +105,7 @@ impl Codegen {
         for arg_id in &info.arg_ids {
             let is_on_heap = abt.variables[arg_id].is_on_heap;
             if is_on_heap {
-                binaries::write_opcode(
+                binary::write_opcode(
                     &mut self.cursor,
                     &Opcode::realloc_loc(self.current_locals[arg_id]),
                 )?;
@@ -131,7 +131,7 @@ impl Codegen {
             }
             S::Expr(expr) => {
                 self.gen_expression(expr, abt)?;
-                binaries::write_opcode(&mut self.cursor, &Opcode::pop)?;
+                binary::write_opcode(&mut self.cursor, &Opcode::pop)?;
             }
             S::VarInit(var_id, expr) => {
                 // = <value>
@@ -142,16 +142,16 @@ impl Codegen {
 
                 // if variable is heap-allocated, allocate the value on the heap, keep the address
                 if info.is_on_heap {
-                    binaries::write_opcode(&mut self.cursor, &Opcode::alloc)?;
+                    binary::write_opcode(&mut self.cursor, &Opcode::alloc)?;
                 }
 
                 // write value
-                binaries::write_opcode(&mut self.cursor, &Opcode::st_loc(id))?;
+                binary::write_opcode(&mut self.cursor, &Opcode::st_loc(id))?;
             }
             S::IfThen(guard, body) => {
                 // if ...
                 self.gen_expression(guard, abt)?;
-                binaries::write_opcode(&mut self.cursor, &Opcode::neg(NativeType::bool))?;
+                binary::write_opcode(&mut self.cursor, &Opcode::neg(NativeType::bool))?;
                 self.cursor.write_u8(opcode::jmp_if)?;
                 let cursor_from = self.gen_u32_placeholder()?;
 
@@ -186,7 +186,7 @@ impl Codegen {
                 // while ...
                 let cursor_guard_start = self.position();
                 self.gen_expression(guard, abt)?;
-                binaries::write_opcode(&mut self.cursor, &Opcode::neg(NativeType::bool))?;
+                binary::write_opcode(&mut self.cursor, &Opcode::neg(NativeType::bool))?;
                 self.cursor.write_u8(opcode::jmp_if)?;
                 let cursor_guard_end = self.gen_u32_placeholder()?;
 
@@ -206,11 +206,11 @@ impl Codegen {
 
                 // while ...
                 self.gen_expression(guard, abt)?;
-                binaries::write_opcode(&mut self.cursor, &Opcode::jmp_if(cursor_stmt_start))?;
+                binary::write_opcode(&mut self.cursor, &Opcode::jmp_if(cursor_stmt_start))?;
             }
             S::Return(expr) => {
                 self.gen_expression(expr, abt)?;
-                binaries::write_opcode(&mut self.cursor, &Opcode::ret)?;
+                binary::write_opcode(&mut self.cursor, &Opcode::ret)?;
             }
         }
 
@@ -221,8 +221,8 @@ impl Codegen {
         use super::abt::ExprAbt as E;
         match expr {
             E::Unknown => unreachable!(),
-            E::Todo => binaries::write_opcode(&mut self.cursor, &Opcode::todo),
-            E::Unreachable => binaries::write_opcode(&mut self.cursor, &Opcode::unreachable),
+            E::Todo => binary::write_opcode(&mut self.cursor, &Opcode::todo),
+            E::Unreachable => binary::write_opcode(&mut self.cursor, &Opcode::unreachable),
             E::Debug(inner, ty) => {
                 self.gen_expression(inner, abt)?;
                 let ty = match ty {
@@ -240,27 +240,27 @@ impl Codegen {
                     TypeAbt::Bool => NativeType::bool,
                     _ => unreachable!(),
                 };
-                binaries::write_opcode(&mut self.cursor, &Opcode::dbg(ty))?;
+                binary::write_opcode(&mut self.cursor, &Opcode::dbg(ty))?;
                 Ok(())
             }
-            E::Unit => binaries::write_opcode(&mut self.cursor, &Opcode::ld_unit),
-            E::Integer(num) => binaries::write_opcode(&mut self.cursor, &Opcode::ld_i64(*num)),
-            E::Decimal(num) => binaries::write_opcode(&mut self.cursor, &Opcode::ld_f64(*num)),
+            E::Unit => binary::write_opcode(&mut self.cursor, &Opcode::ld_unit),
+            E::Integer(num) => binary::write_opcode(&mut self.cursor, &Opcode::ld_i64(*num)),
+            E::Decimal(num) => binary::write_opcode(&mut self.cursor, &Opcode::ld_f64(*num)),
             E::Boolean(b) => {
                 let opcode = match b {
                     true => Opcode::ld_u8(1),
                     false => Opcode::ld_u8(0),
                 };
-                binaries::write_opcode(&mut self.cursor, &opcode)?;
+                binary::write_opcode(&mut self.cursor, &opcode)?;
                 Ok(())
             }
             E::Variable(var) => {
                 let info = abt.variables.get(var).unwrap();
                 let id = *self.current_locals.get(var).unwrap();
-                binaries::write_opcode(&mut self.cursor, &Opcode::ld_loc(id))?;
+                binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(id))?;
 
                 if info.is_on_heap {
-                    binaries::write_opcode(&mut self.cursor, &Opcode::ld_heap)?;
+                    binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?;
                 }
 
                 Ok(())
@@ -277,33 +277,33 @@ impl Codegen {
             } => {
                 // = <value>
                 self.gen_expression(expr, abt)?;
-                binaries::write_opcode(&mut self.cursor, &Opcode::dup)?;
+                binary::write_opcode(&mut self.cursor, &Opcode::dup)?;
 
                 let id = *self.current_locals.get(var_id).unwrap();
                 let info = abt.variables.get(var_id).unwrap();
                 if *deref_count == 0 {
                     // simple variable assignment
                     if info.is_on_heap {
-                        binaries::write_opcode(&mut self.cursor, &Opcode::ld_loc(id))?;
-                        binaries::write_opcode(&mut self.cursor, &Opcode::st_heap)?;
+                        binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(id))?;
+                        binary::write_opcode(&mut self.cursor, &Opcode::st_heap)?;
                     } else {
-                        binaries::write_opcode(&mut self.cursor, &Opcode::st_loc(id))?;
+                        binary::write_opcode(&mut self.cursor, &Opcode::st_loc(id))?;
                     }
                 } else {
                     // assignment to a n-dereferenced pointer
                     // we dereference the variable n - 1 times so we have the address, (and not the value)
-                    binaries::write_opcode(&mut self.cursor, &Opcode::ld_loc(id))?;
+                    binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(id))?;
                     for _ in 1..(*deref_count) {
-                        binaries::write_opcode(&mut self.cursor, &Opcode::ld_heap)?;
+                        binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?;
                     }
 
                     // if variable is on heap, then the value we have is an address to an address, so read from heap again
                     if info.is_on_heap {
-                        binaries::write_opcode(&mut self.cursor, &Opcode::ld_heap)?;
+                        binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?;
                     }
 
                     // write the value at the address (on the heap)
-                    binaries::write_opcode(&mut self.cursor, &Opcode::st_heap)?;
+                    binary::write_opcode(&mut self.cursor, &Opcode::st_heap)?;
                 }
 
                 Ok(())
@@ -321,7 +321,7 @@ impl Codegen {
                     self.gen_expression(arg, abt)?;
                 }
                 self.gen_expression(callee, abt)?;
-                binaries::write_opcode(&mut self.cursor, &Opcode::call_addr)?;
+                binary::write_opcode(&mut self.cursor, &Opcode::call_addr)?;
                 Ok(())
             }
             E::Binary(op, left, right) => {
@@ -483,7 +483,7 @@ impl Codegen {
                     (Ty::Bool, K::Xor) => O::bitxor(Nt::bool),
                     _ => unreachable!("{:?}", op),
                 };
-                binaries::write_opcode(&mut self.cursor, &opcode)?;
+                binary::write_opcode(&mut self.cursor, &opcode)?;
                 Ok(())
             }
             E::Unary(op, expr) => {
@@ -512,22 +512,22 @@ impl Codegen {
                     _ => unreachable!(),
                 };
 
-                binaries::write_opcode(&mut self.cursor, &opcode)?;
+                binary::write_opcode(&mut self.cursor, &opcode)?;
                 Ok(())
             }
             E::Ref(expr) => {
                 self.gen_expression(expr, abt)?;
-                binaries::write_opcode(&mut self.cursor, &Opcode::alloc)?;
+                binary::write_opcode(&mut self.cursor, &Opcode::alloc)?;
                 Ok(())
             }
             E::VarRef(var_id) => {
                 let id = *self.current_locals.get(var_id).unwrap();
-                binaries::write_opcode(&mut self.cursor, &Opcode::ld_loc(id))?;
+                binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(id))?;
                 Ok(())
             }
             E::Deref(expr) => {
                 self.gen_expression(expr, abt)?;
-                binaries::write_opcode(&mut self.cursor, &Opcode::ld_heap)?;
+                binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?;
                 Ok(())
             }
         }
@@ -541,12 +541,12 @@ impl Codegen {
     ) -> io::Result<()> {
         self.gen_expression(left, abt)?;
         self.cursor.write_u8(opcode::dup)?;
-        binaries::write_opcode(&mut self.cursor, &Opcode::neg(NativeType::bool))?;
+        binary::write_opcode(&mut self.cursor, &Opcode::neg(NativeType::bool))?;
         self.cursor.write_u8(opcode::jmp_if)?;
         let cursor_a = self.gen_u32_placeholder()?;
 
         self.gen_expression(right, abt)?;
-        binaries::write_opcode(&mut self.cursor, &Opcode::bitand(NativeType::bool))?;
+        binary::write_opcode(&mut self.cursor, &Opcode::bitand(NativeType::bool))?;
         let cursor_b = self.position();
 
         self.patch_u32_placeholder(cursor_a, cursor_b)?;
@@ -565,7 +565,7 @@ impl Codegen {
         let cursor_a = self.gen_u32_placeholder()?;
 
         self.gen_expression(right, abt)?;
-        binaries::write_opcode(&mut self.cursor, &Opcode::bitor(NativeType::bool))?;
+        binary::write_opcode(&mut self.cursor, &Opcode::bitor(NativeType::bool))?;
         let cursor_b = self.position();
 
         self.patch_u32_placeholder(cursor_a, cursor_b)?;
