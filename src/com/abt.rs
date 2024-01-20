@@ -129,8 +129,7 @@ pub enum TypeAbt {
     F32, F64,
     Bool,
     Ref(Box<TypeAbt>),
-    Tuple(Box<TypeAbt>, Vec<TypeAbt>), // first, others
-    Func(Box<TypeAbt>, Box<TypeAbt>), // from, to
+    Func(Vec<TypeAbt>, Box<TypeAbt>),
 }
 
 impl TypeAbt {
@@ -145,12 +144,15 @@ impl TypeAbt {
     }
 
     pub fn is_known(&self) -> bool {
-        !matches!(self, Self::Unknown)
+        match self {
+            TypeAbt::Unknown => false,
+            TypeAbt::Ref(inner) => inner.is_known(),
+            TypeAbt::Func(args, ty) => args.iter().any(Self::is_known) && ty.is_known(),
+            _ => true,
+        }
     }
-}
 
-impl Display for TypeAbt {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt_paren(&self, f: &mut std::fmt::Formatter<'_>, paren: bool) -> std::fmt::Result {
         match self {
             Self::Unknown => write!(f, "unknown"),
             Self::Never => write!(f, "!"),
@@ -166,15 +168,32 @@ impl Display for TypeAbt {
             Self::F32 => write!(f, "f32"),
             Self::F64 => write!(f, "f64"),
             Self::Bool => write!(f, "bool"),
-            Self::Ref(inner) => write!(f, "&({inner})"),
-            Self::Tuple(first, others) => {
-                write!(f, "({first}")?;
-                for ty in others {
-                    write!(f, ", {ty}")?;
-                }
-                write!(f, ")")
+            Self::Ref(inner) => {
+                write!(f, "&")?;
+                inner.fmt_paren(f, true)
             }
-            Self::Func(from, to) => write!(f, "({from}) -> {to}")
+            Self::Func(args, to) => {
+                if paren {
+                    write!(f, "(")?;
+                }
+                let mut iter = args.iter();
+                write!(f, "{}", iter.next().unwrap())?;
+                for arg in iter {
+                    write!(f, ", ")?;
+                    arg.fmt_paren(f, true)?;
+                }
+                write!(f, " -> {to}")?;
+                if paren {
+                    write!(f, ")")?;
+                }
+                Ok(())
+            }
         }
+    }
+}
+
+impl Display for TypeAbt {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.fmt_paren(f, false)
     }
 }
