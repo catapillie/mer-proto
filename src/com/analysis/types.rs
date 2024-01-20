@@ -52,6 +52,29 @@ impl<'d> Analyser<'d> {
             E::Boolean(_) => Ty::Bool,
 
             E::Variable(var_id) => self.variables.get(var_id).unwrap().ty.clone(),
+
+            E::Function(func_id) => {
+                let info = self.functions.get(func_id).unwrap();
+                let args = info.args.iter().map(|(_, ty)| ty).collect::<Vec<_>>();
+
+                let return_ty = info.ty.clone();
+                let arg_ty = match args.split_first() {
+                    Some((&first, others)) => {
+                        if others.is_empty() {
+                            first.clone()
+                        } else {
+                            Ty::Tuple(
+                                Box::new(first.clone()),
+                                others.iter().map(|&t| t.clone()).collect(),
+                            )
+                        }
+                    }
+                    None => Ty::Unit,
+                };
+
+                Ty::Func(Box::new(arg_ty), Box::new(return_ty))
+            }
+
             E::Call(func_id, _, _) => self.functions.get(func_id).unwrap().ty.clone(),
             E::Assignment {
                 var_id,

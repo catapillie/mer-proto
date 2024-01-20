@@ -18,7 +18,7 @@ pub enum ExprAstKind {
     Parenthesized(Box<ExprAst>),
     BinaryOp(BinOpAst, Box<ExprAst>, Box<ExprAst>),
     UnaryOp(UnOpAst, Box<ExprAst>),
-    Call(String, Vec<ExprAst>),
+    Call(Box<ExprAst>, Vec<ExprAst>),
     Debug(Box<ExprAst>),
     Ref(Box<ExprAst>),
     Deref(Box<ExprAst>),

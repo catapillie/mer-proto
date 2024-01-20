@@ -246,6 +246,11 @@ impl Codegen {
 
                 Ok(())
             }
+            E::Function(func) => {
+                self.cursor.write_u8(opcode::ld_u32)?;
+                self.add_fn_addr_placeholder(*func)?;
+                Ok(())
+            },
             E::Assignment {
                 var_id,
                 deref_count,

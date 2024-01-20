@@ -144,32 +144,48 @@ impl<'d> Analyser<'d> {
 
     pub fn analyse_call_expression(
         &mut self,
-        callee: &str,
+        callee: &ExprAst,
         args: &[ExprAst],
         span: Span,
     ) -> ExprAbt {
+        let bound_callee = self.analyse_expression(callee);
         let bound_args = args
             .iter()
             .map(|arg| self.analyse_expression(arg))
             .collect::<Vec<_>>();
 
-        let name = callee;
-        let Some(info) = self.get_function(name) else {
+        if matches!(bound_callee, ExprAbt::Unknown) {
+            return ExprAbt::Unknown
+        };
+
+        // let Some(info) = self.get_function(name) else {
+        //     let d = diagnostics::create_diagnostic()
+        //         .with_kind(DiagnosticKind::UnknownFunction(name.to_string()))
+        //         .with_severity(Severity::Error)
+        //         .with_span(span)
+        //         .annotate_primary(Note::Unknown, span)
+        //         .done();
+        //     self.diagnostics.push(d);
+        //     return ExprAbt::Unknown;
+        // };
+
+        let ExprAbt::Function(id) = bound_callee else {
             let d = diagnostics::create_diagnostic()
-                .with_kind(DiagnosticKind::UnknownFunction(name.to_string()))
+                .with_kind(DiagnosticKind::InvalidCallee)
+                .with_span(callee.span)
                 .with_severity(Severity::Error)
-                .with_span(span)
-                .annotate_primary(Note::Unknown, span)
+                .annotate_primary(Note::NotFunction(self.type_of(&bound_callee)), callee.span)
                 .done();
             self.diagnostics.push(d);
             return ExprAbt::Unknown;
         };
 
+        let info = self.functions.get(&id).unwrap();
+
         let func_span = info.span.unwrap();
         let func_name = info.name.clone();
         let func_args = info.args.clone();
         let func_arg_ids = info.arg_ids.clone();
-        let id = info.id;
         let ty = info.ty.clone();
 
         let mut invalid = false;

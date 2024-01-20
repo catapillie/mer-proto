@@ -44,6 +44,7 @@ pub enum ExprAbt {
     Decimal(f64),
     Boolean(bool),
     Variable(u64),
+    Function(u64),
     Assignment {
         var_id: u64,
         deref_count: usize,
@@ -128,6 +129,8 @@ pub enum TypeAbt {
     F32, F64,
     Bool,
     Ref(Box<TypeAbt>),
+    Tuple(Box<TypeAbt>, Vec<TypeAbt>), // first, others
+    Func(Box<TypeAbt>, Box<TypeAbt>), // from, to
 }
 
 impl TypeAbt {
@@ -163,7 +166,15 @@ impl Display for TypeAbt {
             Self::F32 => write!(f, "f32"),
             Self::F64 => write!(f, "f64"),
             Self::Bool => write!(f, "bool"),
-            Self::Ref(inner) => write!(f, "&{inner}"),
+            Self::Ref(inner) => write!(f, "&({inner})"),
+            Self::Tuple(first, others) => {
+                write!(f, "({first}")?;
+                for ty in others {
+                    write!(f, ", {ty}")?;
+                }
+                write!(f, ")")
+            }
+            Self::Func(from, to) => write!(f, "({from}) -> {to}")
         }
     }
 }

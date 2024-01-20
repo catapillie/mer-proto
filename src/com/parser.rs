@@ -515,7 +515,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_primary_expression(&mut self) -> Option<ExprAst> {
-        let (expr, span) = take_span!(self => {
+        let (expr, mut span) = take_span!(self => {
             if self.try_match_token::<Ampersand>().is_some() {
                 let expr = match self.parse_primary_expression() {
                     Some(expr) => expr,
@@ -531,7 +531,7 @@ impl<'a> Parser<'a> {
                     },
                 };
 
-                return Some(ExprAstKind::Ref(Box::new(expr)))
+                return Some(ExprAstKind::Ref(Box::new(expr)));
             }
 
             if self.try_match_token::<At>().is_some() {
@@ -549,7 +549,7 @@ impl<'a> Parser<'a> {
                     },
                 };
 
-                return Some(ExprAstKind::Deref(Box::new(expr)))
+                return Some(ExprAstKind::Deref(Box::new(expr)));
             }
 
             if let Some(num) = self.try_match_token::<Integer>() {
@@ -569,29 +569,11 @@ impl<'a> Parser<'a> {
             }
 
             if self.try_match_token::<MalformedNumeral>().is_some() {
-                return Some(ExprAstKind::Bad)
+                return Some(ExprAstKind::Bad);
             }
 
             if let Some(id) = self.try_match_token::<Identifier>() {
-                if self.try_match_token::<LeftParen>().is_none() {
-                    return Some(ExprAstKind::Identifier(id.0));
-                }
-
-                let mut params = Vec::new();
-                loop {
-                    let Some(expr) = self.parse_expression() else {
-                        break;
-                    };
-
-                    params.push(expr);
-
-                    if self.try_match_token::<Comma>().is_none() {
-                        break;
-                    }
-                }
-                self.match_token::<RightParen>();
-
-                return Some(ExprAstKind::Call(id.0, params));
+                return Some(ExprAstKind::Identifier(id.0));
             }
 
             if self.try_match_token::<TrueKw>().is_some() {
@@ -613,7 +595,28 @@ impl<'a> Parser<'a> {
             None
         });
 
-        expr.map(|e| e.wrap(span))
+        let mut expr = expr?.wrap(span);
+
+        while self.try_match_token::<LeftParen>().is_some() {
+            let mut params = Vec::new();
+            loop {
+                let Some(expr) = self.parse_expression() else {
+                    break;
+                };
+
+                params.push(expr);
+
+                if self.try_match_token::<Comma>().is_none() {
+                    break;
+                }
+            }
+            self.match_token::<RightParen>();
+
+            span = span.join(self.last_span());
+            expr = ExprAstKind::Call(Box::new(expr), params).wrap(span);
+        }
+        
+        Some(expr)
     }
 
     fn expect_type_expression(&mut self) -> TypeAst {

@@ -69,6 +69,10 @@ impl<'d> Analyser<'d> {
     }
 
     pub fn analyse_variable_expression(&mut self, name: &str, span: Span) -> ExprAbt {
+        if let Some(expr) = self.get_function_as_variable(name) {
+            return expr;
+        }
+
         let Some(info) = self.get_variable(name) else {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::UnknownVariable(name.to_string()))
@@ -129,5 +133,10 @@ impl<'d> Analyser<'d> {
         }
 
         ExprAbt::Variable(id)
+    }
+
+    fn get_function_as_variable(&mut self, name: &str) -> Option<ExprAbt> {
+        let func_info = self.get_function(name)?;
+        Some(ExprAbt::Function(func_info.id))
     }
 }

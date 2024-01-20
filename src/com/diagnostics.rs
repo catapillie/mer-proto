@@ -181,6 +181,7 @@ pub enum DiagnosticKind {
         got: usize,
         expected: usize,
     },
+    InvalidCallee,
 
     UnknownType(String),
 
@@ -284,6 +285,8 @@ impl DiagnosticKind {
                     expected.to_string().bold(),
                     got.to_string().bold()
                 ),
+            Self::InvalidCallee
+                => "callee is not a function, and cannot be called".to_string(),
             Self::UnknownType(id)
                 => format!("unknown type '{}'", id.bold()),
             Self::TypeMismatch { found, expected }
@@ -351,6 +354,7 @@ pub enum Note {
     VariableDeclaration(String),
     VariableType(String, TypeAbt),
     ArgumentType(String, TypeAbt),
+    NotFunction(TypeAbt),
     FunctionArgs(String, usize),
     FunctionReturnType(String, TypeAbt),
     FunctionVariableCount(usize),
@@ -444,6 +448,10 @@ impl Note {
             Self::ArgumentType(name, ty)
                 => format!("argument '{}' has type '{}'",
                     name.bold(),
+                    ty.to_string().bold(),
+                ),
+            Self::NotFunction(ty)
+                => format!("this is not a function, and is of type '{}'",
                     ty.to_string().bold(),
                 ),
             Self::FunctionArgs(name, count)

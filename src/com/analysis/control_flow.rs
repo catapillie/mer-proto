@@ -65,6 +65,7 @@ impl<'d> Analyser<'d> {
             ExprAbt::Decimal(_) => false,
             ExprAbt::Boolean(_) => false,
             ExprAbt::Variable(_) => false,
+            ExprAbt::Function(_) => false,
             ExprAbt::Assignment {
                 var_id: _,
                 deref_count: _,
