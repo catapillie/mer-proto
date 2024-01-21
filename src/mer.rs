@@ -257,6 +257,13 @@ fn dis(command: DisassembleCommand) {
                             op = opcode.name(),
                         )
                     }
+                    Opcode::realloc_loc(loc) => {
+                        println!(
+                            "{offset:0>8} ║ {op:>20} {}",
+                            loc.to_string().bold(),
+                            op = opcode.name(),
+                        )
+                    }
                     Opcode::ld_u8(num) => println!(
                         "{offset:0>8} ║ {op:>20} {}",
                         num.to_string().bold(),
