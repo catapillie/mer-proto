@@ -2,10 +2,10 @@ use std::num::ParseIntError;
 
 use colored::Colorize;
 
+use crate::utils::{Pos, Span};
+
 use super::{
     abt::TypeAbt,
-    pos::Pos,
-    span::Span,
     syntax::{bin_op::BinOpAst, un_op::UnOpAst},
     tokens::{Token, TokenKind},
 };

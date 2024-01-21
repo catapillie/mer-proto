@@ -1,6 +1,5 @@
-use crate::com::span::Span;
-
 use super::{bin_op::BinOpAst, un_op::UnOpAst};
+use crate::utils::Span;
 
 #[derive(Debug)]
 pub struct ExprAst {

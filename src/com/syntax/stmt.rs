@@ -1,6 +1,5 @@
-use crate::com::span::Span;
-
 use super::{expr::ExprAst, types::TypeAst};
+use crate::utils::Span;
 
 #[derive(Debug)]
 pub struct StmtAst {

@@ -1,7 +1,5 @@
 use std::fmt::Display;
 
-use super::span::Span;
-
 pub trait TokenValue: Clone + Default + Display {
     fn wrap(self, span: Span) -> Token;
     fn is_inside(token: &Token) -> bool;
@@ -204,3 +202,5 @@ macro_rules! gen_tokens {
 }
 
 use gen_tokens;
+
+use crate::utils::Span;

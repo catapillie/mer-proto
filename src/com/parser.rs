@@ -1,15 +1,15 @@
 use either::Either;
 
-use crate::com::{
-    diagnostics::{Note, Severity},
-    syntax::types::TypeAstKind,
+use crate::{
+    com::{
+        diagnostics::{Note, Severity},
+        syntax::types::TypeAstKind,
+    },
+    utils::{Cursor, Pos, Span},
 };
 
 use super::{
-    cursor::Cursor,
     diagnostics::{self, DiagnosticKind, Diagnostics},
-    pos::Pos,
-    span::Span,
     syntax::{
         bin_op::BinOpAst,
         expr::{ExprAst, ExprAstKind},

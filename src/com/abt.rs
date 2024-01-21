@@ -1,9 +1,7 @@
 use std::{collections::HashMap, fmt::Display};
 
-use super::{
-    analysis::{FunctionInfo, VariableInfo},
-    span::Span,
-};
+use super::analysis::{FunctionInfo, VariableInfo};
+use crate::utils::Span;
 
 pub struct ProgramAbt {
     pub main_fn_id: u64,

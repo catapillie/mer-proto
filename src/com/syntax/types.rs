@@ -1,4 +1,4 @@
-use crate::com::span::Span;
+use crate::utils::Span;
 
 #[derive(Debug)]
 pub struct TypeAst {

@@ -1,8 +1,10 @@
-use crate::com::{
-    abt::{ExprAbt, StmtAbtKind, TypeAbt},
-    diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
-    span::Span,
-    syntax::expr::ExprAst,
+use crate::{
+    com::{
+        abt::{ExprAbt, StmtAbtKind, TypeAbt},
+        diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
+        syntax::expr::ExprAst,
+    },
+    utils::Span,
 };
 
 use super::{functions::VariableUsage, Analyser, Declaration};

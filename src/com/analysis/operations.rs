@@ -1,8 +1,10 @@
-use crate::com::{
-    abt::{BinOpAbt, BinOpAbtKind, ExprAbt, TypeAbt, UnOpAbt, UnOpAbtKind},
-    diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
-    span::Span,
-    syntax::{bin_op::BinOpAst, expr::ExprAst, un_op::UnOpAst},
+use crate::{
+    com::{
+        abt::{BinOpAbt, BinOpAbtKind, ExprAbt, TypeAbt, UnOpAbt, UnOpAbtKind},
+        diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
+        syntax::{bin_op::BinOpAst, expr::ExprAst, un_op::UnOpAst},
+    },
+    utils::Span,
 };
 
 use super::Analyser;

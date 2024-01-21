@@ -1,11 +1,8 @@
+use colored::{Color, Colorize};
 use std::{collections::BTreeMap, ops::Add};
 
-use colored::{Color, Colorize};
-
-use super::{
-    diagnostics::{Diagnostic, NoteSeverity, Severity},
-    span::Span,
-};
+use super::diagnostics::{Diagnostic, NoteSeverity, Severity};
+use crate::utils::Span;
 
 pub fn print_diagnostic(path: &str, source: &str, diagnostic: &Diagnostic) {
     let lines = source.lines().collect::<Vec<_>>().into_boxed_slice();
