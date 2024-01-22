@@ -130,7 +130,7 @@ impl<'d> Analyser<'d> {
         let info = self.functions.get_mut(&id).unwrap();
         info.code = Some(Box::new(bound_body));
 
-        let var_count = info.used_variables.len();
+        let var_count = self.count_all_variable_sizes(id);
         if var_count > 255 {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::TooManyVariables(name.clone(), var_count))
@@ -423,5 +423,16 @@ impl<'d> Analyser<'d> {
                 .done();
             self.diagnostics.push(d);
         }
+    }
+
+    pub fn count_all_variable_sizes(&mut self, func_id: u64) -> usize {
+        self.functions
+            .get(&func_id)
+            .unwrap()
+            .used_variables
+            .iter()
+            .map(|(var_id, _)| self.variables.get(var_id).unwrap())
+            .map(|var_info| Self::size_of(&var_info.ty))
+            .sum::<usize>()
     }
 }

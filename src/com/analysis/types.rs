@@ -100,4 +100,25 @@ impl<'d> Analyser<'d> {
             E::Unreachable => Ty::Never,
         }
     }
+
+    pub fn size_of(ty: &TypeAbt) -> usize {
+        match ty {
+            TypeAbt::Unknown => 1,
+            TypeAbt::Never => 1,
+            TypeAbt::Unit => 1,
+            TypeAbt::U8 => 1,
+            TypeAbt::U16 => 1,
+            TypeAbt::U32 => 1,
+            TypeAbt::U64 => 1,
+            TypeAbt::I8 => 1,
+            TypeAbt::I16 => 1,
+            TypeAbt::I32 => 1,
+            TypeAbt::I64 => 1,
+            TypeAbt::F32 => 1,
+            TypeAbt::F64 => 1,
+            TypeAbt::Bool => 1,
+            TypeAbt::Ref(_) => 1,
+            TypeAbt::Func(_, _) => 1,
+        }
+    }
 }

@@ -43,7 +43,7 @@ impl<'d> Analyser<'d> {
         let info = self.functions.get_mut(&main_fn_id).unwrap();
         info.code = Some(Box::new(abt));
 
-        let var_count = info.used_variables.len();
+        let var_count = self.count_all_variable_sizes(main_fn_id);
         if var_count > 255 {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::TooManyTopLevelVariables(var_count))
