@@ -67,7 +67,7 @@ impl<'d> Analyser<'d> {
 
     fn reach_top_level_declarations(&mut self, ast: &StmtAst) {
         if let StmtAstKind::Block(stmts) = &ast.kind {
-            for stmt in stmts {
+            for stmt in stmts.iter() {
                 if let StmtAstKind::Func(Some((name, span)), args, _, ty) = &stmt.kind {
                     let bound_args = args
                         .iter()

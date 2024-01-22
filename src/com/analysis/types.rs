@@ -63,7 +63,7 @@ impl<'d> Analyser<'d> {
                     .args
                     .iter()
                     .map(|(_, ty)| ty.clone())
-                    .collect::<Vec<_>>();
+                    .collect::<Box<_>>();
                 Ty::Func(args, Box::new(info.ty.clone()))
             }
 

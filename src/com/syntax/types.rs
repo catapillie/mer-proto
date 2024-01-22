@@ -12,7 +12,7 @@ pub enum TypeAstKind {
     Unit,
     Declared(String),
     Ref(Box<TypeAst>),
-    Func(Vec<TypeAst>, Box<TypeAst>),
+    Func(Box<[TypeAst]>, Box<TypeAst>),
 }
 
 impl TypeAstKind {

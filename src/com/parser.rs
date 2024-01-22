@@ -72,7 +72,7 @@ impl<'a> Parser<'a> {
             program
         });
 
-        StmtAstKind::Block(stmts).wrap(span)
+        StmtAstKind::Block(stmts.into()).wrap(span)
     }
 
     fn recover_to_next_statement(&mut self) {
@@ -293,7 +293,7 @@ impl<'a> Parser<'a> {
                 let span = expr.span;
                 let body = StmtAstKind::ReturnWith(Box::new(expr)).wrap(span);
 
-                return Some(StmtAstKind::Func(name, params, Box::new(body), Box::new(ty)));
+                return Some(StmtAstKind::Func(name, params.into(), Box::new(body), Box::new(ty)));
             }
 
             let stmt = match self.parse_block_statement() {
@@ -310,7 +310,7 @@ impl<'a> Parser<'a> {
                 }
             };
 
-            Some(StmtAstKind::Func(name, params, Box::new(stmt), Box::new(ty)))
+            Some(StmtAstKind::Func(name, params.into(), Box::new(stmt), Box::new(ty)))
         });
 
         stmt.map(|s| s.wrap(span))
@@ -380,7 +380,7 @@ impl<'a> Parser<'a> {
             Some(stmts)
         });
 
-        stmts.map(|s| StmtAstKind::Block(s).wrap(span))
+        stmts.map(|s| StmtAstKind::Block(s.into()).wrap(span))
     }
 
     pub fn is_start_of_expression(&self) -> bool {
@@ -613,7 +613,7 @@ impl<'a> Parser<'a> {
             self.match_token::<RightParen>();
 
             span = span.join(self.last_span());
-            expr = ExprAstKind::Call(Box::new(expr), params).wrap(span);
+            expr = ExprAstKind::Call(Box::new(expr), params.into()).wrap(span);
         }
 
         Some(expr)
@@ -651,13 +651,13 @@ impl<'a> Parser<'a> {
 
             if self.try_match_token::<RightArrow>().is_some() {
                 let ret_ty = self.expect_type_expression();
-                return Some(TypeAstKind::Func(types, Box::new(ret_ty)));
+                return Some(TypeAstKind::Func(types.into(), Box::new(ret_ty)));
             }
 
             if types.len() > 1 {
                 self.match_token::<RightArrow>();
                 let ret_ty = self.expect_type_expression();
-                Some(TypeAstKind::Func(types, Box::new(ret_ty)))
+                Some(TypeAstKind::Func(types.into(), Box::new(ret_ty)))
             } else {
                 Some(types.swap_remove(0).kind)
             }
@@ -694,7 +694,7 @@ impl<'a> Parser<'a> {
             let span = self.last_span();
             let ty = self.expect_type_expression();
             let span = span.join(ty.span);
-            return Some(TypeAstKind::Func(vec![], Box::new(ty)).wrap(span));
+            return Some(TypeAstKind::Func(Box::new([]), Box::new(ty)).wrap(span));
         }
 
         None

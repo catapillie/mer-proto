@@ -18,7 +18,7 @@ pub struct StmtAbt {
 #[derive(Debug)]
 pub enum StmtAbtKind {
     Empty,
-    Block(Vec<StmtAbt>),
+    Block(Box<[StmtAbt]>),
     Expr(Box<ExprAbt>),
     VarInit(u64, Box<ExprAbt>),
     IfThen(Box<ExprAbt>, Box<StmtAbt>),
@@ -50,8 +50,8 @@ pub enum ExprAbt {
     },
     Binary(BinOpAbt, Box<ExprAbt>, Box<ExprAbt>),
     Unary(UnOpAbt, Box<ExprAbt>),
-    Call(u64, Vec<ExprAbt>, TypeAbt),
-    IndirectCall(Box<ExprAbt>, Vec<ExprAbt>, TypeAbt),
+    Call(u64, Box<[ExprAbt]>, TypeAbt),
+    IndirectCall(Box<ExprAbt>, Box<[ExprAbt]>, TypeAbt),
     Debug(Box<ExprAbt>, TypeAbt),
     Ref(Box<ExprAbt>),
     VarRef(u64),
@@ -128,7 +128,7 @@ pub enum TypeAbt {
     F32, F64,
     Bool,
     Ref(Box<TypeAbt>),
-    Func(Vec<TypeAbt>, Box<TypeAbt>),
+    Func(Box<[TypeAbt]>, Box<TypeAbt>),
 }
 
 impl TypeAbt {

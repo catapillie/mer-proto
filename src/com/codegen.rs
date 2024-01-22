@@ -125,7 +125,7 @@ impl Codegen {
         match &stmt.kind {
             S::Empty => {}
             S::Block(stmts) => {
-                for stmt in stmts {
+                for stmt in stmts.iter() {
                     self.gen_statement(stmt, abt)?;
                 }
             }
@@ -309,7 +309,7 @@ impl Codegen {
                 Ok(())
             }
             E::Call(id, params, _) => {
-                for param in params {
+                for param in params.iter() {
                     self.gen_expression(param, abt)?;
                 }
                 self.cursor.write_u8(opcode::call)?;
@@ -317,7 +317,7 @@ impl Codegen {
                 Ok(())
             }
             E::IndirectCall(callee, args, _) => {
-                for arg in args {
+                for arg in args.iter() {
                     self.gen_expression(arg, abt)?;
                 }
                 self.gen_expression(callee, abt)?;

@@ -12,7 +12,7 @@ pub enum StmtAstKind {
     Empty,
     VarDef(Option<(String, Span)>, Box<ExprAst>),
     Expr(Box<ExprAst>),
-    Block(Vec<StmtAst>),
+    Block(Box<[StmtAst]>),
     IfThen(Box<ExprAst>, Box<StmtAst>),
     Then(Box<StmtAst>),
     IfThenElse(Box<ExprAst>, Box<StmtAst>, Box<StmtAst>),
@@ -22,7 +22,7 @@ pub enum StmtAstKind {
     Do(Box<StmtAst>),
     Func(
         Option<(String, Span)>,
-        Vec<(String, TypeAst, Span)>,
+        Box<[(String, TypeAst, Span)]>,
         Box<StmtAst>,
         Box<TypeAst>,
     ),

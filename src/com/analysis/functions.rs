@@ -154,7 +154,7 @@ impl<'d> Analyser<'d> {
         let bound_args = args
             .iter()
             .map(|arg| self.analyse_expression(arg))
-            .collect::<Vec<_>>();
+            .collect::<Box<_>>();
 
         if matches!(bound_callee, ExprAbt::Unknown) {
             return ExprAbt::Unknown;
@@ -186,7 +186,7 @@ impl<'d> Analyser<'d> {
     fn analyse_immediate_call(
         &mut self,
         args: &[ExprAst],
-        bound_args: Vec<ExprAbt>,
+        bound_args: Box<[ExprAbt]>,
         span: Span,
         id: u64,
     ) -> ExprAbt {
@@ -274,8 +274,8 @@ impl<'d> Analyser<'d> {
     fn analyse_indirect_call(
         &mut self,
         args: &[ExprAst],
-        bound_args: Vec<ExprAbt>,
-        func_args: Vec<TypeAbt>,
+        bound_args: Box<[ExprAbt]>,
+        func_args: Box<[TypeAbt]>,
         func_return_ty: TypeAbt,
         bound_callee: ExprAbt,
         span: Span,
@@ -284,7 +284,7 @@ impl<'d> Analyser<'d> {
         for ((bound_arg, span), arg_ty) in bound_args
             .iter()
             .zip(args.iter().map(|arg| arg.span))
-            .zip(&func_args)
+            .zip(func_args.iter())
         {
             let ty = self.type_of(bound_arg);
             if ty.is(arg_ty) {
