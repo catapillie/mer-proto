@@ -689,6 +689,13 @@ impl<'a> Parser<'a> {
 
             let head = tys.remove(0);
             return if tys.is_empty() {
+                let d = diagnostics::create_diagnostic()
+                    .with_kind(DiagnosticKind::SingletonTypeSyntax)
+                    .with_span(span)
+                    .with_severity(Severity::Warning)
+                    .annotate_primary(Note::CanRemoveParentheses, span)
+                    .done();
+                self.diagnostics.push(d);
                 Some(head)
             } else {
                 Some(TypeAstKind::Tuple(Box::new(head), tys.into()).wrap(span))

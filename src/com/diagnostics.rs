@@ -158,6 +158,7 @@ pub enum DiagnosticKind {
     ExpectedExpression,
     ExpectedStatement,
     ExpectedType,
+    SingletonTypeSyntax,
 
     GuardNotBoolean,
 
@@ -245,6 +246,8 @@ impl DiagnosticKind {
                 => "expected a statement".to_string(),
             Self::ExpectedType
                 => "expected a type expression".to_string(),
+            Self::SingletonTypeSyntax
+                => "singleton type is read as its inner type, so parentheses are unnecessary".to_string(),
             Self::GuardNotBoolean
                 => "guard is not a boolean".to_string(),
             Self::EmptyThenStatement
@@ -345,6 +348,7 @@ pub enum Note {
     TrailingDigits,
     ExpectedToken(TokenKind),
     CanBeRemoved,
+    CanRemoveParentheses,
     FollowsIf,
     FollowsIfThen,
     MissingWhile,
@@ -422,6 +426,8 @@ impl Note {
                 => format!("expected {}", expected.to_string().bold()),
             Self::CanBeRemoved
                 => "this can be removed".to_string(),
+            Self::CanRemoveParentheses
+                => "parentheses can be removed".to_string(),
             Self::FollowsIf
                 => "this should follow an if statement".to_string(),
             Self::FollowsIfThen

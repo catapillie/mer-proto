@@ -3,7 +3,7 @@ func nothing() -> ()
     return
 }
 
-func still_nothing() -> &(-> ())
+func still_nothing() -> &-> ()
     = &nothing
 
 var n = &nothing
