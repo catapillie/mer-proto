@@ -11,6 +11,10 @@ impl<'d> Analyser<'d> {
         match &ty.kind {
             TypeAstKind::Bad => TypeAbt::Unknown,
             TypeAstKind::Unit => TypeAbt::Unit,
+            TypeAstKind::Tuple(head, tail) => TypeAbt::Tuple(
+                Box::new(self.analyse_type(head)),
+                tail.iter().map(|ty| self.analyse_type(ty)).collect(),
+            ),
             TypeAstKind::Ref(ty) => TypeAbt::Ref(Box::new(self.analyse_type(ty))),
             TypeAstKind::Declared(id) => {
                 match id.as_str() {

@@ -11,6 +11,7 @@ pub enum TypeAstKind {
     Bad,
     Unit,
     Declared(String),
+    Tuple(Box<TypeAst>, Box<[TypeAst]>), // non-empty
     Ref(Box<TypeAst>),
     Func(Box<[TypeAst]>, Box<TypeAst>),
 }

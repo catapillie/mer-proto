@@ -668,15 +668,31 @@ impl<'a> Parser<'a> {
 
     fn parse_primary_type_expression(&mut self) -> Option<TypeAst> {
         if self.try_match_token::<LeftParen>().is_some() {
-            let span = self.last_span();
-            if self.try_match_token::<RightParen>().is_some() {
-                let span = span.join(self.last_span());
+            let left_paren_span = self.last_span();
+            let (mut tys, span) = take_span!(self => {
+                let mut tys = Vec::new();
+                while let Some(ty) = self.parse_type_expression() {
+                    tys.push(ty);
+                    if self.try_match_token::<Comma>().is_none() {
+                        break;
+                    }
+                }
+                self.match_token::<RightParen>();
+                tys
+            });
+
+            let span = span.join(left_paren_span);
+
+            if tys.is_empty() {
                 return Some(TypeAstKind::Unit.wrap(span));
             }
 
-            let ty = self.expect_type_expression();
-            self.match_token::<RightParen>();
-            return Some(ty);
+            let head = tys.remove(0);
+            return if tys.is_empty() {
+                Some(head)
+            } else {
+                Some(TypeAstKind::Tuple(Box::new(head), tys.into()).wrap(span))
+            };
         }
 
         if self.try_match_token::<Ampersand>().is_some() {
