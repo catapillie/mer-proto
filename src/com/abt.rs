@@ -127,6 +127,7 @@ pub enum TypeAbt {
     I8, I16, I32, I64,
     F32, F64,
     Bool,
+    Tuple(Box<TypeAbt>, Box<[TypeAbt]>), // non-empty
     Ref(Box<TypeAbt>),
     Func(Box<[TypeAbt]>, Box<TypeAbt>),
 }
@@ -167,6 +168,15 @@ impl TypeAbt {
             Self::F32 => write!(f, "f32"),
             Self::F64 => write!(f, "f64"),
             Self::Bool => write!(f, "bool"),
+            Self::Tuple(head, tail) => {
+                write!(f, "({head}")?;
+                for ty in tail.iter() {
+                    write!(f, ", ")?;
+                    ty.fmt_paren(f, false)?;
+                }
+                write!(f, ")")?;
+                Ok(())
+            }
             Self::Ref(inner) => {
                 write!(f, "&")?;
                 inner.fmt_paren(f, true)
