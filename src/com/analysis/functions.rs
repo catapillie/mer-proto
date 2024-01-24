@@ -166,7 +166,7 @@ impl<'d> Analyser<'d> {
             self.analyse_indirect_call(
                 args,
                 bound_args,
-                func_args,
+                &func_args,
                 *func_return_ty,
                 bound_callee,
                 span,
@@ -275,7 +275,7 @@ impl<'d> Analyser<'d> {
         &mut self,
         args: &[ExprAst],
         bound_args: Box<[ExprAbt]>,
-        func_args: Box<[TypeAbt]>,
+        func_args: &[TypeAbt],
         func_return_ty: TypeAbt,
         bound_callee: ExprAbt,
         span: Span,
@@ -430,8 +430,8 @@ impl<'d> Analyser<'d> {
             .get(&func_id)
             .unwrap()
             .used_variables
-            .iter()
-            .map(|(var_id, _)| self.variables.get(var_id).unwrap())
+            .keys()
+            .map(|var_id| self.variables.get(var_id).unwrap())
             .map(|var_info| Self::size_of(&var_info.ty))
             .sum::<usize>()
     }
