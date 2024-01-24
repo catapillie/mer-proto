@@ -10,11 +10,13 @@ pub struct ExprAst {
 #[derive(Debug)]
 pub enum ExprAstKind {
     Bad,
+    Unit,
     Integer(i64),
     Decimal(f64),
     Identifier(String),
     Boolean(bool),
     Parenthesized(Box<ExprAst>),
+    Tuple(Box<ExprAst>, Box<[ExprAst]>),
     BinaryOp(BinOpAst, Box<ExprAst>, Box<ExprAst>),
     UnaryOp(UnOpAst, Box<ExprAst>),
     Call(Box<ExprAst>, Box<[ExprAst]>),

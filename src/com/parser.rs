@@ -585,11 +585,25 @@ impl<'a> Parser<'a> {
             }
 
             if self.try_match_token::<LeftParen>().is_some() {
-                self.skip_newlines();
-                let expr = self.expect_expression();
-                self.skip_newlines();
+                let mut exprs = Vec::new();
+                while let Some(expr) = self.parse_expression() {
+                    exprs.push(expr);
+                    if self.try_match_token::<Comma>().is_none() {
+                        break;
+                    }
+                }
                 self.match_token::<RightParen>();
-                return Some(ExprAstKind::Parenthesized(Box::new(expr)));
+
+                if exprs.is_empty() {
+                    return Some(ExprAstKind::Unit);
+                }
+    
+                let head = exprs.remove(0);
+                return if exprs.is_empty() {
+                    Some(ExprAstKind::Parenthesized(Box::new(head)))
+                } else {
+                    Some(ExprAstKind::Tuple(Box::new(head), exprs.into()))
+                };
             }
 
             None
@@ -680,7 +694,6 @@ impl<'a> Parser<'a> {
                 self.match_token::<RightParen>();
                 tys
             });
-
             let span = span.join(left_paren_span);
 
             if tys.is_empty() {

@@ -60,6 +60,11 @@ impl<'d> Analyser<'d> {
             E::Decimal(_) => Ty::F64,
             E::Boolean(_) => Ty::Bool,
 
+            E::Tuple(head, tail) => Ty::Tuple(
+                Box::new(self.type_of(head)),
+                tail.iter().map(|e| self.type_of(e)).collect(),
+            ),
+
             E::Variable(var_id) => self.variables.get(var_id).unwrap().ty.clone(),
             E::Function(func_id) => {
                 let info = self.functions.get(func_id).unwrap();

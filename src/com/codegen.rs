@@ -254,6 +254,7 @@ impl Codegen {
                 binary::write_opcode(&mut self.cursor, &opcode)?;
                 Ok(())
             }
+            E::Tuple(_, _) => todo!(),
             E::Variable(var) => {
                 let info = abt.variables.get(var).unwrap();
                 let id = *self.current_locals.get(var).unwrap();

@@ -43,6 +43,7 @@ pub enum ExprAbt {
     Boolean(bool),
     Variable(u64),
     Function(u64),
+    Tuple(Box<ExprAbt>, Box<[ExprAbt]>),
     Assignment {
         var_id: u64,
         deref_count: usize,

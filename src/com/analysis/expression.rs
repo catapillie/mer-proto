@@ -12,6 +12,8 @@ impl<'d> Analyser<'d> {
         match &expr.kind {
             ExprAstKind::Bad
                 => ExprAbt::Unknown,
+            ExprAstKind::Unit
+                => ExprAbt::Unit,
             ExprAstKind::Integer(num)
                 => ExprAbt::Integer(*num),
             ExprAstKind::Decimal(num)
@@ -22,6 +24,11 @@ impl<'d> Analyser<'d> {
                 => ExprAbt::Boolean(*b),
             ExprAstKind::Parenthesized(inner)
                 => self.analyse_expression(inner),
+            ExprAstKind::Tuple(head, tail)
+                => ExprAbt::Tuple(
+                    Box::new(self.analyse_expression(head)),
+                    tail.iter().map(|e| self.analyse_expression(e)).collect()
+                ),
             ExprAstKind::BinaryOp(op, left, right)
                 => self.analyse_binary_operation(*op, left, right, expr.span),
             ExprAstKind::UnaryOp(op, operand)

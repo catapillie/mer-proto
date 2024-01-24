@@ -68,6 +68,9 @@ impl<'d> Analyser<'d> {
             ExprAbt::Boolean(_) => false,
             ExprAbt::Variable(_) => false,
             ExprAbt::Function(_) => false,
+            ExprAbt::Tuple(head, tail) => {
+                Self::expression_terminates(head) || tail.iter().any(Self::expression_terminates)
+            }
             ExprAbt::Assignment {
                 var_id: _,
                 deref_count: _,
