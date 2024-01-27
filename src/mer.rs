@@ -245,6 +245,11 @@ fn dis(command: DisassembleCommand) {
                             op = opcode.name(),
                         )
                     }
+                    Opcode::pop_n(size) => println!(
+                        "{offset:0>8} ║ {op:>20} [{}]",
+                        size.to_string().bold(),
+                        op = opcode.name()
+                    ),
                     Opcode::jmp(addr) | Opcode::jmp_if(addr) => println!(
                         "{offset:0>8} ║ {op:>20} -> {}",
                         format!("{addr:0>8}").bold(),
@@ -254,6 +259,14 @@ fn dis(command: DisassembleCommand) {
                         println!(
                             "{offset:0>8} ║ {op:>20} {}",
                             loc.to_string().bold(),
+                            op = opcode.name(),
+                        )
+                    }
+                    Opcode::ld_loc_n(loc, size) | Opcode::st_loc_n(loc, size) => {
+                        println!(
+                            "{offset:0>8} ║ {op:>20} {} [{}]",
+                            loc.to_string().bold(),
+                            size.to_string().bold(),
                             op = opcode.name(),
                         )
                     }

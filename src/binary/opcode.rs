@@ -45,6 +45,8 @@ where
         opcode::nop => Ok(Opcode::nop),
 
         opcode::pop => Ok(Opcode::pop),
+        opcode::pop_n => Ok(Opcode::pop_n(cursor.read_u8()?)),
+
         opcode::dup => Ok(Opcode::dup),
         opcode::dbg => Ok(Opcode::dbg(read_native_type(cursor)?)),
 
@@ -55,7 +57,9 @@ where
         opcode::call_addr => Ok(Opcode::call_addr),
 
         opcode::ld_loc => Ok(Opcode::ld_loc(cursor.read_u8()?)),
+        opcode::ld_loc_n => Ok(Opcode::ld_loc_n(cursor.read_u8()?, cursor.read_u8()?)),
         opcode::st_loc => Ok(Opcode::st_loc(cursor.read_u8()?)),
+        opcode::st_loc_n => Ok(Opcode::st_loc_n(cursor.read_u8()?, cursor.read_u8()?)),
 
         opcode::alloc => Ok(Opcode::alloc),
         opcode::ld_heap => Ok(Opcode::ld_heap),
@@ -120,6 +124,11 @@ where
     match opcode {
         Opcode::nop => cursor.write_u8(opcode::nop),
         Opcode::pop => cursor.write_u8(opcode::pop),
+        Opcode::pop_n(n) => {
+            cursor.write_u8(opcode::pop_n)?;
+            cursor.write_u8(*n)?;
+            Ok(())
+        }
         Opcode::dup => cursor.write_u8(opcode::dup),
         Opcode::dbg(ty) => {
             cursor.write_u8(opcode::dbg)?;
@@ -150,9 +159,21 @@ where
             cursor.write_u8(*loc)?;
             Ok(())
         }
+        Opcode::ld_loc_n(loc, n) => {
+            cursor.write_u8(opcode::ld_loc_n)?;
+            cursor.write_u8(*loc)?;
+            cursor.write_u8(*n)?;
+            Ok(())
+        }
         Opcode::st_loc(loc) => {
             cursor.write_u8(opcode::st_loc)?;
             cursor.write_u8(*loc)?;
+            Ok(())
+        }
+        Opcode::st_loc_n(loc, n) => {
+            cursor.write_u8(opcode::st_loc_n)?;
+            cursor.write_u8(*loc)?;
+            cursor.write_u8(*n)?;
             Ok(())
         }
 

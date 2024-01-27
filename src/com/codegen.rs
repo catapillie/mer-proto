@@ -20,9 +20,14 @@ use super::{
     analysis::FunctionInfo,
 };
 
+struct Loc {
+    offset: u8,
+    size: u8,
+}
+
 pub struct Codegen {
     cursor: Cursor<Vec<u8>>,
-    current_locals: HashMap<u64, u8>,
+    current_locals: HashMap<u64, Loc>,
     function_positions: HashMap<u64, u32>,
     call_placeholders: Vec<(u32, u64)>,
 }
@@ -61,6 +66,89 @@ impl Codegen {
         Ok(())
     }
 
+    fn size_of(ty: &TypeAbt) -> usize {
+        match ty {
+            TypeAbt::Unknown => unreachable!(),
+            TypeAbt::Never => 0,
+            TypeAbt::Unit => 1,
+            TypeAbt::U8 => 1,
+            TypeAbt::U16 => 1,
+            TypeAbt::U32 => 1,
+            TypeAbt::U64 => 1,
+            TypeAbt::I8 => 1,
+            TypeAbt::I16 => 1,
+            TypeAbt::I32 => 1,
+            TypeAbt::I64 => 1,
+            TypeAbt::F32 => 1,
+            TypeAbt::F64 => 1,
+            TypeAbt::Bool => 1,
+            TypeAbt::Tuple(_, tail) => tail.len() + 1,
+            TypeAbt::Ref(_) => 1,
+            TypeAbt::Func(_, _) => 1,
+        }
+    }
+
+    // TODO: refactor (this is a duplicate of Analyser::type_of)
+    pub fn type_of(expr: &ExprAbt, abt: &ProgramAbt) -> TypeAbt {
+        use ExprAbt as E;
+        use TypeAbt as Ty;
+        match expr {
+            E::Unknown => Ty::Unknown,
+            E::Unit => Ty::Unit,
+            E::Integer(_) => Ty::I64,
+            E::Decimal(_) => Ty::F64,
+            E::Boolean(_) => Ty::Bool,
+
+            E::Tuple(head, tail) => Ty::Tuple(
+                Box::new(Self::type_of(head, abt)),
+                tail.iter().map(|e| Self::type_of(e, abt)).collect(),
+            ),
+
+            E::Variable(var_id) => abt.variables.get(var_id).unwrap().ty.clone(),
+            E::Function(func_id) => {
+                let info = abt.functions.get(func_id).unwrap();
+                let args = info
+                    .args
+                    .iter()
+                    .map(|(_, ty)| ty.clone())
+                    .collect::<Box<_>>();
+                Ty::Func(args, Box::new(info.ty.clone()))
+            }
+
+            E::Call(func_id, _, _) => abt.functions.get(func_id).unwrap().ty.clone(),
+            E::IndirectCall(_, _, ty) => ty.clone(),
+
+            E::Assignment {
+                var_id,
+                deref_count,
+                expr: _,
+            } => {
+                let mut result_ty = Self::type_of(&E::Variable(*var_id), abt);
+                for _ in 0..(*deref_count) {
+                    result_ty = match result_ty {
+                        TypeAbt::Ref(ty) => *ty,
+                        _ => unreachable!(),
+                    }
+                }
+                result_ty
+            }
+
+            E::Binary(op, _, _) => op.out_ty.clone(),
+            E::Unary(op, _) => op.ty.clone(),
+            E::Debug(_, ty) => ty.clone(),
+
+            E::Ref(inner) => Ty::Ref(Box::new(Self::type_of(inner, abt))),
+            E::VarRef(var_id) => Ty::Ref(Box::new(Self::type_of(&E::Variable(*var_id), abt))),
+            E::Deref(inner) => match Self::type_of(inner, abt) {
+                Ty::Ref(ty) => *ty,
+                _ => unreachable!(),
+            },
+
+            E::Todo => Ty::Never,
+            E::Unreachable => Ty::Never,
+        }
+    }
+
     pub fn gen(mut self, abt: &ProgramAbt) -> io::Result<Vec<u8>> {
         self.cursor.write_u8(opcode::entry_point)?;
         self.add_fn_addr_placeholder(abt.main_fn_id)?;
@@ -79,19 +167,26 @@ impl Codegen {
     }
 
     fn gen_function(&mut self, info: &FunctionInfo, abt: &ProgramAbt) -> io::Result<()> {
-        let param_count: u8 = info.args.len().try_into().unwrap();
-        let local_count: u8 = info.used_variables.len().try_into().unwrap();
+        let param_count: u8 = info
+            .arg_ids
+            .iter()
+            .map(|id| Self::size_of(&abt.variables.get(id).unwrap().ty) as u8)
+            .sum();
+        let local_count: u8 = info
+            .used_variables
+            .keys()
+            .map(|id| Self::size_of(&abt.variables.get(id).unwrap().ty) as u8)
+            .sum();
         let opcode = Opcode::function(info.name.clone(), param_count, local_count);
         binary::write_opcode(&mut self.cursor, &opcode)?;
 
+        let mut loc = 0;
         self.current_locals.clear();
-        for (loc, id) in info
-            .used_variables
-            .iter()
-            .enumerate()
-            .map(|(loc, (&id, _))| (loc as u8, id))
-        {
-            self.current_locals.insert(id, loc);
+        for (id, _) in info.used_variables.iter() {
+            let ty = &abt.variables.get(id).unwrap().ty;
+            let size: u8 = Self::size_of(ty).try_into().unwrap();
+            self.current_locals.insert(*id, Loc { offset: loc, size });
+            loc += size;
         }
 
         /*
@@ -107,7 +202,7 @@ impl Codegen {
             if is_on_heap {
                 binary::write_opcode(
                     &mut self.cursor,
-                    &Opcode::realloc_loc(self.current_locals[arg_id]),
+                    &Opcode::realloc_loc(self.current_locals[arg_id].offset),
                 )?;
             }
         }
@@ -130,14 +225,19 @@ impl Codegen {
                 }
             }
             S::Expr(expr) => {
+                let size = Self::size_of(&Self::type_of(expr, abt)) as u8;
                 self.gen_expression(expr, abt)?;
-                binary::write_opcode(&mut self.cursor, &Opcode::pop)?;
+                if size == 1 {
+                    binary::write_opcode(&mut self.cursor, &Opcode::pop)?;
+                } else {
+                    binary::write_opcode(&mut self.cursor, &Opcode::pop_n(size))?;
+                }
             }
             S::VarInit(var_id, expr) => {
                 // = <value>
                 self.gen_expression(expr, abt)?;
 
-                let id = *self.current_locals.get(var_id).unwrap();
+                let loc = self.current_locals.get(var_id).unwrap();
                 let info = abt.variables.get(var_id).unwrap();
 
                 // if variable is heap-allocated, allocate the value on the heap, keep the address
@@ -146,7 +246,14 @@ impl Codegen {
                 }
 
                 // write value
-                binary::write_opcode(&mut self.cursor, &Opcode::st_loc(id))?;
+                if loc.size == 1 {
+                    binary::write_opcode(&mut self.cursor, &Opcode::st_loc(loc.offset))?;
+                } else {
+                    binary::write_opcode(
+                        &mut self.cursor,
+                        &Opcode::st_loc_n(loc.offset, loc.size),
+                    )?;
+                }
             }
             S::IfThen(guard, body) => {
                 // if ...
@@ -254,11 +361,24 @@ impl Codegen {
                 binary::write_opcode(&mut self.cursor, &opcode)?;
                 Ok(())
             }
-            E::Tuple(_, _) => todo!(),
+            E::Tuple(head, tail) => {
+                self.gen_expression(head, abt)?;
+                for expr in tail.iter() {
+                    self.gen_expression(expr, abt)?;
+                }
+                Ok(())
+            }
             E::Variable(var) => {
                 let info = abt.variables.get(var).unwrap();
-                let id = *self.current_locals.get(var).unwrap();
-                binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(id))?;
+                let loc = self.current_locals.get(var).unwrap();
+                if loc.size == 1 {
+                    binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(loc.offset))?;
+                } else {
+                    binary::write_opcode(
+                        &mut self.cursor,
+                        &Opcode::ld_loc_n(loc.offset, loc.size),
+                    )?;
+                }
 
                 if info.is_on_heap {
                     binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?;
@@ -280,20 +400,20 @@ impl Codegen {
                 self.gen_expression(expr, abt)?;
                 binary::write_opcode(&mut self.cursor, &Opcode::dup)?;
 
-                let id = *self.current_locals.get(var_id).unwrap();
+                let loc = self.current_locals.get(var_id).unwrap();
                 let info = abt.variables.get(var_id).unwrap();
                 if *deref_count == 0 {
                     // simple variable assignment
                     if info.is_on_heap {
-                        binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(id))?;
+                        binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(loc.offset))?;
                         binary::write_opcode(&mut self.cursor, &Opcode::st_heap)?;
                     } else {
-                        binary::write_opcode(&mut self.cursor, &Opcode::st_loc(id))?;
+                        binary::write_opcode(&mut self.cursor, &Opcode::st_loc(loc.offset))?;
                     }
                 } else {
                     // assignment to a n-dereferenced pointer
                     // we dereference the variable n - 1 times so we have the address, (and not the value)
-                    binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(id))?;
+                    binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(loc.offset))?;
                     for _ in 1..(*deref_count) {
                         binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?;
                     }
@@ -522,8 +642,9 @@ impl Codegen {
                 Ok(())
             }
             E::VarRef(var_id) => {
-                let id = *self.current_locals.get(var_id).unwrap();
-                binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(id))?;
+                let loc = self.current_locals.get(var_id).unwrap();
+                assert!(loc.size == 1);
+                binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(loc.offset))?;
                 Ok(())
             }
             E::Deref(expr) => {

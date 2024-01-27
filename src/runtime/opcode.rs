@@ -3,8 +3,9 @@ use super::native_type::NativeType;
 opcodes! {
     0x00 nop
     0x01 pop
-    0x02 dup
-    0x03 dbg(NativeType)
+    0x02 pop_n(u8)
+    0x03 dup
+    0x04 dbg(NativeType)
 
     0xc0 jmp(u32)
     0xc1 jmp_if(u32)
@@ -13,7 +14,9 @@ opcodes! {
     0xc4 call_addr
 
     0xd0 ld_loc(u8)
-    0xd1 st_loc(u8)
+    0xd1 ld_loc_n(u8, u8)
+    0xd2 st_loc(u8)
+    0xd3 st_loc_n(u8, u8)
 
     0xe0 alloc
     0xe1 ld_heap

@@ -1,0 +1,9 @@
+func create_tuple(x: f64, y: f64) -> (f64, f64)
+    = (x, y)
+
+create_tuple(0.0, 0.0)
+create_tuple(0.0, 1.0)
+create_tuple(1.0, 0.0)
+create_tuple(1.0, 1.0)
+
+return

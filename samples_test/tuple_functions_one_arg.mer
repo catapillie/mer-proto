@@ -1,0 +1,9 @@
+func id(tuple: (bool, i64, f64)) -> (bool, i64, f64)
+    = tuple
+
+id((true, 0, 0.0))
+id((true, 0, 1.0))
+id((false, 1, 0.0))
+id((true, 1, 1.0))
+
+return

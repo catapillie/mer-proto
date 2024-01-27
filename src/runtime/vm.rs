@@ -77,6 +77,12 @@ impl<'a> VM<'a> {
             match self.next_opcode() {
                 opcode::nop => continue,
                 opcode::pop => _ = self.pop(),
+                opcode::pop_n => {
+                    let n = self.read_u8();
+                    for _ in 0..n {
+                        self.pop()?;
+                    }
+                }
                 opcode::dup => self.dup()?,
 
                 opcode::dbg => {
@@ -106,7 +112,9 @@ impl<'a> VM<'a> {
                 opcode::call_addr => self.call_addr()?,
 
                 opcode::ld_loc => self.ld_loc(),
+                opcode::ld_loc_n => self.ld_loc_n(),
                 opcode::st_loc => self.st_loc()?,
+                opcode::st_loc_n => self.st_loc_n()?,
 
                 opcode::ld_unit => self.push(Value::make_unit(())),
                 opcode::ld_u8 => push_value!(self => read_u8, make_u8),
@@ -292,10 +300,29 @@ impl<'a> VM<'a> {
         self.push(self.stack[offset + index]);
     }
 
+    fn ld_loc_n(&mut self) {
+        let index = self.read_u8() as usize;
+        let size = self.read_u8() as usize;
+        let offset = self.frames.last().unwrap().local_offset;
+        for i in 0..size {
+            self.push(self.stack[offset + index + i]);
+        }
+    }
+
     fn st_loc(&mut self) -> Result<(), Error> {
         let index = self.read_u8() as usize;
         let offset = self.frames.last().unwrap().local_offset;
         self.stack[offset + index] = self.pop()?;
+        Ok(())
+    }
+
+    fn st_loc_n(&mut self) -> Result<(), Error> {
+        let index = self.read_u8() as usize;
+        let size = self.read_u8() as usize;
+        let offset = self.frames.last().unwrap().local_offset;
+        for i in 0..size {
+            self.stack[offset + index + (size - i - 1)] = self.pop()?;
+        }
         Ok(())
     }
 
