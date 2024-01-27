@@ -1,4 +1,5 @@
 use std::{
+    alloc::{self, Layout},
     cmp,
     io::{Cursor, Seek, SeekFrom},
     ops::{self},
@@ -9,7 +10,6 @@ use byteorder::ReadBytesExt;
 
 const INITIAL_STACK_CAPACITY: usize = 512;
 const INITIAL_CALLSTACK_CAPACITY: usize = 64;
-const HEAP_SIZE: usize = 1_000_000; // 8 MB
 
 struct Frame {
     back: Option<u64>,
@@ -20,7 +20,6 @@ struct Frame {
 pub struct VM<'a> {
     cursor: Cursor<&'a [u8]>,
     stack: Vec<Value>,
-    heap: Slab<Value>,
     frames: Vec<Frame>,
     done: bool,
 }
@@ -30,7 +29,6 @@ impl<'a> VM<'a> {
         Self {
             cursor: Cursor::new(program),
             stack: Vec::with_capacity(INITIAL_STACK_CAPACITY),
-            heap: Slab::with_capacity(HEAP_SIZE),
             frames: Vec::with_capacity(INITIAL_CALLSTACK_CAPACITY),
             done: false,
         }
@@ -143,34 +141,10 @@ impl<'a> VM<'a> {
                 opcode::bitor => bitwise_binary_op!(self => ops::BitOr::bitor, bitor),
                 opcode::bitxor => bitwise_binary_op!(self => ops::BitXor::bitxor, bitxor),
 
-                opcode::alloc => {
-                    let value = self.pop()?;
-                    let ptr = self.heap.insert(value);
-                    self.push(Value::make_usize(ptr));
-                }
-                opcode::ld_heap => {
-                    let ptr = self.pop()?.get_usize();
-                    let value = match self.heap.get(ptr) {
-                        Some(value) => value,
-                        None => return Err(Error::InvalidMemoryAccess),
-                    };
-                    self.push(*value);
-                }
-                opcode::st_heap => {
-                    let ptr = self.pop()?.get_usize();
-                    let value = self.pop()?;
-                    let heap_value = match self.heap.get_mut(ptr) {
-                        Some(heap_value) => heap_value,
-                        None => return Err(Error::InvalidMemoryWrite),
-                    };
-                    *heap_value = value;
-                }
-                opcode::realloc_loc => {
-                    let index = self.read_u8() as usize;
-                    let offset = self.frames.last().unwrap().local_offset;
-                    let ptr = self.heap.insert(self.stack[offset + index]);
-                    self.stack[offset + index] = Value::make_usize(ptr);
-                }
+                opcode::alloc => self.alloc()?,
+                opcode::ld_heap => self.ld_heap()?,
+                opcode::st_heap => self.st_heap()?,
+                opcode::realloc_loc => self.realloc_loc()?,
 
                 opcode::neg => {
                     let ty = self.read_u8();
@@ -326,6 +300,52 @@ impl<'a> VM<'a> {
         Ok(())
     }
 
+    fn alloc(&mut self) -> Result<(), Error> {
+        let value = self.pop()?;
+        let addr = Self::alloc_value(value);
+        self.push(Value::make_usize(addr));
+        Ok(())
+    }
+
+    fn ld_heap(&mut self) -> Result<(), Error> {
+        let addr = self.pop()?.get_usize();
+        let value = Self::read_heap(addr);
+        self.push(value);
+        Ok(())
+    }
+
+    fn st_heap(&mut self) -> Result<(), Error> {
+        let addr = self.pop()?.get_usize();
+        let value = self.pop()?;
+        Self::store_heap(addr, value);
+        Ok(())
+    }
+
+    fn realloc_loc(&mut self) -> Result<(), Error> {
+        let index = self.read_u8() as usize;
+        let offset = self.frames.last().unwrap().local_offset;
+        let value = self.stack[offset + index];
+        let addr = Self::alloc_value(value);
+        self.stack[offset + index] = Value::make_usize(addr);
+        Ok(())
+    }
+
+    fn alloc_value(value: Value) -> usize {
+        unsafe {
+            let ptr = alloc::alloc(Layout::for_value(&value)) as *mut Value;
+            ptr.write(value);
+            ptr as usize
+        }
+    }
+
+    fn read_heap(addr: usize) -> Value {
+        unsafe { (addr as *const Value).read() }
+    }
+
+    fn store_heap(addr: usize, value: Value) {
+        unsafe { (addr as *mut Value).write(value) }
+    }
+
     fn next_opcode(&mut self) -> u8 {
         self.read_u8()
     }
@@ -462,4 +482,3 @@ use bitwise_binary_op;
 use comparison_binary_op;
 use numeral_binary_op;
 use push_value;
-use slab::Slab;
