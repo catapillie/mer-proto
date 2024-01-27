@@ -62,7 +62,9 @@ where
         opcode::st_loc_n => Ok(Opcode::st_loc_n(cursor.read_u8()?, cursor.read_u8()?)),
 
         opcode::alloc => Ok(Opcode::alloc),
+        opcode::alloc_n => Ok(Opcode::alloc_n(cursor.read_u64::<LE>()?)),
         opcode::ld_heap => Ok(Opcode::ld_heap),
+        opcode::ld_heap_n => Ok(Opcode::ld_heap_n(cursor.read_u8()?)),
         opcode::st_heap => Ok(Opcode::st_heap),
         opcode::realloc_loc => Ok(Opcode::realloc_loc(cursor.read_u8()?)),
 
@@ -178,7 +180,19 @@ where
         }
 
         Opcode::alloc => cursor.write_u8(opcode::alloc),
+        Opcode::alloc_n(n) => {
+            cursor.write_u8(opcode::alloc_n)?;
+            cursor.write_u64::<LE>(*n)?;
+            Ok(())
+        }
+
         Opcode::ld_heap => cursor.write_u8(opcode::ld_heap),
+        Opcode::ld_heap_n(n) => {
+            cursor.write_u8(opcode::ld_heap_n)?;
+            cursor.write_u8(*n)?;
+            Ok(())
+        }
+
         Opcode::st_heap => cursor.write_u8(opcode::st_heap),
         Opcode::realloc_loc(loc) => {
             cursor.write_u8(opcode::realloc_loc)?;

@@ -242,11 +242,16 @@ impl Codegen {
 
                 // if variable is heap-allocated, allocate the value on the heap, keep the address
                 if info.is_on_heap {
-                    binary::write_opcode(&mut self.cursor, &Opcode::alloc)?;
+                    let size = Self::size_of(&info.ty) as u64;
+                    if size == 1 {
+                        binary::write_opcode(&mut self.cursor, &Opcode::alloc)?;
+                    } else {
+                        binary::write_opcode(&mut self.cursor, &Opcode::alloc_n(size))?;
+                    }
                 }
 
-                // write value
-                if loc.size == 1 {
+                // write value (only one value space is taken if the variable is heap-allocated)
+                if loc.size == 1 || info.is_on_heap {
                     binary::write_opcode(&mut self.cursor, &Opcode::st_loc(loc.offset))?;
                 } else {
                     binary::write_opcode(
@@ -638,18 +643,31 @@ impl Codegen {
             }
             E::Ref(expr) => {
                 self.gen_expression(expr, abt)?;
-                binary::write_opcode(&mut self.cursor, &Opcode::alloc)?;
+                let size = Self::size_of(&Self::type_of(expr, abt)) as u64;
+                if size == 1 {
+                    binary::write_opcode(&mut self.cursor, &Opcode::alloc)?;
+                } else {
+                    binary::write_opcode(&mut self.cursor, &Opcode::alloc_n(size))?;
+                }
                 Ok(())
             }
             E::VarRef(var_id) => {
                 let loc = self.current_locals.get(var_id).unwrap();
-                assert!(loc.size == 1);
                 binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(loc.offset))?;
                 Ok(())
             }
             E::Deref(expr) => {
                 self.gen_expression(expr, abt)?;
-                binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?;
+                let TypeAbt::Ref(inner) = Self::type_of(expr, abt) else {
+                    unreachable!()
+                };
+
+                let size = Self::size_of(&inner) as u8;
+                if size == 1 {
+                    binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?;
+                } else {
+                    binary::write_opcode(&mut self.cursor, &Opcode::ld_heap_n(size))?;
+                }
                 Ok(())
             }
         }

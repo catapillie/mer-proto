@@ -1,3 +1,4 @@
+use core::slice;
 use std::{
     alloc::{self, Layout},
     cmp,
@@ -114,6 +115,14 @@ impl<'a> VM<'a> {
                 opcode::st_loc => self.st_loc()?,
                 opcode::st_loc_n => self.st_loc_n()?,
 
+                opcode::alloc => self.alloc()?,
+                opcode::alloc_n => self.alloc_n()?,
+                opcode::ld_heap => self.ld_heap()?,
+                opcode::ld_heap_n => self.ld_heap_n()?,
+                opcode::st_heap => self.st_heap()?,
+
+                opcode::realloc_loc => self.realloc_loc()?,
+
                 opcode::ld_unit => self.push(Value::make_unit(())),
                 opcode::ld_u8 => push_value!(self => read_u8, make_u8),
                 opcode::ld_u16 => push_value!(self => read_u16, make_u16),
@@ -140,11 +149,6 @@ impl<'a> VM<'a> {
                 opcode::bitand => bitwise_binary_op!(self => ops::BitAnd::bitand, bitand),
                 opcode::bitor => bitwise_binary_op!(self => ops::BitOr::bitor, bitor),
                 opcode::bitxor => bitwise_binary_op!(self => ops::BitXor::bitxor, bitxor),
-
-                opcode::alloc => self.alloc()?,
-                opcode::ld_heap => self.ld_heap()?,
-                opcode::st_heap => self.st_heap()?,
-                opcode::realloc_loc => self.realloc_loc()?,
 
                 opcode::neg => {
                     let ty = self.read_u8();
@@ -307,10 +311,30 @@ impl<'a> VM<'a> {
         Ok(())
     }
 
+    fn alloc_n(&mut self) -> Result<(), Error> {
+        let n = self.read_u8() as usize;
+        let len = self.stack.len();
+        if n > len {
+            return Err(Error::StackUnderflow);
+        }
+        let values = self.stack.split_off(len - n);
+        let addr = Self::alloc_array(&values);
+        self.push(Value::make_usize(addr));
+        Ok(())
+    }
+
     fn ld_heap(&mut self) -> Result<(), Error> {
         let addr = self.pop()?.get_usize();
         let value = Self::read_heap(addr);
         self.push(value);
+        Ok(())
+    }
+
+    fn ld_heap_n(&mut self) -> Result<(), Error> {
+        let n = self.read_u8() as usize;
+        let addr = self.pop()?.get_usize();
+        let values = Self::read_heap_array(addr, n);
+        self.stack.extend_from_slice(values);
         Ok(())
     }
 
@@ -338,8 +362,21 @@ impl<'a> VM<'a> {
         }
     }
 
+    fn alloc_array(values: &[Value]) -> usize {
+        unsafe {
+            let layout = Layout::array::<Value>(values.len()).unwrap();
+            let ptr = alloc::alloc(layout) as *mut Value;
+            values.as_ptr().copy_to(ptr, values.len());
+            ptr as usize
+        }
+    }
+
     fn read_heap(addr: usize) -> Value {
         unsafe { (addr as *const Value).read() }
+    }
+
+    fn read_heap_array<'b>(addr: usize, n: usize) -> &'b [Value] {
+        unsafe { slice::from_raw_parts(addr as *const Value, n) }
     }
 
     fn store_heap(addr: usize, value: Value) {

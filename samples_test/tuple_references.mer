@@ -1,0 +1,7 @@
+var xyz = (1.0, 2.0, 3.0)
+var p = &xyz
+
+var abc = @p
+abc
+
+return

@@ -19,9 +19,11 @@ opcodes! {
     0xd3 st_loc_n(u8, u8)
 
     0xe0 alloc
-    0xe1 ld_heap
-    0xe2 st_heap
-    0xe3 realloc_loc(u8)
+    0xe1 alloc_n(u64)
+    0xe2 ld_heap
+    0xe3 ld_heap_n(u8)
+    0xe4 st_heap
+    0xe5 realloc_loc(u8)
 
     0xf0 entry_point(u32)
     0xf1 function(String, u8, u8)
