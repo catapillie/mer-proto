@@ -416,7 +416,12 @@ impl Codegen {
                 }
                 Ok(())
             }
-            E::Array(_) => todo!(),
+            E::Array(exprs) => {
+                for expr in exprs.iter() {
+                    self.gen_expression(expr, abt)?;
+                }
+                Ok(())
+            }
             E::TupleFieldAccess(tuple, index) => {
                 let tuple_ty = Self::type_of(tuple, abt);
                 let total_size = Self::size_of(&tuple_ty) as u8;
