@@ -155,6 +155,19 @@ impl Codegen {
                 _ => unreachable!(),
             },
 
+            E::TupleFieldAccess(tuple, index) => {
+                let ty = Self::type_of(tuple, abt);
+                let Ty::Tuple(head, tail) = ty else {
+                    unreachable!()
+                };
+
+                if *index == 0 {
+                    *head
+                } else {
+                    tail[*index - 1].clone()
+                }
+            }
+
             E::Todo => Ty::Never,
             E::Unreachable => Ty::Never,
         }
@@ -398,6 +411,7 @@ impl Codegen {
                 }
                 Ok(())
             }
+            E::TupleFieldAccess(_tuple, _index) => todo!(),
             E::Variable(var) => {
                 let info = abt.variables.get(var).unwrap();
                 let loc = self.current_locals.get(var).unwrap();

@@ -105,6 +105,19 @@ impl<'d> Analyser<'d> {
                 _ => unreachable!(),
             },
 
+            E::TupleFieldAccess(tuple, index) => {
+                let ty = self.type_of(tuple);
+                let Ty::Tuple(head, tail) = ty else {
+                    unreachable!()
+                };
+
+                if *index == 0 {
+                    *head
+                } else {
+                    tail[*index - 1].clone()
+                }
+            }
+
             E::Todo => Ty::Never,
             E::Unreachable => Ty::Never,
         }

@@ -23,6 +23,7 @@ pub enum ExprAstKind {
     Debug(Box<ExprAst>),
     Ref(Box<ExprAst>),
     Deref(Box<ExprAst>),
+    TupleFieldAccess(Box<ExprAst>, u64),
     Todo,
     Unreachable,
 }

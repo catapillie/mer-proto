@@ -24,6 +24,8 @@ gen_tokens! {
     RightBrace "}}"
         self => ("}}"),
 
+    Dot "."
+        self => ("."),
     Comma ","
         self => (","),
     Colon ":"

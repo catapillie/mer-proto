@@ -88,6 +88,7 @@ impl<'d> Analyser<'d> {
             ExprAbt::Ref(expr) => Self::expression_terminates(expr),
             ExprAbt::VarRef(_) => false,
             ExprAbt::Deref(expr) => Self::expression_terminates(expr),
+            ExprAbt::TupleFieldAccess(tuple, _) => Self::expression_terminates(tuple),
             ExprAbt::Todo => true,
             ExprAbt::Unreachable => true,
         }

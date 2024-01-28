@@ -57,6 +57,7 @@ pub enum ExprAbt {
     Ref(Box<ExprAbt>),
     VarRef(u64),
     Deref(Box<ExprAbt>),
+    TupleFieldAccess(Box<ExprAbt>, usize),
     Todo,
     Unreachable,
 }

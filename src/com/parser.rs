@@ -597,7 +597,7 @@ impl<'a> Parser<'a> {
                 if exprs.is_empty() {
                     return Some(ExprAstKind::Unit);
                 }
-    
+
                 let head = exprs.remove(0);
                 return if exprs.is_empty() {
                     Some(ExprAstKind::Parenthesized(Box::new(head)))
@@ -611,23 +611,38 @@ impl<'a> Parser<'a> {
 
         let mut expr = expr?.wrap(span);
 
-        while self.try_match_token::<LeftParen>().is_some() {
-            let mut params = Vec::new();
-            loop {
-                let Some(expr) = self.parse_expression() else {
-                    break;
-                };
+        loop {
+            if self.try_match_token::<LeftParen>().is_some() {
+                let mut params = Vec::new();
+                loop {
+                    let Some(expr) = self.parse_expression() else {
+                        break;
+                    };
 
-                params.push(expr);
+                    params.push(expr);
 
-                if self.try_match_token::<Comma>().is_none() {
-                    break;
+                    if self.try_match_token::<Comma>().is_none() {
+                        break;
+                    }
                 }
-            }
-            self.match_token::<RightParen>();
+                self.match_token::<RightParen>();
 
-            span = span.join(self.last_span());
-            expr = ExprAstKind::Call(Box::new(expr), params.into()).wrap(span);
+                span = span.join(self.last_span());
+                expr = ExprAstKind::Call(Box::new(expr), params.into()).wrap(span);
+                continue;
+            }
+
+            if self.try_match_token::<Dot>().is_some() {
+                let index = self
+                    .match_token::<Integer>()
+                    .map(|n| n.0 as u64)
+                    .unwrap_or(0);
+                span = span.join(self.last_span());
+                expr = ExprAstKind::TupleFieldAccess(Box::new(expr), index).wrap(span);
+                continue;
+            }
+
+            break;
         }
 
         Some(expr)
@@ -1034,6 +1049,7 @@ impl<'a> Parser<'a> {
             match_by_string!(self, ")" => RightParen);
             match_by_string!(self, "{" => LeftBrace);
             match_by_string!(self, "}" => RightBrace);
+            match_by_string!(self, "." => Dot);
             match_by_string!(self, "," => Comma);
             match_by_string!(self, ":" => Colon);
             match_by_string!(self, "=" => Equal);

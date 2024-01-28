@@ -25,10 +25,7 @@ impl<'d> Analyser<'d> {
             ExprAstKind::Parenthesized(inner)
                 => self.analyse_expression(inner),
             ExprAstKind::Tuple(head, tail)
-                => ExprAbt::Tuple(
-                    Box::new(self.analyse_expression(head)),
-                    tail.iter().map(|e| self.analyse_expression(e)).collect()
-                ),
+                => self.analyse_tuple_expression(head, tail),
             ExprAstKind::BinaryOp(op, left, right)
                 => self.analyse_binary_operation(*op, left, right, expr.span),
             ExprAstKind::UnaryOp(op, operand)
@@ -41,6 +38,8 @@ impl<'d> Analyser<'d> {
                 => self.analyse_reference_expression(expr),
             ExprAstKind::Deref(expr)
                 => self.analyse_dereference_expression(expr),
+            ExprAstKind::TupleFieldAccess(expr, index)
+                => self.analyse_tuple_field_access(expr, *index, expr.span),
             ExprAstKind::Todo
                 => ExprAbt::Todo,
             ExprAstKind::Unreachable

@@ -217,6 +217,12 @@ pub enum DiagnosticKind {
     InvalidDebugExpression(TypeAbt),
 
     InvalidDereference(TypeAbt),
+
+    IndexingNonTupleValue,
+    InvalidTupleIndex {
+        len: usize,
+        accessed: usize,
+    },
 }
 
 #[rustfmt::skip]
@@ -329,6 +335,13 @@ impl DiagnosticKind {
                 => format!("cannot dereference value of type '{}'",
                     ty.to_string().bold(),
                 ),
+            Self::IndexingNonTupleValue
+                => "cannot access indexed field of non-tuple value".to_string(),
+            Self::InvalidTupleIndex { len, accessed }
+                => format!("cannot access value {} of a tuple with {} values",
+                    accessed.to_string().bold(),
+                    len.to_string().bold(),
+                ),
         }
     }
 }
@@ -364,6 +377,7 @@ pub enum Note {
     FunctionVariableCount(usize),
     ProvidedArgs(usize),
     VariableCapturedBy(String, String),
+    TupleValueCount(usize),
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -442,7 +456,7 @@ impl Note {
                 ),
             Self::OfType(ty)
                 => format!("this is of type '{}'",
-                    ty.to_string().bold()
+                    ty.to_string().bold(),
                 ),
             Self::VariableDeclaration(name)
                 => format!("variable '{}' is declared here", name.bold()),
@@ -480,7 +494,11 @@ impl Note {
                 => format!("'{}' gets captured by '{}' here",
                     var_name.bold(),
                     func_name.bold(),
-                )
+                ),
+            Self::TupleValueCount(len)
+                => format!("this tuple contains {} values",
+                    len.to_string().bold(),
+                ),
         }
     }
 }

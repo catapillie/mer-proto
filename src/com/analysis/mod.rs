@@ -13,10 +13,11 @@ mod statement;
 mod types;
 
 mod functions;
-mod reference;
 mod variables;
 
 mod operations;
+mod reference;
+mod tuples;
 
 mod if_then;
 mod while_do;
