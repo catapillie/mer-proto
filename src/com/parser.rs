@@ -584,16 +584,8 @@ impl<'a> Parser<'a> {
                 return Some(ExprAstKind::Boolean(false));
             }
 
-            if self.try_match_token::<LeftParen>().is_some() {
-                let mut exprs = Vec::new();
-                while let Some(expr) = self.parse_expression() {
-                    exprs.push(expr);
-                    if self.try_match_token::<Comma>().is_none() {
-                        break;
-                    }
-                }
-                self.match_token::<RightParen>();
-
+            let parenthesized = self.parse_delimited_sequence::<LeftParen, RightParen, Comma, _, _>(Self::parse_expression);
+            if let Some(mut exprs) = parenthesized {
                 if exprs.is_empty() {
                     return Some(ExprAstKind::Unit);
                 }
@@ -696,21 +688,10 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_primary_type_expression(&mut self) -> Option<TypeAst> {
-        if self.try_match_token::<LeftParen>().is_some() {
-            let left_paren_span = self.last_span();
-            let (mut tys, span) = take_span!(self => {
-                let mut tys = Vec::new();
-                while let Some(ty) = self.parse_type_expression() {
-                    tys.push(ty);
-                    if self.try_match_token::<Comma>().is_none() {
-                        break;
-                    }
-                }
-                self.match_token::<RightParen>();
-                tys
-            });
-            let span = span.join(left_paren_span);
-
+        let delimited = take_span!(
+            self => self.parse_delimited_sequence::<LeftParen, RightParen, Comma, _, _>(Self::parse_type_expression)
+        );
+        if let (Some(mut tys), span) = delimited {
             if tys.is_empty() {
                 return Some(TypeAstKind::Unit.wrap(span));
             }
@@ -749,6 +730,25 @@ impl<'a> Parser<'a> {
         }
 
         None
+    }
+
+    fn parse_delimited_sequence<Left, Right, Sep, T, F>(&mut self, parser: F) -> Option<Vec<T>>
+    where
+        Left: TokenValue,
+        Right: TokenValue,
+        Sep: TokenValue,
+        F: Fn(&mut Self) -> Option<T>,
+    {
+        self.try_match_token::<Left>()?;
+        let mut elements = Vec::new();
+        while let Some(e) = parser(self) {
+            elements.push(e);
+            if self.try_match_token::<Sep>().is_none() {
+                break;
+            }
+        }
+        self.match_token::<Right>();
+        Some(elements)
     }
 
     fn expect_newlines_or_eof(&mut self) -> bool {
