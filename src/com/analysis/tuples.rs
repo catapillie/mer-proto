@@ -15,32 +15,16 @@ impl<'d> Analyser<'d> {
         )
     }
 
-    pub fn analyse_tuple_field_access(
+    pub fn analyse_tuple_immediate_index(
         &mut self,
         expr: &ExprAst,
+        bound_expr: ExprAbt,
+        tail: &[TypeAbt],
         index: u64,
         span: Span,
     ) -> ExprAbt {
-        let bound_expr = self.analyse_expression(expr);
-        let ty = self.type_of(&bound_expr);
-
-        if !ty.is_known() {
-            return ExprAbt::Unknown;
-        }
-
-        let TypeAbt::Tuple(_, tail) = ty else {
-            let d = diagnostics::create_diagnostic()
-                .with_kind(DiagnosticKind::InvalidImmediateIndex)
-                .with_span(span)
-                .with_severity(Severity::Error)
-                .annotate_primary(Note::OfType(ty), expr.span)
-                .done();
-            self.diagnostics.push(d);
-            return ExprAbt::Unknown;
-        };
-
         if index == 0 {
-            return ExprAbt::TupleIndex(Box::new(bound_expr), 0);
+            return ExprAbt::TupleImmediateIndex(Box::new(bound_expr), 0);
         }
 
         let len = 1 + tail.len();
@@ -58,6 +42,6 @@ impl<'d> Analyser<'d> {
             return ExprAbt::Unknown;
         }
 
-        ExprAbt::TupleIndex(Box::new(bound_expr), index as usize)
+        ExprAbt::TupleImmediateIndex(Box::new(bound_expr), index as usize)
     }
 }

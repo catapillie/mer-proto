@@ -28,6 +28,8 @@ impl<'d> Analyser<'d> {
                 => self.analyse_tuple_expression(head, tail),
             ExprAstKind::Array(exprs)
                 => self.analyse_array_expression(exprs, expr.span),
+            ExprAstKind::ImmediateIndex(inner, index)
+                => self.analyse_immediate_index(inner, *index, expr.span),
             ExprAstKind::BinaryOp(op, left, right)
                 => self.analyse_binary_operation(*op, left, right, expr.span),
             ExprAstKind::UnaryOp(op, operand)
@@ -40,8 +42,6 @@ impl<'d> Analyser<'d> {
                 => self.analyse_reference_expression(expr),
             ExprAstKind::Deref(expr)
                 => self.analyse_dereference_expression(expr),
-            ExprAstKind::ImmediateIndex(expr, index)
-                => self.analyse_tuple_field_access(expr, *index, expr.span),
             ExprAstKind::Todo
                 => ExprAbt::Todo,
             ExprAstKind::Unreachable

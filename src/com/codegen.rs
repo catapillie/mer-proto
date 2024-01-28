@@ -115,10 +115,30 @@ impl Codegen {
                 Box::new(Self::type_of(head, abt)),
                 tail.iter().map(|e| Self::type_of(e, abt)).collect(),
             ),
+            E::TupleImmediateIndex(tuple, index) => {
+                let ty = Self::type_of(tuple, abt);
+                let Ty::Tuple(head, tail) = ty else {
+                    unreachable!()
+                };
+
+                if *index == 0 {
+                    *head
+                } else {
+                    tail[*index - 1].clone()
+                }
+            }
+
             E::Array(exprs) => Ty::Array(
                 Box::new(Self::type_of(exprs.first().unwrap(), abt)),
                 exprs.len(),
             ),
+            E::ArrayImmediateIndex(array, _) => {
+                let ty = Self::type_of(array, abt);
+                let Ty::Array(inner_ty, _) = ty else {
+                    unreachable!()
+                };
+                *inner_ty
+            }
 
             E::Variable(var_id) => abt.variables.get(var_id).unwrap().ty.clone(),
             E::Function(func_id) => {
@@ -159,19 +179,6 @@ impl Codegen {
                 Ty::Ref(ty) => *ty,
                 _ => unreachable!(),
             },
-
-            E::TupleIndex(tuple, index) => {
-                let ty = Self::type_of(tuple, abt);
-                let Ty::Tuple(head, tail) = ty else {
-                    unreachable!()
-                };
-
-                if *index == 0 {
-                    *head
-                } else {
-                    tail[*index - 1].clone()
-                }
-            }
 
             E::Todo => Ty::Never,
             E::Unreachable => Ty::Never,
@@ -416,13 +423,7 @@ impl Codegen {
                 }
                 Ok(())
             }
-            E::Array(exprs) => {
-                for expr in exprs.iter() {
-                    self.gen_expression(expr, abt)?;
-                }
-                Ok(())
-            }
-            E::TupleIndex(tuple, index) => {
+            E::TupleImmediateIndex(tuple, index) => {
                 let tuple_ty = Self::type_of(tuple, abt);
                 let total_size = Self::size_of(&tuple_ty) as u8;
                 let TypeAbt::Tuple(head, tail) = tuple_ty else {
@@ -444,6 +445,25 @@ impl Codegen {
                         &Opcode::keep(offset, size, total_size),
                     )?;
                 }
+                Ok(())
+            }
+            E::Array(exprs) => {
+                for expr in exprs.iter() {
+                    self.gen_expression(expr, abt)?;
+                }
+                Ok(())
+            }
+            E::ArrayImmediateIndex(array, index) => {
+                let array_ty = Self::type_of(array, abt);
+                let total_size = Self::size_of(&array_ty) as u8;
+                let TypeAbt::Array(inner_ty, _) = array_ty else {
+                    unreachable!()
+                };
+                self.gen_expression(array, abt)?;
+
+                let size = Self::size_of(&inner_ty) as u8;
+                let offset = *index as u8 * size;
+                binary::write_opcode(&mut self.cursor, &Opcode::keep(offset, size, total_size))?;
                 Ok(())
             }
             E::Variable(var) => {

@@ -58,4 +58,29 @@ impl<'d> Analyser<'d> {
 
         ExprAbt::Array(bound_exprs)
     }
+
+    pub fn analyse_array_immediate_index(
+        &mut self,
+        expr: &ExprAst,
+        bound_expr: ExprAbt,
+        index: u64,
+        size: usize,
+        span: Span,
+    ) -> ExprAbt {
+        if index as usize >= size {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::OutOfRangeArrayIndex {
+                    len: size,
+                    index: index as usize,
+                })
+                .with_span(span)
+                .with_severity(Severity::Error)
+                .annotate_primary(Note::OfType(self.type_of(&bound_expr)), expr.span)
+                .done();
+            self.diagnostics.push(d);
+            return ExprAbt::Unknown;
+        }
+
+        ExprAbt::ArrayImmediateIndex(Box::new(bound_expr), index as usize)
+    }
 }

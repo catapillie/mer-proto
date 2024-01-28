@@ -64,8 +64,28 @@ impl<'d> Analyser<'d> {
                 Box::new(self.type_of(head)),
                 tail.iter().map(|e| self.type_of(e)).collect(),
             ),
+            E::TupleImmediateIndex(tuple, index) => {
+                let ty = self.type_of(tuple);
+                let Ty::Tuple(head, tail) = ty else {
+                    unreachable!()
+                };
+
+                if *index == 0 {
+                    *head
+                } else {
+                    tail[*index - 1].clone()
+                }
+            }
+
             E::Array(exprs) => {
                 Ty::Array(Box::new(self.type_of(exprs.first().unwrap())), exprs.len())
+            }
+            E::ArrayImmediateIndex(array, _) => {
+                let ty = self.type_of(array);
+                let Ty::Array(inner_ty, _) = ty else {
+                    unreachable!()
+                };
+                *inner_ty
             }
 
             E::Variable(var_id) => self.variables.get(var_id).unwrap().ty.clone(),
@@ -107,19 +127,6 @@ impl<'d> Analyser<'d> {
                 Ty::Ref(ty) => *ty,
                 _ => unreachable!(),
             },
-
-            E::TupleIndex(tuple, index) => {
-                let ty = self.type_of(tuple);
-                let Ty::Tuple(head, tail) = ty else {
-                    unreachable!()
-                };
-
-                if *index == 0 {
-                    *head
-                } else {
-                    tail[*index - 1].clone()
-                }
-            }
 
             E::Todo => Ty::Never,
             E::Unreachable => Ty::Never,

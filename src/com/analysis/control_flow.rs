@@ -71,7 +71,9 @@ impl<'d> Analyser<'d> {
             ExprAbt::Tuple(head, tail) => {
                 Self::expression_terminates(head) || tail.iter().any(Self::expression_terminates)
             }
+            ExprAbt::TupleImmediateIndex(tuple, _) => Self::expression_terminates(tuple),
             ExprAbt::Array(exprs) => exprs.iter().any(Self::expression_terminates),
+            ExprAbt::ArrayImmediateIndex(array, _) => Self::expression_terminates(array),
             ExprAbt::Assignment {
                 var_id: _,
                 deref_count: _,
@@ -89,7 +91,6 @@ impl<'d> Analyser<'d> {
             ExprAbt::Ref(expr) => Self::expression_terminates(expr),
             ExprAbt::VarRef(_) => false,
             ExprAbt::Deref(expr) => Self::expression_terminates(expr),
-            ExprAbt::TupleIndex(tuple, _) => Self::expression_terminates(tuple),
             ExprAbt::Todo => true,
             ExprAbt::Unreachable => true,
         }

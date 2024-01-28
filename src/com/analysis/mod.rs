@@ -16,6 +16,7 @@ mod functions;
 mod variables;
 
 mod arrays;
+mod indexing;
 mod operations;
 mod reference;
 mod tuples;

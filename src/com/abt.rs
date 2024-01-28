@@ -44,8 +44,9 @@ pub enum ExprAbt {
     Variable(u64),
     Function(u64),
     Tuple(Box<ExprAbt>, Box<[ExprAbt]>),
-    TupleIndex(Box<ExprAbt>, usize),
+    TupleImmediateIndex(Box<ExprAbt>, usize),
     Array(Box<[ExprAbt]>),
+    ArrayImmediateIndex(Box<ExprAbt>, usize),
     Assignment {
         var_id: u64,
         deref_count: usize,

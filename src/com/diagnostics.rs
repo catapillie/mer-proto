@@ -227,6 +227,10 @@ pub enum DiagnosticKind {
     EmptyArray,
     SingletonArray,
     ArrayMismatchingTypes,
+    OutOfRangeArrayIndex {
+        len: usize,
+        index: usize,
+    },
 }
 
 #[rustfmt::skip]
@@ -352,6 +356,11 @@ impl DiagnosticKind {
                 => "singleton arrays are equivalent to their inner value".to_string(),
             Self::ArrayMismatchingTypes
                 => "values in array must all be of the same type".to_string(),
+            Self::OutOfRangeArrayIndex { len, index }
+                => format!("cannot access value {} of an array of size {}",
+                    index.to_string().bold(),
+                    len.to_string().bold(),
+                ),
         }
     }
 }
