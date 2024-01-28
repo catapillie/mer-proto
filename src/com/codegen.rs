@@ -411,7 +411,30 @@ impl Codegen {
                 }
                 Ok(())
             }
-            E::TupleFieldAccess(_tuple, _index) => todo!(),
+            E::TupleFieldAccess(tuple, index) => {
+                let tuple_ty = Self::type_of(tuple, abt);
+                let total_size = Self::size_of(&tuple_ty) as u8;
+                let TypeAbt::Tuple(head, tail) = tuple_ty else {
+                    unreachable!()
+                };
+                self.gen_expression(tuple, abt)?;
+
+                if *index == 0 {
+                    let size = Self::size_of(&head) as u8;
+                    binary::write_opcode(&mut self.cursor, &Opcode::keep(0, size, total_size))?;
+                } else {
+                    let size = Self::size_of(&tail[index - 1]) as u8;
+                    let mut offset = Self::size_of(&head) as u8;
+                    for ty in &tail[..(index - 1)] {
+                        offset += Self::size_of(ty) as u8;
+                    }
+                    binary::write_opcode(
+                        &mut self.cursor,
+                        &Opcode::keep(offset, size, total_size),
+                    )?;
+                }
+                Ok(())
+            }
             E::Variable(var) => {
                 let info = abt.variables.get(var).unwrap();
                 let loc = self.current_locals.get(var).unwrap();

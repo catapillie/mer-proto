@@ -1,0 +1,16 @@
+var xyz = ((true, false), 8, (1.2, 5.4, 8.9), 7, ((2, 4, 3), (1, 0)))
+
+var aa  = (xyz.0).0       == true
+var ab  = (xyz.0).1       == false
+var b   = (xyz.1)         == 8
+var ca  = (xyz.2).0       == 1.2
+var cb  = (xyz.2).1       == 5.4
+var cc  = (xyz.2).2       == 8.9
+var d   = (xyz.3)         == 7
+var eaa = ((xyz.4).0).0   == 2
+var eab = ((xyz.4).0).1   == 4
+var eac = ((xyz.4).0).2   == 3
+var eba = ((xyz.4).1).0   == 1
+var ebb = ((xyz.4).1).1   == 0
+
+return aa & ab & b & ca & cb & cc & d & eaa & eab & eac & eba & ebb

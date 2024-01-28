@@ -1,0 +1,2 @@
+var xyz = (1.2, 2.3, 3.4)
+return xyz.0 == 1.2 and xyz.1 == 2.3 and xyz.2 == 3.4

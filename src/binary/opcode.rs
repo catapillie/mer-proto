@@ -50,6 +50,12 @@ where
         opcode::dup => Ok(Opcode::dup),
         opcode::dup_n => Ok(Opcode::dup_n(cursor.read_u8()?)),
 
+        opcode::keep => Ok(Opcode::keep(
+            cursor.read_u8()?,
+            cursor.read_u8()?,
+            cursor.read_u8()?,
+        )),
+
         opcode::dbg => Ok(Opcode::dbg(read_native_type(cursor)?)),
 
         opcode::jmp => Ok(Opcode::jmp(cursor.read_u32::<LE>()?)),
@@ -139,6 +145,13 @@ where
         Opcode::dup_n(n) => {
             cursor.write_u8(opcode::dup_n)?;
             cursor.write_u8(*n)?;
+            Ok(())
+        }
+        Opcode::keep(at, n, len) => {
+            cursor.write_u8(opcode::keep)?;
+            cursor.write_u8(*at)?;
+            cursor.write_u8(*n)?;
+            cursor.write_u8(*len)?;
             Ok(())
         }
         Opcode::dbg(ty) => {

@@ -24,6 +24,10 @@ impl<'d> Analyser<'d> {
         let bound_expr = self.analyse_expression(expr);
         let ty = self.type_of(&bound_expr);
 
+        if !ty.is_known() {
+            return ExprAbt::Unknown;
+        }
+
         let TypeAbt::Tuple(_, tail) = ty else {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::IndexingNonTupleValue)
