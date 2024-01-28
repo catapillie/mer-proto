@@ -125,8 +125,8 @@ impl<'a> VM<'a> {
                 opcode::ld_heap_n => self.ld_heap_n()?,
                 opcode::st_heap => self.st_heap()?,
                 opcode::st_heap_n => self.st_heap_n()?,
-
                 opcode::realloc_loc => self.realloc_loc()?,
+                opcode::realloc_loc_n => self.realloc_loc_n()?,
 
                 opcode::ld_unit => self.push(Value::make_unit(())),
                 opcode::ld_u8 => push_value!(self => read_u8, make_u8),
@@ -378,6 +378,16 @@ impl<'a> VM<'a> {
         let offset = self.frames.last().unwrap().local_offset;
         let value = self.stack[offset + index];
         let addr = Self::alloc_value(value);
+        self.stack[offset + index] = Value::make_usize(addr);
+        Ok(())
+    }
+
+    fn realloc_loc_n(&mut self) -> Result<(), Error> {
+        let index = self.read_u8() as usize;
+        let n = self.read_u8() as usize;
+        let offset = self.frames.last().unwrap().local_offset;
+        let values = &self.stack[(offset + index)..(offset + index + n)];
+        let addr = Self::alloc_array(values);
         self.stack[offset + index] = Value::make_usize(addr);
         Ok(())
     }

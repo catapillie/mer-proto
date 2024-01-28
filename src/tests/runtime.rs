@@ -77,6 +77,7 @@ check_program_output!(tuple_assign_ref_three => ((), TypeAbt::Unit) ());
 check_program_output!(tuple_assign_immediate_ref_one => ((), TypeAbt::Unit) ());
 check_program_output!(tuple_assign_immediate_ref_two => ((), TypeAbt::Unit) ());
 check_program_output!(tuple_assign_immediate_ref_three => ((), TypeAbt::Unit) ());
+check_program_output!(tuple_func_arg_realloc => ((), TypeAbt::Unit) ());
 
 macro_rules! check_program_output {
     ($name:ident => ($expected_ty:ty, $type_abt:expr) $expected:expr) => {

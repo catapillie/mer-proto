@@ -179,12 +179,12 @@ impl Codegen {
         let param_count: u8 = info
             .arg_ids
             .iter()
-            .map(|&id| Self::size_of_var_storage(id, abt) as u8)
+            .map(|id| Self::size_of(&abt.variables.get(id).unwrap().ty) as u8)
             .sum();
         let local_count: u8 = info
             .used_variables
             .keys()
-            .map(|&id| Self::size_of_var_storage(id, abt) as u8)
+            .map(|id| Self::size_of(&abt.variables.get(id).unwrap().ty) as u8)
             .sum();
         let opcode = Opcode::function(info.name.clone(), param_count, local_count);
         binary::write_opcode(&mut self.cursor, &opcode)?;
@@ -192,9 +192,16 @@ impl Codegen {
         let mut loc = 0;
         self.current_locals.clear();
         for (&id, _) in info.used_variables.iter() {
-            let size: u8 = Self::size_of_var_storage(id, abt) as u8;
-            self.current_locals.insert(id, Loc { offset: loc, size });
-            loc += size;
+            let storage = Self::size_of_var_storage(id, abt) as u8;
+            let param_size = Self::size_of(&abt.variables.get(&id).unwrap().ty) as u8;
+            self.current_locals.insert(
+                id,
+                Loc {
+                    offset: loc,
+                    size: storage,
+                },
+            );
+            loc += param_size;
         }
 
         /*
@@ -208,10 +215,18 @@ impl Codegen {
         for arg_id in &info.arg_ids {
             let is_on_heap = abt.variables[arg_id].is_on_heap;
             if is_on_heap {
-                binary::write_opcode(
-                    &mut self.cursor,
-                    &Opcode::realloc_loc(self.current_locals[arg_id].offset),
-                )?;
+                let size = Self::size_of(&abt.variables.get(arg_id).unwrap().ty) as u8;
+                if size == 1 {
+                    binary::write_opcode(
+                        &mut self.cursor,
+                        &Opcode::realloc_loc(self.current_locals[arg_id].offset),
+                    )?;
+                } else {
+                    binary::write_opcode(
+                        &mut self.cursor,
+                        &Opcode::realloc_loc_n(self.current_locals[arg_id].offset, size),
+                    )?;
+                }
             }
         }
 

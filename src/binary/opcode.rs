@@ -70,6 +70,7 @@ where
         opcode::st_heap => Ok(Opcode::st_heap),
         opcode::st_heap_n => Ok(Opcode::st_heap_n(cursor.read_u8()?)),
         opcode::realloc_loc => Ok(Opcode::realloc_loc(cursor.read_u8()?)),
+        opcode::realloc_loc_n => Ok(Opcode::realloc_loc_n(cursor.read_u8()?, cursor.read_u8()?)),
 
         opcode::entry_point => Ok(Opcode::entry_point(cursor.read_u32::<LE>()?)),
         opcode::function => {
@@ -211,6 +212,12 @@ where
         Opcode::realloc_loc(loc) => {
             cursor.write_u8(opcode::realloc_loc)?;
             cursor.write_u8(*loc)?;
+            Ok(())
+        }
+        Opcode::realloc_loc_n(loc, n) => {
+            cursor.write_u8(opcode::realloc_loc_n)?;
+            cursor.write_u8(*loc)?;
+            cursor.write_u8(*n)?;
             Ok(())
         }
 

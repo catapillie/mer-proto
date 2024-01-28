@@ -1,0 +1,11 @@
+func clone_ref(a: &(bool, bool)) -> (bool, bool)
+    = @a
+
+func id(a: (bool, bool)) -> (bool, bool)
+    = clone_ref(&a)
+
+var u = (true, false)
+var v = id(u)
+v
+
+return
