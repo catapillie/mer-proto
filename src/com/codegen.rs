@@ -82,7 +82,9 @@ impl Codegen {
             TypeAbt::F32 => 1,
             TypeAbt::F64 => 1,
             TypeAbt::Bool => 1,
-            TypeAbt::Tuple(_, tail) => tail.len() + 1,
+            TypeAbt::Tuple(head, tail) => {
+                Self::size_of(head) + tail.iter().map(Self::size_of).sum::<usize>()
+            }
             TypeAbt::Ref(_) => 1,
             TypeAbt::Func(_, _) => 1,
         }
