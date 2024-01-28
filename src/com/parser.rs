@@ -734,6 +734,15 @@ impl<'a> Parser<'a> {
             return Some(TypeAstKind::Func(Box::new([]), Box::new(ty)).wrap(span));
         }
 
+        if self.try_match_token::<LeftBracket>().is_some() {
+            let span = self.last_span();
+            let size = self.match_token::<Integer>().map(|n| n.0).unwrap_or(0);
+            self.match_token::<RightBracket>();
+            let ty = self.expect_type_expression();
+            let span = span.join(self.last_span());
+            return Some(TypeAstKind::Array(Box::new(ty), size as usize).wrap(span));
+        }
+
         None
     }
 

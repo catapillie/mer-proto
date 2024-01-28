@@ -15,6 +15,9 @@ impl<'d> Analyser<'d> {
                 Box::new(self.analyse_type(head)),
                 tail.iter().map(|ty| self.analyse_type(ty)).collect(),
             ),
+            TypeAstKind::Array(inner, size) => {
+                TypeAbt::Array(Box::new(self.analyse_type(inner)), *size)
+            }
             TypeAstKind::Ref(ty) => TypeAbt::Ref(Box::new(self.analyse_type(ty))),
             TypeAstKind::Declared(id) => {
                 match id.as_str() {

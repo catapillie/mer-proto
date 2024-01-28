@@ -12,6 +12,7 @@ pub enum TypeAstKind {
     Unit,
     Declared(String),
     Tuple(Box<TypeAst>, Box<[TypeAst]>), // non-empty
+    Array(Box<TypeAst>, usize),
     Ref(Box<TypeAst>),
     Func(Box<[TypeAst]>, Box<TypeAst>),
 }
