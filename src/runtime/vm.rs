@@ -46,9 +46,7 @@ impl<'a> VM<'a> {
 
     fn destroy_frame(&mut self) -> Result<(), Error> {
         let frame = self.frames.pop().unwrap();
-        for _ in 0..frame.local_count {
-            self.pop()?;
-        }
+        self.stack.truncate(frame.local_offset);
 
         let Some(ip) = frame.back else {
             self.halt()?;
@@ -262,9 +260,10 @@ impl<'a> VM<'a> {
     }
 
     fn ret(&mut self) -> Result<(), Error> {
-        let val = self.pop()?;
+        let frame = self.frames.last().unwrap();
+        let values = self.stack.split_off(frame.local_offset + frame.local_count as usize);
         self.destroy_frame()?;
-        self.push(val);
+        self.stack.extend_from_slice(&values);
         Ok(())
     }
 
