@@ -85,6 +85,7 @@ impl Codegen {
             TypeAbt::Tuple(head, tail) => {
                 Self::size_of(head) + tail.iter().map(Self::size_of).sum::<usize>()
             }
+            TypeAbt::Array(ty, size) => Self::size_of(ty) * size,
             TypeAbt::Ref(_) => 1,
             TypeAbt::Func(_, _) => 1,
         }
@@ -113,6 +114,10 @@ impl Codegen {
             E::Tuple(head, tail) => Ty::Tuple(
                 Box::new(Self::type_of(head, abt)),
                 tail.iter().map(|e| Self::type_of(e, abt)).collect(),
+            ),
+            E::Array(exprs) => Ty::Array(
+                Box::new(Self::type_of(exprs.first().unwrap(), abt)),
+                exprs.len(),
             ),
 
             E::Variable(var_id) => abt.variables.get(var_id).unwrap().ty.clone(),
@@ -411,6 +416,7 @@ impl Codegen {
                 }
                 Ok(())
             }
+            E::Array(_) => todo!(),
             E::TupleFieldAccess(tuple, index) => {
                 let tuple_ty = Self::type_of(tuple, abt);
                 let total_size = Self::size_of(&tuple_ty) as u8;

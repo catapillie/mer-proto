@@ -26,6 +26,8 @@ impl<'d> Analyser<'d> {
                 => self.analyse_expression(inner),
             ExprAstKind::Tuple(head, tail)
                 => self.analyse_tuple_expression(head, tail),
+            ExprAstKind::Array(exprs)
+                => self.analyse_array_expression(exprs, expr.span),
             ExprAstKind::BinaryOp(op, left, right)
                 => self.analyse_binary_operation(*op, left, right, expr.span),
             ExprAstKind::UnaryOp(op, operand)

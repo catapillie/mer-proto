@@ -64,6 +64,9 @@ impl<'d> Analyser<'d> {
                 Box::new(self.type_of(head)),
                 tail.iter().map(|e| self.type_of(e)).collect(),
             ),
+            E::Array(exprs) => {
+                Ty::Array(Box::new(self.type_of(exprs.first().unwrap())), exprs.len())
+            }
 
             E::Variable(var_id) => self.variables.get(var_id).unwrap().ty.clone(),
             E::Function(func_id) => {
@@ -142,6 +145,7 @@ impl<'d> Analyser<'d> {
             TypeAbt::Tuple(head, tail) => {
                 Self::size_of(head) + tail.iter().map(Self::size_of).sum::<usize>()
             }
+            TypeAbt::Array(ty, size) => Self::size_of(ty) * size,
             TypeAbt::Ref(_) => 1,
             TypeAbt::Func(_, _) => 1,
         }

@@ -223,6 +223,10 @@ pub enum DiagnosticKind {
         len: usize,
         accessed: usize,
     },
+
+    EmptyArray,
+    SingletonArray,
+    ArrayMismatchingTypes,
 }
 
 #[rustfmt::skip]
@@ -342,6 +346,12 @@ impl DiagnosticKind {
                     accessed.to_string().bold(),
                     len.to_string().bold(),
                 ),
+            Self::EmptyArray
+                => "empty arrays are not allowed".to_string(),
+            Self::SingletonArray
+                => "singleton arrays are equivalent to their inner value".to_string(),
+            Self::ArrayMismatchingTypes
+                => "values in array must all be of the same type".to_string(),
         }
     }
 }

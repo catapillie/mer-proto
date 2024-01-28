@@ -17,6 +17,7 @@ pub enum ExprAstKind {
     Boolean(bool),
     Parenthesized(Box<ExprAst>),
     Tuple(Box<ExprAst>, Box<[ExprAst]>),
+    Array(Box<[ExprAst]>),
     BinaryOp(BinOpAst, Box<ExprAst>, Box<ExprAst>),
     UnaryOp(UnOpAst, Box<ExprAst>),
     Call(Box<ExprAst>, Box<[ExprAst]>),

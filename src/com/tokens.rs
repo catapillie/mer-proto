@@ -19,6 +19,10 @@ gen_tokens! {
         self => ("("),
     RightParen ")"
         self => (")"),
+    LeftBracket "["
+        self => ("["),
+    RightBracket "]"
+        self => ("]"),
     LeftBrace "{{"
         self => ("{{"),
     RightBrace "}}"

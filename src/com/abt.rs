@@ -44,6 +44,7 @@ pub enum ExprAbt {
     Variable(u64),
     Function(u64),
     Tuple(Box<ExprAbt>, Box<[ExprAbt]>),
+    Array(Box<[ExprAbt]>),
     Assignment {
         var_id: u64,
         deref_count: usize,
@@ -130,6 +131,7 @@ pub enum TypeAbt {
     F32, F64,
     Bool,
     Tuple(Box<TypeAbt>, Box<[TypeAbt]>), // non-empty
+    Array(Box<TypeAbt>, usize),
     Ref(Box<TypeAbt>),
     Func(Box<[TypeAbt]>, Box<TypeAbt>),
 }
@@ -179,6 +181,11 @@ impl TypeAbt {
                 write!(f, ")")?;
                 Ok(())
             }
+            Self::Array(ty, size) => {
+                write!(f, "[{size}]")?;
+                ty.fmt_paren(f, true)?;
+                Ok(())
+            },
             Self::Ref(inner) => {
                 write!(f, "&")?;
                 inner.fmt_paren(f, true)

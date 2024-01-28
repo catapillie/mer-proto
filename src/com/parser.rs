@@ -584,8 +584,8 @@ impl<'a> Parser<'a> {
                 return Some(ExprAstKind::Boolean(false));
             }
 
-            let parenthesized = self.parse_delimited_sequence::<LeftParen, RightParen, Comma, _, _>(Self::parse_expression);
-            if let Some(mut exprs) = parenthesized {
+            let delimited = self.parse_delimited_sequence::<LeftParen, RightParen, Comma, _, _>(Self::parse_expression);
+            if let Some(mut exprs) = delimited {
                 if exprs.is_empty() {
                     return Some(ExprAstKind::Unit);
                 }
@@ -596,6 +596,11 @@ impl<'a> Parser<'a> {
                 } else {
                     Some(ExprAstKind::Tuple(Box::new(head), exprs.into()))
                 };
+            }
+
+            let delimited = self.parse_delimited_sequence::<LeftBracket, RightBracket, Comma, _, _>(Self::parse_expression);
+            if let Some(exprs) = delimited {
+                return Some(ExprAstKind::Array(exprs.into_boxed_slice()));
             }
 
             None
@@ -1047,6 +1052,8 @@ impl<'a> Parser<'a> {
             match_by_string!(self, ">" => GreaterThan);
             match_by_string!(self, "(" => LeftParen);
             match_by_string!(self, ")" => RightParen);
+            match_by_string!(self, "[" => LeftBracket);
+            match_by_string!(self, "]" => RightBracket);
             match_by_string!(self, "{" => LeftBrace);
             match_by_string!(self, "}" => RightBrace);
             match_by_string!(self, "." => Dot);
