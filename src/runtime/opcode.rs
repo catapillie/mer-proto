@@ -5,7 +5,8 @@ opcodes! {
     0x01 pop
     0x02 pop_n(u8)
     0x03 dup
-    0x04 dbg(NativeType)
+    0x04 dup_n(u8)
+    0x05 dbg(NativeType)
 
     0xc0 jmp(u32)
     0xc1 jmp_if(u32)
@@ -19,11 +20,12 @@ opcodes! {
     0xd3 st_loc_n(u8, u8)
 
     0xe0 alloc
-    0xe1 alloc_n(u64)
+    0xe1 alloc_n(u8)
     0xe2 ld_heap
     0xe3 ld_heap_n(u8)
     0xe4 st_heap
-    0xe5 realloc_loc(u8)
+    0xe5 st_heap_n(u8)
+    0xe6 realloc_loc(u8)
 
     0xf0 entry_point(u32)
     0xf1 function(String, u8, u8)

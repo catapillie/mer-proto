@@ -88,6 +88,15 @@ impl Codegen {
         }
     }
 
+    fn size_of_var_storage(id: u64, abt: &ProgramAbt) -> usize {
+        let info = abt.variables.get(&id).unwrap();
+        if info.is_on_heap {
+            1
+        } else {
+            Self::size_of(&info.ty)
+        }
+    }
+
     // TODO: refactor (this is a duplicate of Analyser::type_of)
     pub fn type_of(expr: &ExprAbt, abt: &ProgramAbt) -> TypeAbt {
         use ExprAbt as E;
@@ -170,22 +179,21 @@ impl Codegen {
         let param_count: u8 = info
             .arg_ids
             .iter()
-            .map(|id| Self::size_of(&abt.variables.get(id).unwrap().ty) as u8)
+            .map(|&id| Self::size_of_var_storage(id, abt) as u8)
             .sum();
         let local_count: u8 = info
             .used_variables
             .keys()
-            .map(|id| Self::size_of(&abt.variables.get(id).unwrap().ty) as u8)
+            .map(|&id| Self::size_of_var_storage(id, abt) as u8)
             .sum();
         let opcode = Opcode::function(info.name.clone(), param_count, local_count);
         binary::write_opcode(&mut self.cursor, &opcode)?;
 
         let mut loc = 0;
         self.current_locals.clear();
-        for (id, _) in info.used_variables.iter() {
-            let ty = &abt.variables.get(id).unwrap().ty;
-            let size: u8 = Self::size_of(ty).try_into().unwrap();
-            self.current_locals.insert(*id, Loc { offset: loc, size });
+        for (&id, _) in info.used_variables.iter() {
+            let size: u8 = Self::size_of_var_storage(id, abt) as u8;
+            self.current_locals.insert(id, Loc { offset: loc, size });
             loc += size;
         }
 
@@ -242,7 +250,7 @@ impl Codegen {
 
                 // if variable is heap-allocated, allocate the value on the heap, keep the address
                 if info.is_on_heap {
-                    let size = Self::size_of(&info.ty) as u64;
+                    let size = Self::size_of(&info.ty) as u8;
                     if size == 1 {
                         binary::write_opcode(&mut self.cursor, &Opcode::alloc)?;
                     } else {
@@ -401,23 +409,39 @@ impl Codegen {
                 deref_count,
                 expr,
             } => {
-                // = <value>
+                // ... = <value>
                 self.gen_expression(expr, abt)?;
-                binary::write_opcode(&mut self.cursor, &Opcode::dup)?;
+
+                let size = Self::size_of(&Self::type_of(expr, abt)) as u8;
+                if size == 1 {
+                    binary::write_opcode(&mut self.cursor, &Opcode::dup)?;
+                } else {
+                    binary::write_opcode(&mut self.cursor, &Opcode::dup_n(size))?;
+                }
 
                 let loc = self.current_locals.get(var_id).unwrap();
                 let info = abt.variables.get(var_id).unwrap();
+
                 if *deref_count == 0 {
                     // simple variable assignment
                     if info.is_on_heap {
                         binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(loc.offset))?;
-                        binary::write_opcode(&mut self.cursor, &Opcode::st_heap)?;
-                    } else {
+                        if size == 1 {
+                            binary::write_opcode(&mut self.cursor, &Opcode::st_heap)?;
+                        } else {
+                            binary::write_opcode(&mut self.cursor, &Opcode::st_heap_n(size))?;
+                        }
+                    } else if size == 1 {
                         binary::write_opcode(&mut self.cursor, &Opcode::st_loc(loc.offset))?;
+                    } else {
+                        binary::write_opcode(
+                            &mut self.cursor,
+                            &Opcode::st_loc_n(loc.offset, size),
+                        )?;
                     }
                 } else {
                     // assignment to a n-dereferenced pointer
-                    // we dereference the variable n - 1 times so we have the address, (and not the value)
+                    // we dereference the variable n - 1 times so we have the address (and not the value)
                     binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(loc.offset))?;
                     for _ in 1..(*deref_count) {
                         binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?;
@@ -429,7 +453,11 @@ impl Codegen {
                     }
 
                     // write the value at the address (on the heap)
-                    binary::write_opcode(&mut self.cursor, &Opcode::st_heap)?;
+                    if size == 1 {
+                        binary::write_opcode(&mut self.cursor, &Opcode::st_heap)?;
+                    } else {
+                        binary::write_opcode(&mut self.cursor, &Opcode::st_heap_n(size))?;
+                    }
                 }
 
                 Ok(())
@@ -643,7 +671,7 @@ impl Codegen {
             }
             E::Ref(expr) => {
                 self.gen_expression(expr, abt)?;
-                let size = Self::size_of(&Self::type_of(expr, abt)) as u64;
+                let size = Self::size_of(&Self::type_of(expr, abt)) as u8;
                 if size == 1 {
                     binary::write_opcode(&mut self.cursor, &Opcode::alloc)?;
                 } else {

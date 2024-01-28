@@ -77,12 +77,16 @@ impl<'a> VM<'a> {
                 opcode::nop => continue,
                 opcode::pop => _ = self.pop(),
                 opcode::pop_n => {
-                    let n = self.read_u8();
-                    for _ in 0..n {
-                        self.pop()?;
+                    let n = self.read_u8() as usize;
+                    let len = self.stack.len();
+                    if n > len {
+                        return Err(Error::StackUnderflow);
                     }
+                    self.stack.truncate(len - n);
                 }
+
                 opcode::dup => self.dup()?,
+                opcode::dup_n => self.dup_n()?,
 
                 opcode::dbg => {
                     self.dup()?;
@@ -120,6 +124,7 @@ impl<'a> VM<'a> {
                 opcode::ld_heap => self.ld_heap()?,
                 opcode::ld_heap_n => self.ld_heap_n()?,
                 opcode::st_heap => self.st_heap()?,
+                opcode::st_heap_n => self.st_heap_n()?,
 
                 opcode::realloc_loc => self.realloc_loc()?,
 
@@ -207,6 +212,17 @@ impl<'a> VM<'a> {
             }
             None => Err(Error::StackUnderflow),
         }
+    }
+
+    fn dup_n(&mut self) -> Result<(), Error> {
+        let n = self.read_u8() as usize;
+        let len = self.stack.len();
+        if n > len {
+            return Err(Error::StackUnderflow);
+        }
+
+        self.stack.extend_from_within((len - n)..);
+        Ok(())
     }
 
     fn jmp(&mut self) {
@@ -345,6 +361,18 @@ impl<'a> VM<'a> {
         Ok(())
     }
 
+    fn st_heap_n(&mut self) -> Result<(), Error> {
+        let n = self.read_u8() as usize;
+        let len = self.stack.len();
+        if n > len {
+            return Err(Error::StackUnderflow);
+        }
+        let addr = self.pop()?.get_usize();
+        let values = self.stack.split_off(len - n - 1);
+        Self::store_heap_array(addr, &values);
+        Ok(())
+    }
+
     fn realloc_loc(&mut self) -> Result<(), Error> {
         let index = self.read_u8() as usize;
         let offset = self.frames.last().unwrap().local_offset;
@@ -381,6 +409,10 @@ impl<'a> VM<'a> {
 
     fn store_heap(addr: usize, value: Value) {
         unsafe { (addr as *mut Value).write(value) }
+    }
+
+    fn store_heap_array(addr: usize, values: &[Value]) {
+        unsafe { values.as_ptr().copy_to(addr as *mut Value, values.len()) }
     }
 
     fn next_opcode(&mut self) -> u8 {

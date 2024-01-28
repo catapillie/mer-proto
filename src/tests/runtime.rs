@@ -69,6 +69,14 @@ check_program_output!(tuple_functions_one_arg => ((), TypeAbt::Unit) ());
 check_program_output!(tuple_functions_many_args => ((), TypeAbt::Unit) ());
 check_program_output!(tuple_references => ((), TypeAbt::Unit) ());
 check_program_output!(tuple_immediate_alloc => ((), TypeAbt::Unit) ());
+check_program_output!(tuple_assign_value => ((), TypeAbt::Unit) ());
+check_program_output!(tuple_assign_in_func => ((), TypeAbt::Unit) ());
+check_program_output!(tuple_assign_ref_one => ((), TypeAbt::Unit) ());
+check_program_output!(tuple_assign_ref_two => ((), TypeAbt::Unit) ());
+check_program_output!(tuple_assign_ref_three => ((), TypeAbt::Unit) ());
+check_program_output!(tuple_assign_immediate_ref_one => ((), TypeAbt::Unit) ());
+check_program_output!(tuple_assign_immediate_ref_two => ((), TypeAbt::Unit) ());
+check_program_output!(tuple_assign_immediate_ref_three => ((), TypeAbt::Unit) ());
 
 macro_rules! check_program_output {
     ($name:ident => ($expected_ty:ty, $type_abt:expr) $expected:expr) => {

@@ -245,9 +245,9 @@ fn dis(command: DisassembleCommand) {
                             op = opcode.name(),
                         )
                     }
-                    Opcode::pop_n(size) => println!(
+                    Opcode::pop_n(n) | Opcode::dup_n(n) => println!(
                         "{offset:0>8} ║ {op:>20} [{}]",
-                        size.to_string().bold(),
+                        n.to_string().bold(),
                         op = opcode.name()
                     ),
                     Opcode::jmp(addr) | Opcode::jmp_if(addr) => println!(
@@ -255,14 +255,7 @@ fn dis(command: DisassembleCommand) {
                         format!("{addr:0>8}").bold(),
                         op = opcode.name()
                     ),
-                    Opcode::alloc_n(n) => {
-                        println!(
-                            "{offset:0>8} ║ {op:>20} [{}]",
-                            n.to_string().bold(),
-                            op = opcode.name(),
-                        )
-                    }
-                    Opcode::ld_heap_n(n) => {
+                    Opcode::alloc_n(n) | Opcode::ld_heap_n(n) | Opcode::st_heap_n(n) => {
                         println!(
                             "{offset:0>8} ║ {op:>20} [{}]",
                             n.to_string().bold(),

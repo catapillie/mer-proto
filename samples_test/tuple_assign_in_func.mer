@@ -1,0 +1,10 @@
+func reset(x: &(f64, f64)) -> ()
+{
+    @x = (0.0, 0.0)
+    return
+}
+
+var x = (1.0, 0.0)
+reset(&x)
+
+return

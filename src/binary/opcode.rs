@@ -48,6 +48,8 @@ where
         opcode::pop_n => Ok(Opcode::pop_n(cursor.read_u8()?)),
 
         opcode::dup => Ok(Opcode::dup),
+        opcode::dup_n => Ok(Opcode::dup_n(cursor.read_u8()?)),
+
         opcode::dbg => Ok(Opcode::dbg(read_native_type(cursor)?)),
 
         opcode::jmp => Ok(Opcode::jmp(cursor.read_u32::<LE>()?)),
@@ -62,10 +64,11 @@ where
         opcode::st_loc_n => Ok(Opcode::st_loc_n(cursor.read_u8()?, cursor.read_u8()?)),
 
         opcode::alloc => Ok(Opcode::alloc),
-        opcode::alloc_n => Ok(Opcode::alloc_n(cursor.read_u64::<LE>()?)),
+        opcode::alloc_n => Ok(Opcode::alloc_n(cursor.read_u8()?)),
         opcode::ld_heap => Ok(Opcode::ld_heap),
         opcode::ld_heap_n => Ok(Opcode::ld_heap_n(cursor.read_u8()?)),
         opcode::st_heap => Ok(Opcode::st_heap),
+        opcode::st_heap_n => Ok(Opcode::st_heap_n(cursor.read_u8()?)),
         opcode::realloc_loc => Ok(Opcode::realloc_loc(cursor.read_u8()?)),
 
         opcode::entry_point => Ok(Opcode::entry_point(cursor.read_u32::<LE>()?)),
@@ -132,6 +135,11 @@ where
             Ok(())
         }
         Opcode::dup => cursor.write_u8(opcode::dup),
+        Opcode::dup_n(n) => {
+            cursor.write_u8(opcode::dup_n)?;
+            cursor.write_u8(*n)?;
+            Ok(())
+        }
         Opcode::dbg(ty) => {
             cursor.write_u8(opcode::dbg)?;
             write_native_type(cursor, ty)?;
@@ -182,7 +190,7 @@ where
         Opcode::alloc => cursor.write_u8(opcode::alloc),
         Opcode::alloc_n(n) => {
             cursor.write_u8(opcode::alloc_n)?;
-            cursor.write_u64::<LE>(*n)?;
+            cursor.write_u8(*n)?;
             Ok(())
         }
 
@@ -194,6 +202,12 @@ where
         }
 
         Opcode::st_heap => cursor.write_u8(opcode::st_heap),
+        Opcode::st_heap_n(n) => {
+            cursor.write_u8(opcode::st_heap_n)?;
+            cursor.write_u8(*n)?;
+            Ok(())
+        }
+
         Opcode::realloc_loc(loc) => {
             cursor.write_u8(opcode::realloc_loc)?;
             cursor.write_u8(*loc)?;
