@@ -160,7 +160,7 @@ impl Codegen {
                 _ => unreachable!(),
             },
 
-            E::TupleFieldAccess(tuple, index) => {
+            E::TupleIndex(tuple, index) => {
                 let ty = Self::type_of(tuple, abt);
                 let Ty::Tuple(head, tail) = ty else {
                     unreachable!()
@@ -422,7 +422,7 @@ impl Codegen {
                 }
                 Ok(())
             }
-            E::TupleFieldAccess(tuple, index) => {
+            E::TupleIndex(tuple, index) => {
                 let tuple_ty = Self::type_of(tuple, abt);
                 let total_size = Self::size_of(&tuple_ty) as u8;
                 let TypeAbt::Tuple(head, tail) = tuple_ty else {

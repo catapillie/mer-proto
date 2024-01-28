@@ -108,7 +108,7 @@ impl<'d> Analyser<'d> {
                 _ => unreachable!(),
             },
 
-            E::TupleFieldAccess(tuple, index) => {
+            E::TupleIndex(tuple, index) => {
                 let ty = self.type_of(tuple);
                 let Ty::Tuple(head, tail) = ty else {
                     unreachable!()

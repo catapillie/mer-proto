@@ -218,7 +218,7 @@ pub enum DiagnosticKind {
 
     InvalidDereference(TypeAbt),
 
-    IndexingNonTupleValue,
+    InvalidImmediateIndex,
     InvalidTupleIndex {
         len: usize,
         accessed: usize,
@@ -339,8 +339,8 @@ impl DiagnosticKind {
                 => format!("cannot dereference value of type '{}'",
                     ty.to_string().bold(),
                 ),
-            Self::IndexingNonTupleValue
-                => "cannot access indexed field of non-tuple value".to_string(),
+            Self::InvalidImmediateIndex
+                => "cannot index a value which is neither a tuple, nor an array of known size".to_string(),
             Self::InvalidTupleIndex { len, accessed }
                 => format!("cannot access value {} of a tuple with {} values",
                     accessed.to_string().bold(),

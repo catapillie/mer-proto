@@ -30,7 +30,7 @@ impl<'d> Analyser<'d> {
 
         let TypeAbt::Tuple(_, tail) = ty else {
             let d = diagnostics::create_diagnostic()
-                .with_kind(DiagnosticKind::IndexingNonTupleValue)
+                .with_kind(DiagnosticKind::InvalidImmediateIndex)
                 .with_span(span)
                 .with_severity(Severity::Error)
                 .annotate_primary(Note::OfType(ty), expr.span)
@@ -40,7 +40,7 @@ impl<'d> Analyser<'d> {
         };
 
         if index == 0 {
-            return ExprAbt::TupleFieldAccess(Box::new(bound_expr), 0);
+            return ExprAbt::TupleIndex(Box::new(bound_expr), 0);
         }
 
         let len = 1 + tail.len();
@@ -58,6 +58,6 @@ impl<'d> Analyser<'d> {
             return ExprAbt::Unknown;
         }
 
-        ExprAbt::TupleFieldAccess(Box::new(bound_expr), index as usize)
+        ExprAbt::TupleIndex(Box::new(bound_expr), index as usize)
     }
 }

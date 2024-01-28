@@ -635,7 +635,7 @@ impl<'a> Parser<'a> {
                     .map(|n| n.0 as u64)
                     .unwrap_or(0);
                 span = span.join(self.last_span());
-                expr = ExprAstKind::TupleFieldAccess(Box::new(expr), index).wrap(span);
+                expr = ExprAstKind::ImmediateIndex(Box::new(expr), index).wrap(span);
                 continue;
             }
 

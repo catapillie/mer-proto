@@ -44,6 +44,7 @@ pub enum ExprAbt {
     Variable(u64),
     Function(u64),
     Tuple(Box<ExprAbt>, Box<[ExprAbt]>),
+    TupleIndex(Box<ExprAbt>, usize),
     Array(Box<[ExprAbt]>),
     Assignment {
         var_id: u64,
@@ -58,7 +59,6 @@ pub enum ExprAbt {
     Ref(Box<ExprAbt>),
     VarRef(u64),
     Deref(Box<ExprAbt>),
-    TupleFieldAccess(Box<ExprAbt>, usize),
     Todo,
     Unreachable,
 }
