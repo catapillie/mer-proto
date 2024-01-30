@@ -86,6 +86,8 @@ check_program_output!(tuple_indexing_nested => (bool, TypeAbt::Bool) true);
 
 check_program_output!(array_init => (bool, TypeAbt::Bool) true);
 check_program_output!(array_copy => (bool, TypeAbt::Bool) true);
+check_program_output!(array_as_func_arg => (bool, TypeAbt::Bool) true);
+check_program_output!(array_as_func_return => (bool, TypeAbt::Bool) true);
 
 macro_rules! check_program_output {
     ($name:ident => ($expected_ty:ty, $type_abt:expr) $expected:expr) => {

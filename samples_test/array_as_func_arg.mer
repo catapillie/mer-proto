@@ -1,0 +1,6 @@
+func id(array: [4]f64) -> [4]f64
+    = array
+
+var q = [1.0, 2.0, 3.0, 4.0]
+var p = id(q)
+return p.0 == q.0 and p.1 == q.1 and p.2 == q.2 and p.3 == q.3

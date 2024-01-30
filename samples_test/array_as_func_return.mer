@@ -1,0 +1,6 @@
+func repeat5(x: i64) -> [5]i64
+    = [x, x, x, x, x]
+
+var x = 32
+var q = repeat5(x)
+return q.0 == x and q.1 == x and q.2 == x and q.3 == x and q.4 == x
