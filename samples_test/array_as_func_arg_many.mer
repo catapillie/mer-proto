@@ -1,0 +1,7 @@
+func average(arr: [3]f64, w: [3]f64) -> f64
+{
+    var tot = w.0 + w.1 + w.2
+    return (arr.0 * w.0 + arr.1 * w.1 + arr.2 * w.2) / tot
+}
+
+return average([0.0, 10.0, 20.0], [1.0, 2.0, 1.0]) == 10.0
