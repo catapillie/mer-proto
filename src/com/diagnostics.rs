@@ -231,6 +231,8 @@ pub enum DiagnosticKind {
         len: usize,
         index: usize,
     },
+    InvalidIndex,
+    ArrayIndexMustBeInteger,
 }
 
 #[rustfmt::skip]
@@ -344,7 +346,9 @@ impl DiagnosticKind {
                     ty.to_string().bold(),
                 ),
             Self::InvalidImmediateIndex
-                => "cannot index a value which is neither a tuple, nor an array of known size".to_string(),
+                => "only tuples and arrays of known size can be access with an immediate index".to_string(),
+            Self::InvalidIndex
+                => "cannot index a value which is not an array".to_string(),
             Self::InvalidTupleIndex { len, accessed }
                 => format!("cannot access value {} of a tuple with {} values",
                     accessed.to_string().bold(),
@@ -361,6 +365,8 @@ impl DiagnosticKind {
                     index.to_string().bold(),
                     len.to_string().bold(),
                 ),
+            Self::ArrayIndexMustBeInteger
+                => "array index must be an integer".to_string(),
         }
     }
 }

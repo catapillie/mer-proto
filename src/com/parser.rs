@@ -609,6 +609,14 @@ impl<'a> Parser<'a> {
         let mut expr = expr?.wrap(span);
 
         loop {
+            if self.try_match_token::<LeftBracket>().is_some() {
+                let index_expr = self.expect_expression();
+                self.match_token::<RightBracket>();
+                span = span.join(self.last_span());
+                expr = ExprAstKind::Index(Box::new(expr), Box::new(index_expr)).wrap(span);
+                continue;
+            }
+
             if self.try_match_token::<LeftParen>().is_some() {
                 let mut params = Vec::new();
                 loop {

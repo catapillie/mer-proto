@@ -30,6 +30,8 @@ impl<'d> Analyser<'d> {
                 => self.analyse_array_expression(exprs, expr.span),
             ExprAstKind::ImmediateIndex(inner, index)
                 => self.analyse_immediate_index(inner, *index, expr.span),
+            ExprAstKind::Index(inner, index_expr)
+                => self.analyse_index_expression(inner, index_expr, expr.span),
             ExprAstKind::BinaryOp(op, left, right)
                 => self.analyse_binary_operation(*op, left, right, expr.span),
             ExprAstKind::UnaryOp(op, operand)

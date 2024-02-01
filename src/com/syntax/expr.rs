@@ -19,6 +19,7 @@ pub enum ExprAstKind {
     Tuple(Box<ExprAst>, Box<[ExprAst]>),
     Array(Box<[ExprAst]>),
     ImmediateIndex(Box<ExprAst>, u64),
+    Index(Box<ExprAst>, Box<ExprAst>),
     BinaryOp(BinOpAst, Box<ExprAst>, Box<ExprAst>),
     UnaryOp(UnOpAst, Box<ExprAst>),
     Call(Box<ExprAst>, Box<[ExprAst]>),
