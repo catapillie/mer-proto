@@ -1,0 +1,11 @@
+var arr = [0, 1, 4, 9, 16, 25, 36, 49]
+
+var b = true
+var n = 0
+while n <= 7 do
+{
+    b = b & (arr[n] == n * n)
+    n = n + 1
+}
+
+return b

@@ -92,6 +92,8 @@ check_program_output!(array_as_func_return => (bool, TypeAbt::Bool) true);
 check_program_output!(array_ref => (bool, TypeAbt::Bool) true);
 check_program_output!(array_immediate_heap => (bool, TypeAbt::Bool) true);
 check_program_output!(array_nested => (bool, TypeAbt::Bool) true);
+check_program_output!(array_indexing => (bool, TypeAbt::Bool) true);
+check_program_output!(array_nested_indexing => (bool, TypeAbt::Bool) true);
 
 macro_rules! check_program_output {
     ($name:ident => ($expected_ty:ty, $type_abt:expr) $expected:expr) => {
