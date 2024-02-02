@@ -90,6 +90,13 @@ impl<'d> Analyser<'d> {
                 };
                 *inner_ty
             }
+            E::ArrayIndex(array, _) => {
+                let ty = self.type_of(array);
+                let Ty::Array(inner_ty, _) = ty else {
+                    unreachable!()
+                };
+                *inner_ty
+            }
 
             E::Variable(var_id) => self.variables.get(var_id).unwrap().ty.clone(),
             E::Function(func_id) => {

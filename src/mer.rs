@@ -257,6 +257,12 @@ fn dis(command: DisassembleCommand) {
                         at.to_string().bold(),
                         op = opcode.name()
                     ),
+                    Opcode::keep_at(n, len) => println!(
+                        "{offset:0>8} ║ {op:>20} [{}] of [{}] from ...",
+                        n.to_string().bold(),
+                        len.to_string().bold(),
+                        op = opcode.name()
+                    ),
                     Opcode::jmp(addr) | Opcode::jmp_if(addr) => println!(
                         "{offset:0>8} ║ {op:>20} -> {}",
                         format!("{addr:0>8}").bold(),

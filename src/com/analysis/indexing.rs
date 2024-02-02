@@ -41,7 +41,7 @@ impl<'d> Analyser<'d> {
             return ExprAbt::Unknown;
         };
 
-        ExprAbt::Unknown
+        ExprAbt::ArrayIndex(Box::new(bound_expr), Box::new(bound_index))
     }
 
     pub fn analyse_immediate_index(&mut self, expr: &ExprAst, index: u64, span: Span) -> ExprAbt {

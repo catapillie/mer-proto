@@ -139,6 +139,13 @@ impl Codegen {
                 };
                 *inner_ty
             }
+            E::ArrayIndex(array, _) => {
+                let ty = Self::type_of(array, abt);
+                let Ty::Array(inner_ty, _) = ty else {
+                    unreachable!()
+                };
+                *inner_ty
+            }
 
             E::Variable(var_id) => abt.variables.get(var_id).unwrap().ty.clone(),
             E::Function(func_id) => {
@@ -464,6 +471,22 @@ impl Codegen {
                 let size = Self::size_of(&inner_ty) as u8;
                 let offset = *index as u8 * size;
                 binary::write_opcode(&mut self.cursor, &Opcode::keep(offset, size, total_size))?;
+                Ok(())
+            }
+            E::ArrayIndex(array, index) => {
+                let array_ty = Self::type_of(array, abt);
+                let total_size = Self::size_of(&array_ty) as u8;
+                let TypeAbt::Array(inner_ty, _) = array_ty else {
+                    unreachable!()
+                };
+
+                self.gen_expression(array, abt)?;
+                self.gen_expression(index, abt)?;
+
+                let size = Self::size_of(&inner_ty) as u8;
+                binary::write_opcode(&mut self.cursor, &Opcode::ld_u64(size as u64))?;
+                binary::write_opcode(&mut self.cursor, &Opcode::mul(NativeType::u64))?;
+                binary::write_opcode(&mut self.cursor, &Opcode::keep_at(size, total_size))?;
                 Ok(())
             }
             E::Variable(var) => {

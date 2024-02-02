@@ -7,7 +7,8 @@ opcodes! {
     0x03 dup
     0x04 dup_n(u8)
     0x06 keep(u8, u8, u8)
-    0x07 dbg(NativeType)
+    0x07 keep_at(u8, u8)
+    0x0f dbg(NativeType)
 
     0xc0 jmp(u32)
     0xc1 jmp_if(u32)

@@ -87,6 +87,7 @@ impl<'a> VM<'a> {
                 opcode::dup_n => self.dup_n()?,
 
                 opcode::keep => self.keep()?,
+                opcode::keep_at => self.keep_at()?,
 
                 opcode::dbg => {
                     self.dup()?;
@@ -229,6 +230,26 @@ impl<'a> VM<'a> {
         let at = self.read_u8() as usize;
         let n = self.read_u8() as usize;
         let len = self.read_u8() as usize;
+        if n > len || at + n > len {
+            return Err(Error::StackUnderflow);
+        }
+
+        let trim_top = len - (at + n);
+        let trim_bottom = at;
+
+        self.stack.truncate(self.stack.len() - trim_top);
+        let kept = self.stack.split_off(self.stack.len() - n);
+        self.stack.truncate(self.stack.len() - trim_bottom);
+
+        self.stack.extend_from_slice(&kept);
+
+        Ok(())
+    }
+
+    fn keep_at(&mut self) -> Result<(), Error> {
+        let n = self.read_u8() as usize;
+        let len = self.read_u8() as usize;
+        let at = self.pop()?.get_usize();
         if n > len || at + n > len {
             return Err(Error::StackUnderflow);
         }

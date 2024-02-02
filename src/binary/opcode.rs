@@ -55,6 +55,7 @@ where
             cursor.read_u8()?,
             cursor.read_u8()?,
         )),
+        opcode::keep_at => Ok(Opcode::keep_at(cursor.read_u8()?, cursor.read_u8()?)),
 
         opcode::dbg => Ok(Opcode::dbg(read_native_type(cursor)?)),
 
@@ -150,6 +151,12 @@ where
         Opcode::keep(at, n, len) => {
             cursor.write_u8(opcode::keep)?;
             cursor.write_u8(*at)?;
+            cursor.write_u8(*n)?;
+            cursor.write_u8(*len)?;
+            Ok(())
+        }
+        Opcode::keep_at(n, len) => {
+            cursor.write_u8(opcode::keep_at)?;
             cursor.write_u8(*n)?;
             cursor.write_u8(*len)?;
             Ok(())

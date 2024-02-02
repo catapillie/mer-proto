@@ -11,8 +11,9 @@ use super::Analyser;
 impl<'d> Analyser<'d> {
     // returns whether the provided statement is guaranteed to return
     pub fn analyse_control_flow(&mut self, stmt: &StmtAbt) -> bool {
+        use StmtAbtKind as S;
         match &stmt.kind {
-            StmtAbtKind::Block(stmts) => {
+            S::Block(stmts) => {
                 let mut does_return = false;
 
                 let mut iter = stmts.iter();
@@ -37,62 +38,60 @@ impl<'d> Analyser<'d> {
 
                 does_return
             }
-            StmtAbtKind::Empty => false,
-            StmtAbtKind::Expr(expr) => Self::expression_terminates(expr),
-            StmtAbtKind::VarInit(_, expr) => Self::expression_terminates(expr),
-            StmtAbtKind::IfThen(guard, body) => {
+            S::Empty => false,
+            S::Expr(expr) => Self::is_never(expr),
+            S::VarInit(_, expr) => Self::is_never(expr),
+            S::IfThen(guard, body) => {
                 self.analyse_control_flow(body); // analyse but discard
-                Self::expression_terminates(guard) // only the guard determines the termination
+                Self::is_never(guard) // only the guard determines the termination
             }
-            StmtAbtKind::IfThenElse(guard, body_then, body_else) => {
+            S::IfThenElse(guard, body_then, body_else) => {
                 (self.analyse_control_flow(body_then.as_ref())
                     & self.analyse_control_flow(body_else.as_ref()))
-                    | Self::expression_terminates(guard)
+                    | Self::is_never(guard)
             }
-            StmtAbtKind::WhileDo(guard, body) => {
-                self.analyse_control_flow(body.as_ref()) | Self::expression_terminates(guard)
+            S::WhileDo(guard, body) => {
+                self.analyse_control_flow(body.as_ref()) | Self::is_never(guard)
             }
-            StmtAbtKind::DoWhile(body, guard) => {
-                self.analyse_control_flow(body.as_ref()) | Self::expression_terminates(guard)
+            S::DoWhile(body, guard) => {
+                self.analyse_control_flow(body.as_ref()) | Self::is_never(guard)
             }
-            StmtAbtKind::Return(_) => true,
+            S::Return(_) => true,
         }
     }
 
-    fn expression_terminates(expr: &ExprAbt) -> bool {
+    fn is_never(expr: &ExprAbt) -> bool {
+        use ExprAbt as E;
         match expr {
-            ExprAbt::Unknown => false,
-            ExprAbt::Unit => false,
-            ExprAbt::Integer(_) => false,
-            ExprAbt::Decimal(_) => false,
-            ExprAbt::Boolean(_) => false,
-            ExprAbt::Variable(_) => false,
-            ExprAbt::Function(_) => false,
-            ExprAbt::Tuple(head, tail) => {
-                Self::expression_terminates(head) || tail.iter().any(Self::expression_terminates)
-            }
-            ExprAbt::TupleImmediateIndex(tuple, _) => Self::expression_terminates(tuple),
-            ExprAbt::Array(exprs) => exprs.iter().any(Self::expression_terminates),
-            ExprAbt::ArrayImmediateIndex(array, _) => Self::expression_terminates(array),
-            ExprAbt::Assignment {
+            E::Unknown => false,
+            E::Unit => false,
+            E::Integer(_) => false,
+            E::Decimal(_) => false,
+            E::Boolean(_) => false,
+            E::Variable(_) => false,
+            E::Function(_) => false,
+            E::Tuple(head, tail) => Self::is_never(head) || tail.iter().any(Self::is_never),
+            E::TupleImmediateIndex(tuple, _) => Self::is_never(tuple),
+            E::Array(exprs) => exprs.iter().any(Self::is_never),
+            E::ArrayImmediateIndex(array, _) => Self::is_never(array),
+            E::ArrayIndex(array, index) => Self::is_never(array) || Self::is_never(index),
+            E::Assignment {
                 var_id: _,
                 deref_count: _,
                 expr,
-            } => Self::expression_terminates(expr),
-            ExprAbt::Binary(_, left, right) => {
-                Self::expression_terminates(left) || Self::expression_terminates(right)
+            } => Self::is_never(expr),
+            E::Binary(_, left, right) => Self::is_never(left) || Self::is_never(right),
+            E::Unary(_, expr) => Self::is_never(expr),
+            E::Call(_, args, _) => args.iter().any(Self::is_never),
+            E::IndirectCall(callee, args, _) => {
+                Self::is_never(callee) && args.iter().any(Self::is_never)
             }
-            ExprAbt::Unary(_, expr) => Self::expression_terminates(expr),
-            ExprAbt::Call(_, args, _) => args.iter().any(Self::expression_terminates),
-            ExprAbt::IndirectCall(callee, args, _) => {
-                Self::expression_terminates(callee) && args.iter().any(Self::expression_terminates)
-            }
-            ExprAbt::Debug(expr, _) => Self::expression_terminates(expr),
-            ExprAbt::Ref(expr) => Self::expression_terminates(expr),
-            ExprAbt::VarRef(_) => false,
-            ExprAbt::Deref(expr) => Self::expression_terminates(expr),
-            ExprAbt::Todo => true,
-            ExprAbt::Unreachable => true,
+            E::Debug(expr, _) => Self::is_never(expr),
+            E::Ref(expr) => Self::is_never(expr),
+            E::VarRef(_) => false,
+            E::Deref(expr) => Self::is_never(expr),
+            E::Todo => true,
+            E::Unreachable => true,
         }
     }
 }
