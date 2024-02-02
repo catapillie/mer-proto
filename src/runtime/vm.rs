@@ -1,9 +1,6 @@
 use core::slice;
 use std::{
-    alloc::{self, Layout},
-    cmp,
-    io::{Cursor, Seek, SeekFrom},
-    ops::{self},
+    alloc::{self, Layout}, cmp, io::{Cursor, Seek, SeekFrom}, ops::{self}
 };
 
 use super::{error::Error, native_type, opcode, value::Value};
@@ -46,10 +43,17 @@ impl<'a> VM<'a> {
 
     fn destroy_frame(&mut self) -> Result<(), Error> {
         let frame = self.frames.pop().unwrap();
-        self.stack.truncate(frame.local_offset);
+        let at = frame.local_offset + frame.local_count as usize;
+        let value_count = self.stack.len() - at;
+        unsafe {
+            let src = self.stack.get(at).unwrap() as *const Value;
+            let dest = self.stack.get_mut(frame.local_offset).unwrap() as *mut Value;
+            src.copy_to(dest, value_count);
+        }
+        self.stack.truncate(frame.local_offset + value_count);
 
         let Some(ip) = frame.back else {
-            self.halt()?;
+            self.done = true;
             return Ok(());
         };
 
@@ -111,7 +115,7 @@ impl<'a> VM<'a> {
 
                 opcode::jmp => self.jmp(),
                 opcode::jmp_if => self.jmp_if()?,
-                opcode::ret => self.ret()?,
+                opcode::ret => self.destroy_frame()?,
                 opcode::call => self.call()?,
                 opcode::call_addr => self.call_addr()?,
 
@@ -180,24 +184,20 @@ impl<'a> VM<'a> {
             }
         }
 
-        Ok(self.pop()?.into())
-    }
-
-    fn halt(&mut self) -> Result<(), Error> {
-        while !self.frames.is_empty() {
-            self.destroy_frame()?;
-        }
+        let result = self.pop()?.into();
         if !self.stack.is_empty() {
             return Err(Error::HaltWithNonEmptyStack);
         }
-        self.done = true;
-        Ok(())
+
+        Ok(result)
     }
 
+    #[inline]
     fn push(&mut self, value: Value) {
         self.stack.push(value);
     }
 
+    #[inline]
     fn pop(&mut self) -> Result<Value, Error> {
         match self.stack.pop() {
             Some(value) => Ok(value),
@@ -205,6 +205,7 @@ impl<'a> VM<'a> {
         }
     }
 
+    #[inline]
     fn dup(&mut self) -> Result<(), Error> {
         match self.stack.last() {
             Some(last) => {
@@ -280,14 +281,6 @@ impl<'a> VM<'a> {
         Ok(())
     }
 
-    fn ret(&mut self) -> Result<(), Error> {
-        let frame = self.frames.last().unwrap();
-        let values = self.stack.split_off(frame.local_offset + frame.local_count as usize);
-        self.destroy_frame()?;
-        self.stack.extend_from_slice(&values);
-        Ok(())
-    }
-
     fn call(&mut self) -> Result<(), Error> {
         let fp = self.read_u32() as u64;
         let back = self.cursor.position();
@@ -308,8 +301,9 @@ impl<'a> VM<'a> {
         self.create_frame(back, param_count, local_count);
 
         // push non-parameter locals
-        for _ in 0..(local_count - param_count) {
-            self.push(Value::make_u8(0)); // uninitialized
+        let n = (local_count - param_count) as usize;
+        for _ in 0..n {
+            self.push(Value::make_unit(())); // uninitialized
         }
 
         Ok(())
@@ -467,46 +461,57 @@ impl<'a> VM<'a> {
         unsafe { values.as_ptr().copy_to(addr as *mut Value, values.len()) }
     }
 
+    #[inline]
     fn next_opcode(&mut self) -> u8 {
         self.read_u8()
     }
 
+    #[inline]
     fn read_u8(&mut self) -> u8 {
         self.cursor.read_u8().unwrap()
     }
 
+    #[inline]
     fn read_u16(&mut self) -> u16 {
         self.cursor.read_u16::<byteorder::LE>().unwrap()
     }
 
+    #[inline]
     fn read_u32(&mut self) -> u32 {
         self.cursor.read_u32::<byteorder::LE>().unwrap()
     }
 
+    #[inline]
     fn read_u64(&mut self) -> u64 {
         self.cursor.read_u64::<byteorder::LE>().unwrap()
     }
 
+    #[inline]
     fn read_i8(&mut self) -> i8 {
         self.cursor.read_i8().unwrap()
     }
 
+    #[inline]
     fn read_i16(&mut self) -> i16 {
         self.cursor.read_i16::<byteorder::LE>().unwrap()
     }
 
+    #[inline]
     fn read_i32(&mut self) -> i32 {
         self.cursor.read_i32::<byteorder::LE>().unwrap()
     }
 
+    #[inline]
     fn read_i64(&mut self) -> i64 {
         self.cursor.read_i64::<byteorder::LE>().unwrap()
     }
 
+    #[inline]
     fn read_f32(&mut self) -> f32 {
         self.cursor.read_f32::<byteorder::LE>().unwrap()
     }
 
+    #[inline]
     fn read_f64(&mut self) -> f64 {
         self.cursor.read_f64::<byteorder::LE>().unwrap()
     }
