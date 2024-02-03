@@ -4,7 +4,7 @@ func reset(x: &(f64, f64)) -> ()
     return
 }
 
-var x = (1.0, 0.0)
+var x = (1.0, 2.0)
 reset(&x)
 
-return
+return x.0 == 0.0 and x.0 == 0.0

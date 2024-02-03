@@ -6,6 +6,5 @@ func id(a: (bool, bool)) -> (bool, bool)
 
 var u = (true, false)
 var v = id(u)
-v
 
-return
+return u.0 == v.0 and u.1 == v.1

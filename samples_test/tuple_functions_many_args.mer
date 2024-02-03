@@ -1,10 +1,10 @@
 func id(a: bool, tuple: (bool, i64, f64), b: bool) -> (bool, i64, f64)
 {
-    if a then a
-    if b then b
+    a = a
+    b = b
+    tuple = tuple
     return tuple
 }
-
 
 id(false, (true, 0, 0.0), false)
 id(false, (true, 0, 1.0), true)

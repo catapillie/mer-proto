@@ -502,7 +502,12 @@ impl Codegen {
                 }
 
                 if info.is_on_heap {
-                    binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?;
+                    let ty_size = Self::size_of(&info.ty) as u8;
+                    if ty_size == 1 {
+                        binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?;
+                    } else {
+                        binary::write_opcode(&mut self.cursor, &Opcode::ld_heap_n(ty_size))?;
+                    }
                 }
 
                 Ok(())

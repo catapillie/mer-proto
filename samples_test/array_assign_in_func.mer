@@ -1,0 +1,10 @@
+func reset(x: &[2]f64) -> ()
+{
+    @x = [0.0, 0.0]
+    return
+}
+
+var x = [1.0, 2.0]
+reset(&x)
+
+return x.0 == 0.0 and x.1 == 0.0

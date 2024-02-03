@@ -1,7 +1,5 @@
 var xyz = (1.0, 2.0, 3.0)
 var p = &xyz
-
 var abc = @p
-abc
 
-return
+return xyz.0 == abc.0 and xyz.1 == abc.1 and xyz.2 == abc.2

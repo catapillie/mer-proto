@@ -1,0 +1,10 @@
+func clone_ref(a: &[2]bool) -> [2]bool
+    = @a
+
+func id(a: [2]bool) -> [2]bool
+    = clone_ref(&a)
+
+var u = [true, false]
+var v = id(u)
+
+return u.0 == v.0 and u.1 == v.1

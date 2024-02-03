@@ -63,24 +63,24 @@ check_program_output!(indirect_call_no_arg => ((), TypeAbt::Unit) ());
 check_program_output!(indirect_call_one_arg => ((), TypeAbt::Unit) ());
 check_program_output!(indirect_call_many_args => ((), TypeAbt::Unit) ());
 
-check_program_output!(tuple_variables => ((), TypeAbt::Unit) ());
+check_program_output!(tuple_variables => (bool, TypeAbt::Bool) true);
 check_program_output!(tuple_functions_returned => ((), TypeAbt::Unit) ());
 check_program_output!(tuple_functions_one_arg => ((), TypeAbt::Unit) ());
 check_program_output!(tuple_functions_many_args => ((), TypeAbt::Unit) ());
-check_program_output!(tuple_references => ((), TypeAbt::Unit) ());
-check_program_output!(tuple_immediate_alloc => ((), TypeAbt::Unit) ());
-check_program_output!(tuple_assign_value => ((), TypeAbt::Unit) ());
-check_program_output!(tuple_assign_in_func => ((), TypeAbt::Unit) ());
-check_program_output!(tuple_assign_ref_one => ((), TypeAbt::Unit) ());
-check_program_output!(tuple_assign_ref_two => ((), TypeAbt::Unit) ());
-check_program_output!(tuple_assign_ref_three => ((), TypeAbt::Unit) ());
-check_program_output!(tuple_assign_immediate_ref_one => ((), TypeAbt::Unit) ());
-check_program_output!(tuple_assign_immediate_ref_two => ((), TypeAbt::Unit) ());
-check_program_output!(tuple_assign_immediate_ref_three => ((), TypeAbt::Unit) ());
-check_program_output!(tuple_func_arg_realloc => ((), TypeAbt::Unit) ());
-check_program_output!(tuple_nested_one => ((), TypeAbt::Unit) ());
-check_program_output!(tuple_nested_two => ((), TypeAbt::Unit) ());
-check_program_output!(tuple_nested_three => ((), TypeAbt::Unit) ());
+check_program_output!(tuple_references => (bool, TypeAbt::Bool) true);
+check_program_output!(tuple_immediate_alloc => (bool, TypeAbt::Bool) true);
+check_program_output!(tuple_assign_value => (bool, TypeAbt::Bool) true);
+check_program_output!(tuple_assign_in_func => (bool, TypeAbt::Bool) true);
+check_program_output!(tuple_assign_ref_one => (bool, TypeAbt::Bool) true);
+check_program_output!(tuple_assign_ref_two => (bool, TypeAbt::Bool) true);
+check_program_output!(tuple_assign_ref_three => (bool, TypeAbt::Bool) true);
+check_program_output!(tuple_assign_immediate_ref_one => (bool, TypeAbt::Bool) true);
+check_program_output!(tuple_assign_immediate_ref_two => (bool, TypeAbt::Bool) true);
+check_program_output!(tuple_assign_immediate_ref_three => (bool, TypeAbt::Bool) true);
+check_program_output!(tuple_func_arg_realloc => (bool, TypeAbt::Bool) true);
+check_program_output!(tuple_nested_one => (bool, TypeAbt::Bool) true);
+check_program_output!(tuple_nested_two => (bool, TypeAbt::Bool) true);
+check_program_output!(tuple_nested_three => (bool, TypeAbt::Bool) true);
 check_program_output!(tuple_indexing => (bool, TypeAbt::Bool) true);
 check_program_output!(tuple_indexing_nested => (bool, TypeAbt::Bool) true);
 
@@ -94,6 +94,15 @@ check_program_output!(array_immediate_heap => (bool, TypeAbt::Bool) true);
 check_program_output!(array_nested => (bool, TypeAbt::Bool) true);
 check_program_output!(array_indexing => (bool, TypeAbt::Bool) true);
 check_program_output!(array_nested_indexing => (bool, TypeAbt::Bool) true);
+check_program_output!(array_assign_immediate_ref_one => (bool, TypeAbt::Bool) true);
+check_program_output!(array_assign_immediate_ref_two => (bool, TypeAbt::Bool) true);
+check_program_output!(array_assign_immediate_ref_three => (bool, TypeAbt::Bool) true);
+check_program_output!(array_assign_in_func => (bool, TypeAbt::Bool) true);
+check_program_output!(array_assign_ref_one => (bool, TypeAbt::Bool) true);
+check_program_output!(array_assign_ref_two => (bool, TypeAbt::Bool) true);
+check_program_output!(array_assign_ref_three => (bool, TypeAbt::Bool) true);
+check_program_output!(array_assign_value => (bool, TypeAbt::Bool) true);
+check_program_output!(array_func_arg_realloc => (bool, TypeAbt::Bool) true);
 
 macro_rules! check_program_output {
     ($name:ident => ($expected_ty:ty, $type_abt:expr) $expected:expr) => {
