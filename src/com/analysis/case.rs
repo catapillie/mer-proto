@@ -76,12 +76,15 @@ impl<'d> Analyser<'d> {
         }
 
         // ensure all paths give the same type
-        let mut types = bound_paths
+        let types = bound_paths
             .iter()
             .map(|(_, expr)| self.type_of(expr))
             .collect::<Vec<_>>();
-        let ty = types.pop().unwrap();
-        let all_types_match = types.iter().all(|t| t.is(&ty));
+        let ty = types
+            .iter()
+            .find(|ty| !matches!(ty, TypeAbt::Never))
+            .unwrap_or(types.first().expect("empty case expressions are not handled properly"));
+        let all_types_match = types.iter().all(|t| t.is(ty));
         if !all_types_match {
             let mut d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::CasePathsTypeMismatch)
@@ -108,6 +111,6 @@ impl<'d> Analyser<'d> {
             .into_iter()
             .map(|(guard, expr)| (guard.unwrap(), expr))
             .collect();
-        ExprAbt::Case(bound_guards, Box::new(last_expr), ty)
+        ExprAbt::Case(bound_guards, Box::new(last_expr), ty.clone())
     }
 }

@@ -1,9 +1,10 @@
 func step(x: f64) -> f64
-{
-    if x < 0.0 then return 0.0
-    if x >= 0.0 then return 1.0
-    return unreachable
-}
+    = case
+    {
+        x < 0.0 then 0.0
+        x >= 0.0 then 1.0
+        otherwise unreachable
+    }
 
 var f = -1.0
 while f <= 1.0 do
