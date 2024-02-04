@@ -113,19 +113,10 @@ impl<'d> Analyser<'d> {
             E::IndirectCall(_, _, ty) => ty.clone(),
 
             E::Assignment {
-                var_id,
-                deref_count,
-                expr: _,
-            } => {
-                let mut result_ty = self.type_of(&E::Variable(*var_id));
-                for _ in 0..(*deref_count) {
-                    result_ty = match result_ty {
-                        TypeAbt::Ref(ty) => *ty,
-                        _ => unreachable!(),
-                    }
-                }
-                result_ty
-            }
+                assignee: _,
+                var_id: _,
+                expr,
+            } => self.type_of(expr),
 
             E::Binary(op, _, _) => op.out_ty.clone(),
             E::Unary(op, _) => op.ty.clone(),
@@ -134,6 +125,10 @@ impl<'d> Analyser<'d> {
             E::Ref(inner) => Ty::Ref(Box::new(self.type_of(inner))),
             E::VarRef(var_id) => Ty::Ref(Box::new(self.type_of(&E::Variable(*var_id)))),
             E::Deref(inner) => match self.type_of(inner) {
+                Ty::Ref(ty) => *ty,
+                _ => unreachable!(),
+            },
+            E::VarDeref(var_id) => match self.type_of(&E::Variable(*var_id)) {
                 Ty::Ref(ty) => *ty,
                 _ => unreachable!(),
             },

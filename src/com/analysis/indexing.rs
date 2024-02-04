@@ -8,7 +8,12 @@ use crate::{
 use super::Analyser;
 
 impl<'d> Analyser<'d> {
-    pub fn analyse_index_expression(&mut self, expr: &ExprAst, index_expr: &ExprAst, span: Span) -> ExprAbt {
+    pub fn analyse_index_expression(
+        &mut self,
+        expr: &ExprAst,
+        index_expr: &ExprAst,
+        span: Span,
+    ) -> ExprAbt {
         let bound_expr = self.analyse_expression(expr);
         let bound_index = self.analyse_expression(index_expr);
 

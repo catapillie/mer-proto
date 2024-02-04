@@ -1,6 +1,6 @@
 use crate::{
     com::{
-        abt::{BinOpAbt, BinOpAbtKind, ExprAbt, TypeAbt, UnOpAbt, UnOpAbtKind},
+        abt::{Assignee, BinOpAbt, BinOpAbtKind, ExprAbt, TypeAbt, UnOpAbt, UnOpAbtKind},
         diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
         syntax::{bin_op::BinOpAst, expr::ExprAst, un_op::UnOpAst},
     },
@@ -68,15 +68,27 @@ impl<'d> Analyser<'d> {
         ExprAbt::Unknown
     }
 
-    fn as_ptr_dereference(mut expr: &ExprAbt) -> Option<(u64, usize)> {
-        let mut deref_count = 0;
-        while let ExprAbt::Deref(inner) = expr {
-            expr = inner;
-            deref_count += 1;
-        }
-
+    fn to_assignee(&self, expr: &ExprAbt) -> Option<(Assignee, u64, TypeAbt)> {
         match expr {
-            ExprAbt::Variable(var_id) if deref_count >= 1 => Some((*var_id, deref_count)),
+            ExprAbt::Variable(var_id) => {
+                let ty = self.variables.get(var_id).unwrap().ty.clone();
+                Some((Assignee::Variable, *var_id, ty))
+            }
+            ExprAbt::VarDeref(var_id) => {
+                let ty = match &self.variables.get(var_id).unwrap().ty {
+                    TypeAbt::Ref(inner) => *inner.to_owned(),
+                    _ => unreachable!(),
+                };
+                Some((Assignee::VarDeref, *var_id, ty))
+            }
+            ExprAbt::Deref(inner) => {
+                let (assignee, var_id, ty) = self.to_assignee(inner)?;
+                let ty = match ty {
+                    TypeAbt::Ref(inner) => *inner.to_owned(),
+                    _ => unreachable!(),
+                };
+                Some((Assignee::Deref(Box::new(assignee)), var_id, ty))
+            }
             _ => None,
         }
     }
@@ -85,11 +97,7 @@ impl<'d> Analyser<'d> {
         let bound_left = self.analyse_expression(left);
         let bound_right = self.analyse_expression(right);
 
-        let (var_id, deref_count) = if let Some(deref) = Self::as_ptr_dereference(&bound_left) {
-            deref
-        } else if let ExprAbt::Variable(var_id) = bound_left {
-            (var_id, 0)
-        } else {
+        let Some((assignee, var_id, expected_type)) = self.to_assignee(&bound_left) else {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::AssigneeMustBeVariable)
                 .with_severity(Severity::Error)
@@ -102,14 +110,6 @@ impl<'d> Analyser<'d> {
 
         let right_ty = self.type_of(&bound_right);
         let info = self.variables.get(&var_id).unwrap();
-
-        let mut expected_type = info.ty.clone();
-        for _ in 0..deref_count {
-            expected_type = match expected_type {
-                TypeAbt::Ref(ty) => *ty,
-                _ => unreachable!(),
-            }
-        }
 
         if !right_ty.is(&expected_type) {
             let d = diagnostics::create_diagnostic()
@@ -136,8 +136,8 @@ impl<'d> Analyser<'d> {
         }
 
         ExprAbt::Assignment {
+            assignee,
             var_id,
-            deref_count,
             expr: Box::new(bound_right),
         }
     }

@@ -5,6 +5,7 @@ use std::{
 
 use byteorder::WriteBytesExt;
 use byteorder::LE;
+use either::Either;
 
 use crate::{
     binary,
@@ -16,7 +17,7 @@ use crate::{
 };
 
 use super::{
-    abt::{ExprAbt, ProgramAbt, StmtAbt},
+    abt::{Assignee, ExprAbt, ProgramAbt, StmtAbt},
     analysis::FunctionInfo,
 };
 
@@ -162,19 +163,10 @@ impl Codegen {
             E::IndirectCall(_, _, ty) => ty.clone(),
 
             E::Assignment {
-                var_id,
-                deref_count,
-                expr: _,
-            } => {
-                let mut result_ty = Self::type_of(&E::Variable(*var_id), abt);
-                for _ in 0..(*deref_count) {
-                    result_ty = match result_ty {
-                        TypeAbt::Ref(ty) => *ty,
-                        _ => unreachable!(),
-                    }
-                }
-                result_ty
-            }
+                assignee: _,
+                var_id: _,
+                expr,
+            } => Self::type_of(expr, abt),
 
             E::Binary(op, _, _) => op.out_ty.clone(),
             E::Unary(op, _) => op.ty.clone(),
@@ -183,6 +175,10 @@ impl Codegen {
             E::Ref(inner) => Ty::Ref(Box::new(Self::type_of(inner, abt))),
             E::VarRef(var_id) => Ty::Ref(Box::new(Self::type_of(&E::Variable(*var_id), abt))),
             E::Deref(inner) => match Self::type_of(inner, abt) {
+                Ty::Ref(ty) => *ty,
+                _ => unreachable!(),
+            },
+            E::VarDeref(var_id) => match Self::type_of(&E::Variable(*var_id), abt) {
                 Ty::Ref(ty) => *ty,
                 _ => unreachable!(),
             },
@@ -518,63 +514,10 @@ impl Codegen {
                 Ok(())
             }
             E::Assignment {
+                assignee,
                 var_id,
-                deref_count,
                 expr,
-            } => {
-                // ... = <value>
-                self.gen_expression(expr, abt)?;
-
-                let size = Self::size_of(&Self::type_of(expr, abt)) as u8;
-                if size == 1 {
-                    binary::write_opcode(&mut self.cursor, &Opcode::dup)?;
-                } else {
-                    binary::write_opcode(&mut self.cursor, &Opcode::dup_n(size))?;
-                }
-
-                let loc = self.current_locals.get(var_id).unwrap();
-                let info = abt.variables.get(var_id).unwrap();
-
-                if *deref_count == 0 {
-                    // simple variable assignment
-                    if info.is_on_heap {
-                        binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(loc.offset))?;
-                        if size == 1 {
-                            binary::write_opcode(&mut self.cursor, &Opcode::st_heap)?;
-                        } else {
-                            binary::write_opcode(&mut self.cursor, &Opcode::st_heap_n(size))?;
-                        }
-                    } else if size == 1 {
-                        binary::write_opcode(&mut self.cursor, &Opcode::st_loc(loc.offset))?;
-                    } else {
-                        binary::write_opcode(
-                            &mut self.cursor,
-                            &Opcode::st_loc_n(loc.offset, size),
-                        )?;
-                    }
-                } else {
-                    // assignment to a n-dereferenced pointer
-                    // we dereference the variable n - 1 times so we have the address (and not the value)
-                    binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(loc.offset))?;
-                    for _ in 1..(*deref_count) {
-                        binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?;
-                    }
-
-                    // if variable is on heap, then the value we have is an address to an address, so read from heap again
-                    if info.is_on_heap {
-                        binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?;
-                    }
-
-                    // write the value at the address (on the heap)
-                    if size == 1 {
-                        binary::write_opcode(&mut self.cursor, &Opcode::st_heap)?;
-                    } else {
-                        binary::write_opcode(&mut self.cursor, &Opcode::st_heap_n(size))?;
-                    }
-                }
-
-                Ok(())
-            }
+            } => self.gen_assignment(assignee, *var_id, expr, abt),
             E::Call(id, params, _) => {
                 for param in params.iter() {
                     self.gen_expression(param, abt)?;
@@ -811,6 +754,21 @@ impl Codegen {
                 }
                 Ok(())
             }
+            E::VarDeref(var_id) => {
+                let loc = self.current_locals.get(var_id).unwrap();
+                binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(loc.offset))?;
+
+                let TypeAbt::Ref(inner) = &abt.variables.get(var_id).unwrap().ty else {
+                    unreachable!()
+                };
+                let size = Self::size_of(inner) as u8;
+                if size == 1 {
+                    binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?;
+                } else {
+                    binary::write_opcode(&mut self.cursor, &Opcode::ld_heap_n(size))?;
+                }
+                Ok(())
+            }
         }
     }
 
@@ -851,5 +809,71 @@ impl Codegen {
 
         self.patch_u32_placeholder(cursor_a, cursor_b)?;
         Ok(())
+    }
+
+    fn gen_assignment(
+        &mut self,
+        assignee: &Assignee,
+        var_id: u64,
+        expr: &ExprAbt,
+        abt: &ProgramAbt,
+    ) -> Result<(), io::Error> {
+        // write right-hand side
+        let size = Self::size_of(&Self::type_of(expr, abt)) as u8;
+        self.gen_expression(expr, abt)?;
+        if size == 1 {
+            binary::write_opcode(&mut self.cursor, &Opcode::dup)?;
+        } else {
+            binary::write_opcode(&mut self.cursor, &Opcode::dup_n(size))?;
+        }
+
+        // write left-hand side
+        let assignment = self.gen_assignment_lhs(assignee, var_id, abt)?;
+
+        // write assignment
+        match assignment {
+            Either::Left(()) => match size {
+                1 => binary::write_opcode(&mut self.cursor, &Opcode::st_heap),
+                _ => binary::write_opcode(&mut self.cursor, &Opcode::st_heap_n(size)),
+            },
+            Either::Right(loc_offset) => match size {
+                1 => binary::write_opcode(&mut self.cursor, &Opcode::st_loc(loc_offset)),
+                _ => binary::write_opcode(&mut self.cursor, &Opcode::st_loc_n(loc_offset, size)),
+            },
+        }
+    }
+
+    fn gen_assignment_lhs(
+        &mut self,
+        assignee: &Assignee,
+        var_id: u64,
+        abt: &ProgramAbt,
+    ) -> Result<Either<(), u8>, io::Error> {
+        match assignee {
+            Assignee::Variable => {
+                let loc = self.current_locals.get(&var_id).unwrap();
+                let info = abt.variables.get(&var_id).unwrap();
+                if info.is_on_heap {
+                    binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(loc.offset))?;
+                    Ok(Either::Left(()))
+                } else {
+                    Ok(Either::Right(loc.offset))
+                }
+            }
+            Assignee::VarDeref => {
+                let loc = self.current_locals.get(&var_id).unwrap();
+                let info = abt.variables.get(&var_id).unwrap();
+                binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(loc.offset))?;
+                if info.is_on_heap {
+                    binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?;
+                }
+                Ok(Either::Left(()))
+            }
+            Assignee::Deref(a) => {
+                let assignment = self.gen_assignment_lhs(a, var_id, abt)?;
+                binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?;
+                Ok(assignment)
+            }
+        }
     }
 }

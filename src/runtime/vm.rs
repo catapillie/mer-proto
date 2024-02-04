@@ -1,6 +1,9 @@
 use core::slice;
 use std::{
-    alloc::{self, Layout}, cmp, io::{Cursor, Seek, SeekFrom}, ops::{self}
+    alloc::{self, Layout},
+    cmp,
+    io::{Cursor, Seek, SeekFrom},
+    ops::{self},
 };
 
 use super::{error::Error, native_type, opcode, value::Value};

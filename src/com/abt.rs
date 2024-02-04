@@ -49,8 +49,8 @@ pub enum ExprAbt {
     ArrayImmediateIndex(Box<ExprAbt>, usize),
     ArrayIndex(Box<ExprAbt>, Box<ExprAbt>),
     Assignment {
+        assignee: Assignee,
         var_id: u64,
-        deref_count: usize,
         expr: Box<ExprAbt>,
     },
     Binary(BinOpAbt, Box<ExprAbt>, Box<ExprAbt>),
@@ -61,6 +61,7 @@ pub enum ExprAbt {
     Ref(Box<ExprAbt>),
     VarRef(u64),
     Deref(Box<ExprAbt>),
+    VarDeref(u64),
     Todo,
     Unreachable,
 }
@@ -70,6 +71,13 @@ pub struct BinOpAbt {
     pub kind: BinOpAbtKind,
     pub in_ty: TypeAbt,
     pub out_ty: TypeAbt,
+}
+
+#[derive(Debug)]
+pub enum Assignee {
+    Variable,
+    VarDeref,
+    Deref(Box<Assignee>),
 }
 
 #[derive(Debug, Clone)]
@@ -187,7 +195,7 @@ impl TypeAbt {
                 write!(f, "[{size}]")?;
                 ty.fmt_paren(f, true)?;
                 Ok(())
-            },
+            }
             Self::Ref(inner) => {
                 write!(f, "&")?;
                 inner.fmt_paren(f, true)
