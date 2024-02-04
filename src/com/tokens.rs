@@ -110,8 +110,6 @@ gen_tokens! {
         self => ("identifier '{}'", self.0),
     Integer(i64) "integer"
         self => ("{}", self.0),
-    Decimal(f64) "floating-point number"
-        self => ("{}", self.0),
     MalformedNumeral "malformed number"
         self => ("malformed nulmber"),
 

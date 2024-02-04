@@ -1,5 +1,3 @@
-use either::Either;
-
 use crate::{
     com::{
         diagnostics::{Note, Severity},
@@ -387,7 +385,6 @@ impl<'a> Parser<'a> {
         matches!(
             self.look_ahead,
             Token::Integer(_, _)
-                | Token::Decimal(_, _)
                 | Token::MalformedNumeral(_, _)
                 | Token::Identifier(_, _)
                 | Token::TrueKw(_, _)
@@ -552,12 +549,17 @@ impl<'a> Parser<'a> {
                 return Some(ExprAstKind::Deref(Box::new(expr)));
             }
 
-            if let Some(num) = self.try_match_token::<Integer>() {
-                return Some(ExprAstKind::Integer(num.0));
-            }
-
-            if let Some(num) = self.try_match_token::<Decimal>() {
-                return Some(ExprAstKind::Decimal(num.0));
+            // not sure about this, but instead of lexing floating-point numbers
+            // we can parse them like so, and concatenate the digits to parse a float instead
+            // this allows other syntax "x.0.2.1" to work instead of having to
+            // insert parentheses everywhere, for instance "x.0.2.1"
+            if let Some(left) = self.try_match_token::<Integer>() {
+                if self.try_match_token::<Dot>().is_none() {
+                    return Some(ExprAstKind::Integer(left.0));
+                }
+                let num_right = self.try_match_token::<Integer>().unwrap_or_default().0;
+                let decimal = format!("{left}.{num_right}").parse::<f64>().unwrap();
+                return Some(ExprAstKind::Decimal(decimal));
             }
 
             if self.try_match_token::<TodoKw>().is_some() {
@@ -919,101 +921,38 @@ impl<'a> Parser<'a> {
         Some((identifier, Span::new(start_pos, end_pos)))
     }
 
-    fn try_consume_number(&mut self) -> Option<(Option<Either<i64, f64>>, Span)> {
-        let mut clone = self.cursor.clone();
-        if let (Some('.'), Some(next)) = (clone.next(), clone.next()) {
-            if !next.is_ascii_digit() {
-                return None;
-            }
-        }
-
+    fn try_consume_number(&mut self) -> Option<(Option<i64>, Span)> {
         let mut decimals = String::new();
         let start_pos = self.cursor.pos();
 
-        let mut has_leading_digits = false;
         while let Some(c) = self.cursor.peek() {
             if !c.is_ascii_digit() {
                 break;
             }
 
-            has_leading_digits = true;
             decimals.push(c);
             self.cursor.next();
         }
 
-        if let Some('.') = self.cursor.peek() {
-            self.cursor.next();
-            decimals.push('.');
-        } else if !has_leading_digits {
+        if decimals.is_empty() {
             return None;
-        } else {
-            let end_pos = self.cursor.pos();
-            let span = Span::new(start_pos, end_pos);
-            return match decimals.parse::<i64>() {
-                Ok(num) => Some((Some(Either::Left(num)), span)),
-                Err(e) => {
-                    let d = diagnostics::create_diagnostic()
-                        .with_kind(DiagnosticKind::InvalidInteger(e))
-                        .with_severity(Severity::Error)
-                        .with_span(span)
-                        .annotate_primary(Note::Quiet, span)
-                        .done();
-                    self.diagnostics.push(d);
-                    Some((None, span))
-                }
-            };
-        }
-
-        let mut has_trailing_digits = false;
-        while let Some(c) = self.cursor.peek() {
-            if !c.is_ascii_digit() {
-                break;
-            }
-
-            has_trailing_digits = true;
-            decimals.push(c);
-            self.cursor.next();
         }
 
         let end_pos = self.cursor.pos();
         let span = Span::new(start_pos, end_pos);
-
-        if !has_leading_digits {
-            let d = diagnostics::create_diagnostic()
-                .with_kind(DiagnosticKind::MissingLeadingDigits)
-                .with_severity(Severity::Error)
-                .with_span(span)
-                .annotate_primary(Note::LeadingDigits, span)
-                .done();
-            self.diagnostics.push(d);
-            return Some((None, span));
-        }
-
-        if !has_trailing_digits {
-            let d = diagnostics::create_diagnostic()
-                .with_kind(DiagnosticKind::MissingTrailingDigits)
-                .with_severity(Severity::Error)
-                .with_span(span)
-                .annotate_primary(Note::TrailingDigits, span)
-                .done();
-            self.diagnostics.push(d);
-            return Some((None, span));
-        }
-
-        Some(match decimals.parse::<f64>() {
-            Ok(num) => (Some(Either::Right(num)), span),
-            Err(_) => {
-                // unreachable, but remain calm anyway
+        match decimals.parse() {
+            Ok(num) => Some((Some(num), span)),
+            Err(e) => {
                 let d = diagnostics::create_diagnostic()
-                    .with_kind(DiagnosticKind::InvalidFloat)
+                    .with_kind(DiagnosticKind::InvalidInteger(e))
                     .with_severity(Severity::Error)
                     .with_span(span)
                     .annotate_primary(Note::Quiet, span)
                     .done();
                 self.diagnostics.push(d);
-                (None, span)
+                Some((None, span))
             }
-        })
+        }
     }
 
     fn try_consume_newlines(&mut self) -> bool {
@@ -1089,8 +1028,7 @@ impl<'a> Parser<'a> {
 
             if let Some((result, span)) = self.try_consume_number() {
                 return match result {
-                    Some(Either::Left(num)) => Integer(num).wrap(span),
-                    Some(Either::Right(num)) => Decimal(num).wrap(span),
+                    Some(num) => Integer(num).wrap(span),
                     None => MalformedNumeral.wrap(span),
                 };
             }

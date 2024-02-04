@@ -1,11 +1,11 @@
 var t = ((99, 99), (false, false, false), (99, 99))
 
-(t.0).0 = 1
-(t.0).1 = 0
-(t.1).0 = true
-(t.1).1 = true
-(t.1).2 = true
-(t.2).0 = 0
-(t.2).1 = 1
+t.0.0 = 1
+t.0.1 = 0
+t.1.0 = true
+t.1.1 = true
+t.1.2 = true
+t.2.0 = 0
+t.2.1 = 1
 
-return (t.0).0 == 1 and (t.0).1 == 0 and (t.1).0 == true and (t.1).1 == true and (t.1).2 == true and (t.2).0 == 0 and (t.2).1 == 1
+return t.0.0 == 1 and t.0.1 == 0 and t.1.0 == true and t.1.1 == true and t.1.2 == true and t.2.0 == 0 and t.2.1 == 1
