@@ -7,21 +7,10 @@ pub enum Error {
     #[error("encountered illegal opcode")]
     IllegalOpcode,
 
-    #[error("stack overflow")]
-    StackOverflow,
     #[error("stack underflow")]
     StackUnderflow,
     #[error("program halted with non-empty stack")]
     HaltWithNonEmptyStack,
-
-    #[error("read from unallocated memory in heap")]
-    InvalidMemoryAccess,
-    #[error("wrote to unallocated memory in heap")]
-    InvalidMemoryWrite,
-    #[error("popped address from stack, expected value")]
-    UnexpectedAddress,
-    #[error("popped value from stack, expected address")]
-    UnexpectedValue,
 
     #[error("invalid unary operation")]
     InvalidUnaryOperation,

@@ -147,9 +147,6 @@ pub enum DiagnosticKind {
     IllegalCharacter(char),
 
     InvalidInteger(ParseIntError),
-    InvalidFloat,
-    MissingLeadingDigits,
-    MissingTrailingDigits,
 
     ExpectedToken {
         found: Token,
@@ -177,7 +174,6 @@ pub enum DiagnosticKind {
     TooManyTopLevelVariables(usize),
     UnusedVariable(String),
 
-    UnknownFunction(String),
     InvalidArgCount {
         got: usize,
         expected: usize,
@@ -185,7 +181,6 @@ pub enum DiagnosticKind {
     InvalidCallee,
 
     UnknownType(String),
-
     TypeMismatch {
         found: TypeAbt,
         expected: TypeAbt,
@@ -245,12 +240,6 @@ impl DiagnosticKind {
                 ),
             Self::InvalidInteger(e)
                 => format!("invalid integer literal ({e})"),
-            Self::InvalidFloat
-                => "invalid float literal".to_string(),
-            Self::MissingLeadingDigits
-                => "float literals must have leading digits".to_string(),
-            Self::MissingTrailingDigits
-                => "float literals must have trailing digits".to_string(),
             Self::ExpectedToken { found, expected }
                 => format!("expected '{}', but found '{}'",
                     expected.to_string().bold(),
@@ -297,8 +286,6 @@ impl DiagnosticKind {
                 => format!("variable '{}' is never used",
                     name.bold(),
                 ),
-            Self::UnknownFunction(name)
-                => format!("unknown function '{}'", name.bold()),
             Self::InvalidArgCount { got, expected }
                 => format!("function takes in {} arguments, but was supplied {}",
                     expected.to_string().bold(),
@@ -382,8 +369,6 @@ pub enum Note {
     Quiet,
     Here,
     Unknown,
-    LeadingDigits,
-    TrailingDigits,
     ExpectedToken(TokenKind),
     CanBeRemoved,
     CanRemoveParentheses,
@@ -457,10 +442,6 @@ impl Note {
                 => "here".to_string(),
             Self::Unknown
                 => "???".to_string(),
-            Self::LeadingDigits
-                => "needs leading digit".to_string(),
-            Self::TrailingDigits
-                => "needs trailing digit".to_string(),
             Self::ExpectedToken(expected)
                 => format!("expected {}", expected.to_string().bold()),
             Self::CanBeRemoved
