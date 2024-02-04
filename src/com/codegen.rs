@@ -830,8 +830,6 @@ impl Codegen {
         // write left-hand side
         let assignment = self.gen_assignment_lhs(assignee, var_id, abt)?;
 
-        println!("{assignment:?}");
-
         // write assignment
         match assignment {
             Either::Left(()) => match size {
@@ -894,6 +892,20 @@ impl Codegen {
                         };
                         
                         Ok(Either::Right(loc + offset))
+                    }
+                }
+            }
+            Assignee::ArrayImmediateIndex(a, ty, index) => {
+                let assignment = self.gen_assignment_lhs(a, var_id, abt)?;
+                let TypeAbt::Array(inner, _) = ty else {
+                    unreachable!()
+                };
+
+                match assignment {
+                    Either::Left(()) => todo!("unreachable *yet*"),
+                    Either::Right(loc) => {
+                        let offset = Self::size_of(inner) * index;
+                        Ok(Either::Right(loc + offset as u8))
                     }
                 }
             }

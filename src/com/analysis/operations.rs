@@ -105,6 +105,17 @@ impl<'d> Analyser<'d> {
                     ty,
                 ))
             }
+            ExprAbt::ArrayImmediateIndex(expr, index) => {
+                let (assignee, var_id, tuple_ty) = self.to_assignee(expr)?;
+                let TypeAbt::Array(inner_ty, _) = tuple_ty.clone() else {
+                    unreachable!()
+                };
+                Some((
+                    Assignee::ArrayImmediateIndex(Box::new(assignee), tuple_ty, *index),
+                    var_id,
+                    *inner_ty,
+                ))
+            }
             _ => None,
         }
     }
