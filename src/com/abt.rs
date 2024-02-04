@@ -78,6 +78,7 @@ pub enum Assignee {
     Variable,
     VarDeref,
     Deref(Box<Assignee>),
+    TupleImmediateIndex(Box<Assignee>, TypeAbt, usize),
 }
 
 #[derive(Debug, Clone)]

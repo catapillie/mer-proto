@@ -830,6 +830,8 @@ impl Codegen {
         // write left-hand side
         let assignment = self.gen_assignment_lhs(assignee, var_id, abt)?;
 
+        println!("{assignment:?}");
+
         // write assignment
         match assignment {
             Either::Left(()) => match size {
@@ -849,10 +851,10 @@ impl Codegen {
         var_id: u64,
         abt: &ProgramAbt,
     ) -> Result<Either<(), u8>, io::Error> {
+        let loc = self.current_locals.get(&var_id).unwrap();
+        let info = abt.variables.get(&var_id).unwrap();
         match assignee {
             Assignee::Variable => {
-                let loc = self.current_locals.get(&var_id).unwrap();
-                let info = abt.variables.get(&var_id).unwrap();
                 if info.is_on_heap {
                     binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(loc.offset))?;
                     Ok(Either::Left(()))
@@ -861,8 +863,6 @@ impl Codegen {
                 }
             }
             Assignee::VarDeref => {
-                let loc = self.current_locals.get(&var_id).unwrap();
-                let info = abt.variables.get(&var_id).unwrap();
                 binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(loc.offset))?;
                 if info.is_on_heap {
                     binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?;
@@ -873,6 +873,29 @@ impl Codegen {
                 let assignment = self.gen_assignment_lhs(a, var_id, abt)?;
                 binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?;
                 Ok(assignment)
+            }
+            Assignee::TupleImmediateIndex(a, ty, index) => {
+                let assignment = self.gen_assignment_lhs(a, var_id, abt)?;
+                let TypeAbt::Tuple(head, tail) = ty else {
+                    unreachable!()
+                };
+
+                match assignment {
+                    Either::Left(()) => todo!("unreachable *yet*"),
+                    Either::Right(loc) => {
+                        let offset = if *index == 0 {
+                            0
+                        } else {
+                            let mut offset = Self::size_of(head) as u8;
+                            for ty in &tail[..(index - 1)] {
+                                offset += Self::size_of(ty) as u8;
+                            }
+                            offset
+                        };
+                        
+                        Ok(Either::Right(loc + offset))
+                    }
+                }
             }
         }
     }

@@ -89,6 +89,22 @@ impl<'d> Analyser<'d> {
                 };
                 Some((Assignee::Deref(Box::new(assignee)), var_id, ty))
             }
+            ExprAbt::TupleImmediateIndex(expr, index) => {
+                let (assignee, var_id, tuple_ty) = self.to_assignee(expr)?;
+                let TypeAbt::Tuple(head, tail) = tuple_ty.clone() else {
+                    unreachable!()
+                };
+                let ty = if *index == 0 {
+                    *head
+                } else {
+                    tail.get(*index - 1).unwrap().clone()
+                };
+                Some((
+                    Assignee::TupleImmediateIndex(Box::new(assignee), tuple_ty, *index),
+                    var_id,
+                    ty,
+                ))
+            }
             _ => None,
         }
     }

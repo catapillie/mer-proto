@@ -1,0 +1,11 @@
+var id = ((99, 99), (false, false, false), (99, 99))
+
+(id.0).0 = 1
+(id.0).1 = 0
+(id.1).0 = true
+(id.1).1 = true
+(id.1).2 = true
+(id.2).0 = 0
+(id.2).1 = 1
+
+return (id.0).0 == 1 and (id.0).1 == 0 and (id.1).0 == true and (id.1).1 == true and (id.1).2 == true and (id.2).0 == 0 and (id.2).1 == 1
