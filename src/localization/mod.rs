@@ -8,3 +8,5 @@ pub trait Lang {
 
 pub mod english;
 pub use english::English;
+pub mod french;
+pub use french::French;

@@ -35,7 +35,7 @@ impl Lang for English {
             K::ExpectedType
                 => "expected a type expression".to_string(),
             K::SingletonTypeSyntax
-                => "singleton type is read as its inner type, so parentheses are unnecessary".to_string(),
+                => "singleton tuple are read as their inner type, so parentheses are unnecessary".to_string(),
             K::GuardNotBoolean
                 => "guard is not a boolean".to_string(),
             K::EmptyThenStatement
@@ -97,7 +97,7 @@ impl Lang for English {
                     ty.to_string().bold(),
                 ),
             K::InvalidBinaryOperation { op, left, right }
-                => format!("invalid binary operation {} on types {} and {}",
+                => format!("invalid binary operation {} between types {} and {}",
                     op.to_string().bold(),
                     left.to_string().bold(),
                     right.to_string().bold(),
@@ -139,7 +139,7 @@ impl Lang for English {
                 format!("{left} {right}")
             }
             K::EmptyArray
-                => "empty arrays are not allowed".to_string(),
+                => "empty arrays of known size are not allowed".to_string(),
             K::SingletonArray
                 => "singleton arrays are equivalent to their inner value".to_string(),
             K::ArrayMismatchingTypes
