@@ -1,8 +1,6 @@
 use crate::{
-    com::{
-        abt::{ExprAbt, StmtAbt, StmtAbtKind},
-        diagnostics::{self, DiagnosticKind, Note, Severity},
-    },
+    com::abt::{ExprAbt, StmtAbt, StmtAbtKind},
+    diagnostics::{self, DiagnosticKind, Note, Severity},
     utils::Span,
 };
 

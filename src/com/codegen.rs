@@ -890,7 +890,7 @@ impl Codegen {
                             }
                             offset
                         };
-                        
+
                         Ok(Either::Right(loc + offset))
                     }
                 }

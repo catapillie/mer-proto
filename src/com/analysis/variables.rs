@@ -1,9 +1,9 @@
 use crate::{
     com::{
         abt::{ExprAbt, StmtAbtKind, TypeAbt},
-        diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
         syntax::expr::ExprAst,
     },
+    diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
     utils::Span,
 };
 

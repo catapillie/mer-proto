@@ -1,7 +1,6 @@
-use diagnostics::{DiagnosticKind, Note, Severity};
-
 use crate::{
-    com::{abt::ExprAbt, diagnostics, syntax::expr::ExprAst, TypeAbt},
+    com::{abt::ExprAbt, syntax::expr::ExprAst, TypeAbt},
+    diagnostics::{self, DiagnosticKind, Note, Severity},
     utils::Span,
 };
 

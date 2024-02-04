@@ -1,8 +1,10 @@
-use crate::com::{
-    abt::{ProgramAbt, TypeAbt},
-    analysis::FunctionInfo,
+use crate::{
+    com::{
+        abt::{ProgramAbt, TypeAbt},
+        analysis::FunctionInfo,
+        syntax::stmt::{StmtAst, StmtAstKind},
+    },
     diagnostics::{self, DiagnosticKind, Severity},
-    syntax::stmt::{StmtAst, StmtAstKind},
 };
 
 use super::Analyser;

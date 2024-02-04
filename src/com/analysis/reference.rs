@@ -1,7 +1,9 @@
-use crate::com::{
-    abt::{ExprAbt, TypeAbt},
+use crate::{
+    com::{
+        abt::{ExprAbt, TypeAbt},
+        syntax::expr::ExprAst,
+    },
     diagnostics::{self, DiagnosticKind, Note, Severity},
-    syntax::expr::ExprAst,
 };
 
 use super::Analyser;

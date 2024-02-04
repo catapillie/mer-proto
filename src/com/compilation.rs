@@ -1,16 +1,17 @@
 use std::{fs, io, path::Path};
 
+use crate::diagnostics::{DiagnosticList, Severity};
+
 use super::{
     abt::{ProgramAbt, TypeAbt},
     analysis::Analyser,
     codegen::Codegen,
-    diagnostics::Diagnostics,
     parser::Parser,
 };
 
 pub enum AnalysisStage {
-    Ok(ProgramAbt, Diagnostics),
-    CannotCompile(Diagnostics),
+    Ok(ProgramAbt, DiagnosticList),
+    CannotCompile(DiagnosticList),
 }
 
 pub fn analyse_program(source: &str) -> AnalysisStage {
@@ -18,12 +19,13 @@ pub fn analyse_program(source: &str) -> AnalysisStage {
 }
 
 pub fn analyse_program_with_type(source: &str, expected_type: TypeAbt) -> AnalysisStage {
-    let mut diagnostics = Diagnostics::new();
+    let mut diagnostics = DiagnosticList::new();
 
     let ast = Parser::new(source, &mut diagnostics).parse_program();
     let abt = Analyser::new(&mut diagnostics).analyse_program(&ast, expected_type);
 
-    if diagnostics.is_fatal() {
+    let is_fatal = diagnostics.iter().any(|d| d.severity == Severity::Error);
+    if is_fatal {
         AnalysisStage::CannotCompile(diagnostics)
     } else {
         AnalysisStage::Ok(abt, diagnostics)

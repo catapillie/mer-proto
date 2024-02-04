@@ -1,11 +1,11 @@
-use std::{collections::HashMap, fs, path::PathBuf, process};
-
 use cmd::{Command, CompileCommand, DisassembleCommand, RunCommand};
 use colored::Colorize;
+use std::{collections::HashMap, fs, path::PathBuf, process};
 
 use merlib::{
     binary,
-    com::{self, AnalysisStage, Severity},
+    com::{self, AnalysisStage},
+    diagnostics::{self, Severity},
     runtime::{Opcode, VM},
 };
 
@@ -69,7 +69,6 @@ fn compile(command: CompileCommand) {
 
             let abt = match com::analyse_program(&source) {
                 AnalysisStage::Ok(abt, diagnostics) => {
-                    let diagnostics = diagnostics.done();
                     let error_count = diagnostics
                         .iter()
                         .filter(|d| matches!(d.severity, Severity::Error))
@@ -87,15 +86,15 @@ fn compile(command: CompileCommand) {
                             warning_count.to_string().bold(),
                         ));
                         for diagnostic in diagnostics.into_iter() {
-                            com::print_diagnostic(&path, &source, &diagnostic);
+                            diagnostics::print_diagnostic(&path, &source, &diagnostic);
                             println!();
                         }
                     }
                     abt
                 }
                 AnalysisStage::CannotCompile(diagnostics) => {
-                    for diagnostic in diagnostics.done().into_iter() {
-                        com::print_diagnostic(&path, &source, &diagnostic);
+                    for diagnostic in diagnostics.into_iter() {
+                        diagnostics::print_diagnostic(&path, &source, &diagnostic);
                         println!();
                     }
                     msg::error("cannot compile with errors -- aborting");

@@ -1,13 +1,10 @@
 use crate::{
-    com::{
-        diagnostics::{Note, Severity},
-        syntax::types::TypeAstKind,
-    },
+    com::syntax::types::TypeAstKind,
+    diagnostics::{self, DiagnosticKind, DiagnosticList, Note, Severity},
     utils::{Cursor, Pos, Span},
 };
 
 use super::{
-    diagnostics::{self, DiagnosticKind, Diagnostics},
     syntax::{
         bin_op::BinOpAst,
         expr::{ExprAst, ExprAstKind},
@@ -24,11 +21,11 @@ pub struct Parser<'a> {
     last_boundary: Pos,
     look_ahead: Token,
     last_token: Token,
-    diagnostics: &'a mut Diagnostics,
+    diagnostics: &'a mut DiagnosticList,
 }
 
 impl<'a> Parser<'a> {
-    pub fn new(source: &'a str, diagnostics: &'a mut Diagnostics) -> Self {
+    pub fn new(source: &'a str, diagnostics: &'a mut DiagnosticList) -> Self {
         let mut parser = Self {
             cursor: Cursor::new(source),
             last_boundary: Pos::MIN,

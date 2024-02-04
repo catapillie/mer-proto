@@ -26,7 +26,7 @@ fn all_samples_work() {
 
         // no other diagnostics (warnings, etc...)
         assert!(
-            diagnostics.done().is_empty(),
+            diagnostics.is_empty(),
             "sample {} has remaining diagnostics",
             path.bold().underline()
         );

@@ -125,7 +125,7 @@ macro_rules! check_program_output {
 
             // no other diagnostics (warnings, etc...)
             assert!(
-                diagnostics.done().is_empty(),
+                diagnostics.is_empty(),
                 "sample {} has remaining diagnostics",
                 path.bold().underline()
             );

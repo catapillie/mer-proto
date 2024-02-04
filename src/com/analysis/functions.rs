@@ -4,9 +4,9 @@ use crate::{
     com::{
         abt::{ExprAbt, StmtAbt, StmtAbtKind, TypeAbt},
         analysis::Declaration,
-        diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
         syntax::{expr::ExprAst, stmt::StmtAst, types::TypeAst},
     },
+    diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
     utils::Span,
 };
 

@@ -1,9 +1,9 @@
 use crate::{
     com::{
         abt::{Assignee, BinOpAbt, BinOpAbtKind, ExprAbt, TypeAbt, UnOpAbt, UnOpAbtKind},
-        diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
         syntax::{bin_op::BinOpAst, expr::ExprAst, un_op::UnOpAst},
     },
+    diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
     utils::Span,
 };
 
