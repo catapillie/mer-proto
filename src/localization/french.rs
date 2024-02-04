@@ -139,7 +139,7 @@ impl Lang for French {
             K::EmptyArray
                 => "les tableaux vides à taille connue sont interdits".to_string(),
             K::SingletonArray
-                => "les tableaux singletons sont équivalents à leur valeur interne".to_string(),
+                => "les tableaux singletons sont équivalents à leur valeur intérieure".to_string(),
             K::ArrayMismatchingTypes
                 => "les valeurs dans un tableau doivent tous être du même type".to_string(),
             K::OutOfRangeArrayIndex { len, index } => {
@@ -252,7 +252,7 @@ impl Lang for French {
                 },
             N::VariableCapturedBy(var_name, func_name)
                 => format!(
-                    "'{}' est capturée '{}' ici",
+                    "'{}' est capturée dans '{}' ici",
                     var_name.bold(),
                     func_name.bold(),
                 ),
