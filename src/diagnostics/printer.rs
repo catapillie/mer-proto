@@ -2,19 +2,20 @@ use colored::{Color, Colorize};
 use std::{collections::BTreeMap, ops::Add};
 
 use super::{Diagnostic, NoteSeverity, Severity};
-use crate::utils::Span;
+use crate::{localization::Lang, utils::Span};
 
-pub fn print_diagnostic(path: &str, source: &str, diagnostic: &Diagnostic) {
+pub fn print_diagnostic(path: &str, source: &str, diagnostic: &Diagnostic, lang: &dyn Lang) {
     let lines = source.lines().collect::<Vec<_>>().into_boxed_slice();
 
-    let msg = diagnostic.kind.msg();
-    let color = match diagnostic.severity {
+    let msg = lang.diagnostic_msg(&diagnostic.kind);
+    let severity = diagnostic.severity;
+    let color = match severity {
         Severity::Error => {
-            println!("{} {msg}", "error".bright_red());
+            println!("{} {msg}", lang.severity_msg(&severity).bright_red());
             Color::BrightRed
         }
         Severity::Warning => {
-            println!("{} {msg}", "warning".bright_yellow());
+            println!("{} {msg}", lang.severity_msg(&severity).bright_yellow());
             Color::BrightYellow
         }
     };
@@ -28,7 +29,7 @@ pub fn print_diagnostic(path: &str, source: &str, diagnostic: &Diagnostic) {
 
         printer.highlight_span(span, note_color);
         let line = span.to.line;
-        let msg = note.msg();
+        let msg = lang.note_msg(note);
         if span.is_one_line() {
             let from = span.from.column;
             let to = span.to.column;

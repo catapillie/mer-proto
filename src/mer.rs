@@ -6,6 +6,7 @@ use merlib::{
     binary,
     com::{self, AnalysisStage},
     diagnostics::{self, Severity},
+    localization,
     runtime::{Opcode, VM},
 };
 
@@ -55,6 +56,8 @@ fn main() {
 fn compile(command: CompileCommand) {
     match command {
         CompileCommand::Go(path) => {
+            let lang = localization::English;
+
             let source = match fs::read_to_string(&path) {
                 Ok(source) => source,
                 Err(e) => {
@@ -86,7 +89,7 @@ fn compile(command: CompileCommand) {
                             warning_count.to_string().bold(),
                         ));
                         for diagnostic in diagnostics.into_iter() {
-                            diagnostics::print_diagnostic(&path, &source, &diagnostic);
+                            diagnostics::print_diagnostic(&path, &source, &diagnostic, &lang);
                             println!();
                         }
                     }
@@ -94,7 +97,7 @@ fn compile(command: CompileCommand) {
                 }
                 AnalysisStage::CannotCompile(diagnostics) => {
                     for diagnostic in diagnostics.into_iter() {
-                        diagnostics::print_diagnostic(&path, &source, &diagnostic);
+                        diagnostics::print_diagnostic(&path, &source, &diagnostic, &lang);
                         println!();
                     }
                     msg::error("cannot compile with errors -- aborting");
