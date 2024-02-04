@@ -95,6 +95,10 @@ gen_tokens! {
         self => ("'xor' keyword"),
     NotKw "'not' keyword"
         self => ("'not' keyword"),
+    CaseKw "'case' keyword"
+        self => ("'case' keyword"),
+    OtherwiseKw "'otherwise' keyword"
+        self => ("'otherwise' keyword"),
 
     TrueKw "'true' literal"
         self => ("'true' literal"),

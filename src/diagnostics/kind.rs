@@ -92,4 +92,9 @@ pub enum DiagnosticKind {
     },
     InvalidIndex,
     ArrayIndexMustBeInteger,
+    
+    MissingOtherwisePath,
+    TooManyOtherwisePaths,
+    LastCasePathIsNotOtherwise,
+    CasePathsTypeMismatch,
 }

@@ -64,6 +64,7 @@ pub enum ExprAbt {
     VarDeref(u64),
     Todo,
     Unreachable,
+    Case(Box<[(ExprAbt, ExprAbt)]>, Box<ExprAbt>, TypeAbt),
 }
 
 #[derive(Debug)]

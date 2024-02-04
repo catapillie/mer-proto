@@ -156,6 +156,14 @@ impl Lang for French {
             }
             K::ArrayIndexMustBeInteger
                 => "l'indice dans une indexation doit être un entier".to_string(),
+            K::MissingOtherwisePath
+                => "l'expression case n'a aucun chemin otherwise".to_string(),
+            K::TooManyOtherwisePaths
+                => "l'expression case contient plus d'un chemin otherwise".to_string(),
+            K::LastCasePathIsNotOtherwise
+                => "le dernier chemin d'une expression case doit être un chemin otherwise".to_string(),
+            K::CasePathsTypeMismatch
+                => "tous les chemins dans une expression case doivent donner le même type".to_string(),
         }
     }
 
@@ -198,7 +206,9 @@ impl Lang for French {
             N::MustBeOfType(ty)
                 => format!("ceci doit être de type {}", ty.to_string().bold()),
             N::OfType(ty)
-                => format!("ceci est de type {}", ty.to_string().bold(),),
+                => format!("ceci est de type {}", ty.to_string().bold()),
+            N::Type(ty)
+            => ty.to_string().bold().to_string(),
             N::VariableDeclaration(name)
                 => format!("la variable '{}' est déclarée ici", name.bold()),
             N::VariableType(name, ty)

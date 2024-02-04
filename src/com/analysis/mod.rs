@@ -22,6 +22,7 @@ mod tuples;
 
 mod if_then;
 mod while_do;
+mod case;
 
 pub use functions::FunctionInfo;
 pub use variables::VariableInfo;

@@ -583,6 +583,10 @@ impl<'a> Parser<'a> {
                 return Some(ExprAstKind::Boolean(false));
             }
 
+            if let Some(expr) = self.parse_case_expression() {
+                return Some(expr);
+            }
+
             let delimited = self.parse_delimited_sequence::<LeftParen, RightParen, Comma, _, _>(Self::parse_expression);
             if let Some(mut exprs) = delimited {
                 if exprs.is_empty() {
@@ -650,6 +654,42 @@ impl<'a> Parser<'a> {
         }
 
         Some(expr)
+    }
+
+    fn parse_case_expression(&mut self) -> Option<ExprAstKind> {
+        self.try_match_token::<CaseKw>()?;
+        let case_kw_span = self.last_span();
+
+        self.skip_newlines();
+        self.match_token::<LeftBrace>();
+        self.skip_newlines();
+
+        let mut paths = Vec::new();
+        loop {
+            self.skip_newlines();
+            if let Some(guard) = self.parse_expression() {
+                self.match_token::<ThenKw>();
+                let expr = self.expect_expression();
+                paths.push((Some(guard), expr));
+                self.match_token::<Newline>();
+                continue;
+            }
+
+            if self.try_match_token::<OtherwiseKw>().is_some() {
+                let expr = self.expect_expression();
+                paths.push((None, expr));
+                self.match_token::<Newline>();
+                continue;
+            }
+
+            break;
+        }
+
+        self.skip_newlines();
+        self.match_token::<RightBrace>();
+        self.skip_newlines();
+
+        Some(ExprAstKind::Case(paths.into_boxed_slice(), case_kw_span))
     }
 
     fn expect_type_expression(&mut self) -> TypeAst {
@@ -1047,6 +1087,8 @@ impl<'a> Parser<'a> {
                     "xor" => XorKw.wrap(span),
                     "not" => NotKw.wrap(span),
                     "debug" => DebugKw.wrap(span),
+                    "case" => CaseKw.wrap(span),
+                    "otherwise" => OtherwiseKw.wrap(span),
                     "todo" => TodoKw.wrap(span),
                     "unreachable" => UnreachableKw.wrap(span),
                     _ => Identifier(id).wrap(span),

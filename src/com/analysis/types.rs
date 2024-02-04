@@ -137,6 +137,8 @@ impl<'d> Analyser<'d> {
 
             E::Todo => Ty::Never,
             E::Unreachable => Ty::Never,
+
+            E::Case(_, _, ty) => ty.clone(),
         }
     }
 

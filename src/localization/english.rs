@@ -160,6 +160,14 @@ impl Lang for English {
             }
             K::ArrayIndexMustBeInteger
                 => "array index must be an integer".to_string(),
+            K::MissingOtherwisePath
+                => "case expression without otherwise path".to_string(),
+            K::TooManyOtherwisePaths
+                => "case expression has more than one otherwise path".to_string(),
+            K::LastCasePathIsNotOtherwise
+                => "last path of case-expression must be otherwise path".to_string(),
+            K::CasePathsTypeMismatch
+                => "all paths in case-expression must give the same type".to_string(),
         }
     }
 
@@ -202,7 +210,9 @@ impl Lang for English {
             N::MustBeOfType(ty)
                 => format!("this must be of type {}", ty.to_string().bold()),
             N::OfType(ty)
-                => format!("this is of type {}", ty.to_string().bold(),),
+                => format!("this is of type {}", ty.to_string().bold()),
+            N::Type(ty)
+                => ty.to_string().bold().to_string(),
             N::VariableDeclaration(name)
                 => format!("variable '{}' is declared here", name.bold()),
             N::VariableType(name, ty)

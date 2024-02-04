@@ -20,6 +20,7 @@ pub enum Note {
     CannotAssign,
     MustBeOfType(TypeAbt),
     OfType(TypeAbt),
+    Type(TypeAbt),
     VariableDeclaration(String),
     VariableType(String, TypeAbt),
     ArgumentType(String, TypeAbt),

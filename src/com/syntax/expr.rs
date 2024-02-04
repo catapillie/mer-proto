@@ -28,6 +28,7 @@ pub enum ExprAstKind {
     Deref(Box<ExprAst>),
     Todo,
     Unreachable,
+    Case(Box<[(Option<ExprAst>, ExprAst)]>, Span),
 }
 
 impl ExprAstKind {

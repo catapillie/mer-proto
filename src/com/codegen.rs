@@ -185,6 +185,8 @@ impl Codegen {
 
             E::Todo => Ty::Never,
             E::Unreachable => Ty::Never,
+
+            E::Case(_, _, ty) => ty.clone(),
         }
     }
 
@@ -767,6 +769,46 @@ impl Codegen {
                 } else {
                     binary::write_opcode(&mut self.cursor, &Opcode::ld_heap_n(size))?;
                 }
+                Ok(())
+            }
+            E::Case(paths, default, _) => {
+                let mut skip_placeholders = Vec::new();
+                let mut prev_guard_cursor = None;
+                for (guard, expr) in paths.iter() {
+                    let cursor_before_guard = self.position();
+                    
+                    // <guard> then ...
+                    self.gen_expression(guard, abt)?;
+                    binary::write_opcode(&mut self.cursor, &Opcode::neg(NativeType::bool))?;
+                    self.cursor.write_u8(opcode::jmp_if)?;
+
+                    // wire previous conditional jump
+                    if let Some(cursor) = prev_guard_cursor {
+                        self.patch_u32_placeholder(cursor, cursor_before_guard)?;
+                    }
+                    prev_guard_cursor = Some(self.gen_u32_placeholder()?);
+
+                    // ... then <expr>
+                    self.gen_expression(expr, abt)?;
+                    self.cursor.write_u8(opcode::jmp)?;
+                    skip_placeholders.push(self.gen_u32_placeholder()?);
+                }
+
+                // wire last conditional jump
+                let cursor_before_default = self.position();
+                if let Some(cursor) = prev_guard_cursor {
+                    self.patch_u32_placeholder(cursor, cursor_before_default)?;
+                }
+
+                // otherwise <default>
+                self.gen_expression(default, abt)?;
+
+                // wire all jumps to end of case-then-otherwise expression
+                let cursor_end = self.position();
+                for placeholder in skip_placeholders {
+                    self.patch_u32_placeholder(placeholder, cursor_end)?;
+                }
+
                 Ok(())
             }
         }

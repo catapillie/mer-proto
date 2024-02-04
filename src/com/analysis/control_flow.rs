@@ -91,6 +91,12 @@ impl<'d> Analyser<'d> {
             E::VarDeref(_) => false,
             E::Todo => true,
             E::Unreachable => true,
+            E::Case(paths, default, _) => {
+                paths
+                    .iter()
+                    .any(|(guard, expr)| Self::is_never(guard) || Self::is_never(expr))
+                    || Self::is_never(default)
+            }
         }
     }
 }

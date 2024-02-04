@@ -50,6 +50,8 @@ impl<'d> Analyser<'d> {
                 => ExprAbt::Todo,
             ExprAstKind::Unreachable
                 => ExprAbt::Unreachable,
+            ExprAstKind::Case(paths, span)
+                => self.analyse_case_expression(paths, *span),
         }
     }
 
