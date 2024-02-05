@@ -208,7 +208,7 @@ impl Lang for French {
             N::OfType(ty)
                 => format!("ceci est de type {}", ty.to_string().bold()),
             N::Type(ty)
-            => ty.to_string().bold().to_string(),
+                => ty.to_string().bold().to_string(),
             N::VariableDeclaration(name)
                 => format!("la variable '{}' est déclarée ici", name.bold()),
             N::VariableType(name, ty)

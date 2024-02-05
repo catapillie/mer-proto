@@ -776,7 +776,7 @@ impl Codegen {
                 let mut prev_guard_cursor = None;
                 for (guard, expr) in paths.iter() {
                     let cursor_before_guard = self.position();
-                    
+
                     // <guard> then ...
                     self.gen_expression(guard, abt)?;
                     binary::write_opcode(&mut self.cursor, &Opcode::neg(NativeType::bool))?;
@@ -920,21 +920,28 @@ impl Codegen {
                     unreachable!()
                 };
 
-                match assignment {
-                    Either::Left(()) => todo!("unreachable *yet*"),
-                    Either::Right(loc) => {
-                        let offset = if *index == 0 {
-                            0
-                        } else {
-                            let mut offset = Self::size_of(head) as u8;
-                            for ty in &tail[..(index - 1)] {
-                                offset += Self::size_of(ty) as u8;
-                            }
-                            offset
-                        };
-
-                        Ok(Either::Right(loc + offset))
+                let offset = if *index == 0 {
+                    0
+                } else {
+                    let mut offset = Self::size_of(head) as u8;
+                    for ty in &tail[..(index - 1)] {
+                        offset += Self::size_of(ty) as u8;
                     }
+                    offset
+                };
+
+                match assignment {
+                    Either::Left(()) => {
+                        if offset != 0 {
+                            binary::write_opcode(
+                                &mut self.cursor,
+                                &Opcode::ld_u64(offset as u64 * 8),
+                            )?;
+                            binary::write_opcode(&mut self.cursor, &Opcode::add(NativeType::u64))?;
+                        }
+                        Ok(Either::Left(()))
+                    }
+                    Either::Right(loc) => Ok(Either::Right(loc + offset)),
                 }
             }
             Assignee::ArrayImmediateIndex(a, ty, index) => {
@@ -942,13 +949,19 @@ impl Codegen {
                 let TypeAbt::Array(inner, _) = ty else {
                     unreachable!()
                 };
-
+                let offset = Self::size_of(inner) * index;
                 match assignment {
-                    Either::Left(()) => todo!("unreachable *yet*"),
-                    Either::Right(loc) => {
-                        let offset = Self::size_of(inner) * index;
-                        Ok(Either::Right(loc + offset as u8))
-                    }
+                    Either::Left(()) => {
+                        if offset != 0 {
+                            binary::write_opcode(
+                                &mut self.cursor,
+                                &Opcode::ld_u64(offset as u64 * 8),
+                            )?;
+                            binary::write_opcode(&mut self.cursor, &Opcode::add(NativeType::u64))?;
+                        }
+                        Ok(Either::Left(()))
+                    },
+                    Either::Right(loc) => Ok(Either::Right(loc + offset as u8)),
                 }
             }
         }
