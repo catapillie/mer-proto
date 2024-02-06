@@ -168,6 +168,8 @@ impl Lang for English {
                 => "last path of case-expression must be otherwise path".to_string(),
             K::CasePathsTypeMismatch
                 => "all paths in case-expression must give the same type".to_string(),
+            K::CaseOtherwiseCanBeSimplified
+                => "case-otherwise expression has a unique path and can be simplified".to_string(),
         }
     }
 

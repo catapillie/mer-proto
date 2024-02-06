@@ -97,4 +97,5 @@ pub enum DiagnosticKind {
     TooManyOtherwisePaths,
     LastCasePathIsNotOtherwise,
     CasePathsTypeMismatch,
+    CaseOtherwiseCanBeSimplified,
 }

@@ -164,6 +164,8 @@ impl Lang for French {
                 => "le dernier chemin d'une expression case doit être un chemin otherwise".to_string(),
             K::CasePathsTypeMismatch
                 => "tous les chemins dans une expression case doivent donner le même type".to_string(),
+            K::CaseOtherwiseCanBeSimplified
+                => "l'expression case-otherwise ne contient qu'un unique chemin, et peut être simplifiée".to_string(),
         }
     }
 

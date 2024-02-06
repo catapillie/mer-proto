@@ -102,15 +102,23 @@ impl<'d> Analyser<'d> {
             return ExprAbt::Unknown;
         }
 
-        // TODO: warning for 1-lengthed case-otherwise expression (can be simplifed)
+        if bound_paths.len() == 1 {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::CaseOtherwiseCanBeSimplified)
+                .with_span(span)
+                .with_severity(Severity::Warning)
+                .annotate_primary(Note::Here, span)
+                .done();
+            self.diagnostics.push(d);
+        }
         // TODO: warning for always-matching case
         // TODO: warning for never-matching case
 
         let last_expr = bound_paths.pop().unwrap().1;
-        let bound_guards = bound_paths
+        let bound_paths = bound_paths
             .into_iter()
             .map(|(guard, expr)| (guard.unwrap(), expr))
             .collect();
-        ExprAbt::Case(bound_guards, Box::new(last_expr), ty.clone())
+        ExprAbt::Case(bound_paths, Box::new(last_expr), ty.clone())
     }
 }
