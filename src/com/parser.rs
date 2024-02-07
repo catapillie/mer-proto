@@ -671,14 +671,14 @@ impl<'a> Parser<'a> {
                 self.match_token::<ThenKw>();
                 let expr = self.expect_expression();
                 paths.push((Some(guard), expr));
-                self.match_token::<Newline>();
+                self.expect_newlines_or_eof();
                 continue;
             }
 
             if self.try_match_token::<OtherwiseKw>().is_some() {
                 let expr = self.expect_expression();
                 paths.push((None, expr));
-                self.match_token::<Newline>();
+                self.expect_newlines_or_eof();
                 continue;
             }
 
