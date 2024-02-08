@@ -29,6 +29,7 @@ pub enum Note {
     FunctionReturnType(String, TypeAbt),
     FunctionVariableCount(usize),
     ProvidedArgs(usize),
+    CapturingFunction,
     VariableCapturedBy(String, String),
     TupleValueCount(usize),
     KnownIndexTooLarge,

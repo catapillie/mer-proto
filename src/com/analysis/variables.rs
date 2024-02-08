@@ -110,6 +110,7 @@ impl<'d> Analyser<'d> {
 
         if captured && !alread_captured {
             let func_name = func_info.name.clone();
+            let func_span = func_info.span.expect("called functions have a span");
             let var_name = name.to_string();
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::UnallowedVariableCapture {
@@ -125,6 +126,7 @@ impl<'d> Analyser<'d> {
                         .num(2),
                     span,
                 )
+                .annotate_secondary(Note::CapturingFunction, func_span, NoteSeverity::Annotation)
                 .annotate_secondary(
                     Note::VariableDeclaration(name.to_string())
                         .dddot_back()

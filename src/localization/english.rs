@@ -282,6 +282,8 @@ impl Lang for English {
                     1 => format!("{} was provided", "one".bold()),
                     _ => format!("{} were provided", count.to_string().bold()),
                 },
+            N::CapturingFunction
+                => "capturing function in question".to_string(),
             N::VariableCapturedBy(var_name, func_name)
                 => format!(
                     "'{}' gets captured by '{}' here",
