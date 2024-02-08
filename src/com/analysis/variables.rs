@@ -93,11 +93,13 @@ impl<'d> Analyser<'d> {
         let func_id = self.scope.current_func_id;
         let func_info = self.functions.get_mut(&func_id).unwrap();
         let captured = depth <= func_info.depth;
+        let mut alread_captured = false;
 
         func_info
             .used_variables
             .entry(id)
             .and_modify(|u| {
+                alread_captured = u.captured;
                 u.captured = captured;
                 u.used = true;
             })
@@ -106,7 +108,7 @@ impl<'d> Analyser<'d> {
                 used: false,
             });
 
-        if captured {
+        if captured && !alread_captured {
             let func_name = func_info.name.clone();
             let var_name = name.to_string();
             let d = diagnostics::create_diagnostic()
