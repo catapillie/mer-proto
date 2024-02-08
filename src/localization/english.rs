@@ -160,6 +160,22 @@ impl Lang for English {
             }
             K::ArrayIndexMustBeInteger
                 => "array index must be an integer".to_string(),
+            K::OutOfRangeConstantIndex { len, index } => {
+                let left = match index {
+                    0 => format!("cannot access {} value", "zeroth".bold()),
+                    1 => format!("cannot access {} value", "first".bold()),
+                    _ if index % 10 == 1 => format!("cannot access {}st value", index.to_string().bold()),
+                    _ if index % 10 == 2 => format!("cannot access {}nd value", index.to_string().bold()),
+                    _ => format!("cannot access {}th value", index.to_string().bold()),
+                };
+                let right = match len {
+                    1 => "of a singleton array".to_string(),
+                    _ => format!("of an array with size {}", len.to_string().bold()),
+                };
+                format!("{left} {right} (the index is known at compile-time)")
+            }
+            K::CanBeImmediateIndex
+                => "index is known at compile-time and can rewritten as an immediate index".to_string(),
             K::MissingOtherwisePath
                 => "case expression without otherwise path".to_string(),
             K::TooManyOtherwisePaths
@@ -274,6 +290,12 @@ impl Lang for English {
                 ),
             N::TupleValueCount(len)
                 => format!("this tuple contains {} values", len.to_string().bold()),
+            N::KnownIndexTooLarge
+                => "index known at compile time is too large".to_string(),
+            N::CanBeImmediateIndex(index)
+                => format!("can be rewritten as immediate index: {}",
+                    format!(".{index}").bold(),
+                ),
         }
     }
 }

@@ -92,6 +92,11 @@ pub enum DiagnosticKind {
     },
     InvalidIndex,
     ArrayIndexMustBeInteger,
+    OutOfRangeConstantIndex {
+        len: usize,
+        index: usize,
+    },
+    CanBeImmediateIndex,
     
     MissingOtherwisePath,
     TooManyOtherwisePaths,

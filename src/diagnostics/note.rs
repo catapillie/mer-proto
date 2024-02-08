@@ -31,6 +31,8 @@ pub enum Note {
     ProvidedArgs(usize),
     VariableCapturedBy(String, String),
     TupleValueCount(usize),
+    KnownIndexTooLarge,
+    CanBeImmediateIndex(usize),
 }
 
 #[rustfmt::skip]

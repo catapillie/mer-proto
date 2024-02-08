@@ -156,6 +156,20 @@ impl Lang for French {
             }
             K::ArrayIndexMustBeInteger
                 => "l'indice dans une indexation doit être un entier".to_string(),
+            K::OutOfRangeConstantIndex { len, index } => {
+                let left = match index {
+                    0 => format!("impossible d'accéder à la {} valeur", "zéroième".bold()),
+                    1 => format!("impossible d'accéder à la {} valeur", "première".bold()),
+                    _ => format!("impossible d'accéder à la {}ème valeur", index.to_string().bold()),
+                };
+                let right = match len {
+                    1 => "d'un tableau singleton".to_string(),
+                    _ => format!("d'un tableau de taille {}", len.to_string().bold()),
+                };
+                format!("{left} {right} (l'indice est connu au temps de compilation)")
+            }
+            K::CanBeImmediateIndex
+                => "l'indice est connu au temps de compilation et peut être remplacé par un indice immédiat".to_string(),
             K::MissingOtherwisePath
                 => "l'expression case n'a aucun chemin otherwise".to_string(),
             K::TooManyOtherwisePaths
@@ -270,6 +284,12 @@ impl Lang for French {
                 ),
             N::TupleValueCount(len)
                 => format!("ce tuple contient {} valeurs", len.to_string().bold()),
+            N::KnownIndexTooLarge
+                => "cet indice, connu à la compilation, est trop grand".to_string(),
+            N::CanBeImmediateIndex(index)
+                => format!("peut être réécrit en indice immédiat: {}",
+                    format!(".{index}").bold(),
+                ),
         }
     }
 }

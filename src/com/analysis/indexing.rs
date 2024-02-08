@@ -34,7 +34,7 @@ impl<'d> Analyser<'d> {
             return ExprAbt::Unknown;
         }
 
-        let TypeAbt::Array(_, _) = expr_ty else {
+        let TypeAbt::Array(_, size) = expr_ty else {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::InvalidIndex)
                 .with_span(span)
@@ -44,6 +44,28 @@ impl<'d> Analyser<'d> {
             self.diagnostics.push(d);
             return ExprAbt::Unknown;
         };
+
+        if let ExprAbt::Integer(index) = bound_index {
+            let d = if index as usize >= size {
+                diagnostics::create_diagnostic()
+                    .with_kind(DiagnosticKind::OutOfRangeConstantIndex {
+                        len: size,
+                        index: index as usize,
+                    })
+                    .with_span(index_expr.span)
+                    .with_severity(Severity::Error)
+                    .annotate_primary(Note::KnownIndexTooLarge, index_expr.span)
+                    .done()
+            } else {
+                diagnostics::create_diagnostic()
+                    .with_kind(DiagnosticKind::CanBeImmediateIndex)
+                    .with_span(index_expr.span)
+                    .with_severity(Severity::Warning)
+                    .annotate_primary(Note::CanBeImmediateIndex(index as usize), index_expr.span)
+                    .done()
+            };
+            self.diagnostics.push(d);
+        }
 
         ExprAbt::ArrayIndex(Box::new(bound_expr), Box::new(bound_index))
     }
