@@ -1,11 +1,8 @@
-use std::fmt::Display;
-
-pub trait TokenValue: Clone + Default + Display {
+pub trait TokenValue: Clone + Default {
     fn wrap(self, span: Span) -> Token;
     fn is_inside(token: &Token) -> bool;
     fn extract_from(token: &Token) -> Option<(Self, Span)>;
     fn kind() -> TokenKind;
-    fn display() -> &'static str;
 }
 
 gen_tokens! {
@@ -145,31 +142,11 @@ macro_rules! gen_tokens {
             }
         }
 
-        impl Display for Token {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                match self {
-                    $(
-                        Self::$name(value, _) => value.fmt(f),
-                    )*
-                }
-            }
-        }
-
         #[derive(Debug, Copy, Clone)]
         pub enum TokenKind {
             $(
                 $name
             ),*
-        }
-
-        impl Display for TokenKind {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                match self {
-                    $(
-                        Self::$name => write!(f, $display),
-                    )*
-                }
-            }
         }
 
         $(
@@ -196,13 +173,11 @@ macro_rules! gen_tokens {
                 fn kind() -> TokenKind {
                     TokenKind::$name
                 }
-
-                fn display() -> &'static str { $display }
             }
 
-            impl Display for $name {
-                fn fmt(&$self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                    write!(f, "{}", format!{$($format_arg),+})
+            impl $name {
+                pub fn kind(&self) -> TokenKind {
+                    TokenKind::$name
                 }
             }
         )*

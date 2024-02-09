@@ -1,11 +1,126 @@
 use super::Lang;
-use crate::diagnostics::{DiagnosticKind, Note, Severity};
+use crate::{
+    com::tokens::{Token, TokenKind},
+    diagnostics::{DiagnosticKind, Note, Severity},
+};
 
 use colored::Colorize;
 
 pub struct French;
 
 impl Lang for French {
+    fn token_kind_str(&self, kind: &TokenKind) -> &str {
+        use TokenKind as K;
+        match kind {
+            K::Eof => "fin de fichier",
+            K::Newline => "fin de ligne",
+            K::LeftParen => "(",
+            K::RightParen => ")",
+            K::LeftBracket => "[",
+            K::RightBracket => "]",
+            K::LeftBrace => "{{",
+            K::RightBrace => "}}",
+            K::Dot => ".",
+            K::Comma => ",",
+            K::Colon => ":",
+            K::Equal => "=",
+            K::Plus => "+",
+            K::Minus => "-",
+            K::Star => "*",
+            K::Slash => "/",
+            K::Percent => "%",
+            K::Ampersand => "&",
+            K::Bar => "|",
+            K::Caret => "^",
+            K::EqualEqual => "==",
+            K::NotEqual => "!=",
+            K::LessEqual => "<=",
+            K::LessThan => "<",
+            K::GreaterEqual => ">=",
+            K::GreaterThan => ">",
+            K::At => "@",
+            K::RightArrow => "->",
+            K::IfKw => "mot-clé 'if'",
+            K::ThenKw => "mot-clé 'then'",
+            K::ElseKw => "mot-clé 'else'",
+            K::WhileKw => "mot-clé 'while'",
+            K::DoKw => "mot-clé 'do'",
+            K::VarKw => "mot-clé 'var'",
+            K::FuncKw => "mot-clé 'func'",
+            K::ReturnKw => "mot-clé 'return'",
+            K::AndKw => "mot-clé 'and'",
+            K::OrKw => "mot-clé 'or'",
+            K::XorKw => "mot-clé 'xor'",
+            K::NotKw => "mot-clé 'not'",
+            K::CaseKw => "mot-clé 'case'",
+            K::OtherwiseKw => "mot-clé 'otherwise'",
+            K::TrueKw => "constante 'true'",
+            K::FalseKw => "constante 'false'",
+            K::TodoKw => "mot-clé 'todo'",
+            K::UnreachableKw => "mot-clé 'unreachable'",
+            K::Identifier => "identificateur",
+            K::Integer => "entier",
+            K::MalformedNumeral => "entier mal formé",
+            K::DebugKw => "mot-clé temporaire 'debug'",
+        }
+    }
+
+    fn token_str(&self, token: &Token) -> String {
+        use Token as T;
+        match token {
+            T::Eof(_, _) => "fin de fichier".to_string(),
+            T::Newline(_, _) => "fin de ligne".to_string(),
+            T::LeftParen(_, _) => "(".to_string(),
+            T::RightParen(_, _) => ")".to_string(),
+            T::LeftBracket(_, _) => "[".to_string(),
+            T::RightBracket(_, _) => "]".to_string(),
+            T::LeftBrace(_, _) => "{{".to_string(),
+            T::RightBrace(_, _) => "}}".to_string(),
+            T::Dot(_, _) => ".".to_string(),
+            T::Comma(_, _) => ",".to_string(),
+            T::Colon(_, _) => ":".to_string(),
+            T::Equal(_, _) => "=".to_string(),
+            T::Plus(_, _) => "+".to_string(),
+            T::Minus(_, _) => "-".to_string(),
+            T::Star(_, _) => "*".to_string(),
+            T::Slash(_, _) => "/".to_string(),
+            T::Percent(_, _) => "%".to_string(),
+            T::Ampersand(_, _) => "&".to_string(),
+            T::Bar(_, _) => "|".to_string(),
+            T::Caret(_, _) => "^".to_string(),
+            T::EqualEqual(_, _) => "==".to_string(),
+            T::NotEqual(_, _) => "!=".to_string(),
+            T::LessEqual(_, _) => "<=".to_string(),
+            T::LessThan(_, _) => "<".to_string(),
+            T::GreaterEqual(_, _) => ">=".to_string(),
+            T::GreaterThan(_, _) => "<".to_string(),
+            T::At(_, _) => "@".to_string(),
+            T::RightArrow(_, _) => "->".to_string(),
+            T::IfKw(_, _) => "mot-clé 'if'".to_string(),
+            T::ThenKw(_, _) => "mot-clé 'then'".to_string(),
+            T::ElseKw(_, _) => "mot-clé 'else'".to_string(),
+            T::WhileKw(_, _) => "mot-clé 'while'".to_string(),
+            T::DoKw(_, _) => "mot-clé 'do'".to_string(),
+            T::VarKw(_, _) => "mot-clé 'var'".to_string(),
+            T::FuncKw(_, _) => "mot-clé 'func'".to_string(),
+            T::ReturnKw(_, _) => "mot-clé 'return'".to_string(),
+            T::AndKw(_, _) => "mot-clé 'and'".to_string(),
+            T::OrKw(_, _) => "mot-clé 'or'".to_string(),
+            T::XorKw(_, _) => "mot-clé 'xor'".to_string(),
+            T::NotKw(_, _) => "mot-clé 'not'".to_string(),
+            T::CaseKw(_, _) => "mot-clé 'case'".to_string(),
+            T::OtherwiseKw(_, _) => "mot-clé 'otherwise'".to_string(),
+            T::TrueKw(_, _) => "'true' literal".to_string(),
+            T::FalseKw(_, _) => "'false' literal".to_string(),
+            T::TodoKw(_, _) => "mot-clé 'todo'".to_string(),
+            T::UnreachableKw(_, _) => "mot-clé 'unreachable'".to_string(),
+            T::Identifier(s, _) => format!("identificateur '{}'", s.0),
+            T::Integer(s, _) => format!("{}", s.0),
+            T::MalformedNumeral(_, _) => "entier mal formé".to_string(),
+            T::DebugKw(_, _) => "mot-clé temporaire 'debug'".to_string(),
+        }
+    }
+
     fn severity_msg(&self, severity: &Severity) -> &str {
         match severity {
             Severity::Error => "erreur",
@@ -25,8 +140,8 @@ impl Lang for French {
                 => format!("nombre entier invalide ({e})"),
             K::ExpectedToken { found, expected }
                 => format!("{} attendu, mais {} trouvé",
-                    expected.to_string().bold(),
-                    found.to_string().bold(),
+                    self.token_kind_str(expected).bold(),
+                    self.token_str(found).bold(),
                 ),
             K::ExpectedExpression
                 => "expression attendue".to_string(),
@@ -206,7 +321,7 @@ impl Lang for French {
             N::Unknown
                 => "???".to_string(),
             N::ExpectedToken(expected)
-                => format!("{} attendu", expected.to_string().bold()),
+                => format!("{} attendu", self.token_kind_str(expected).bold()),
             N::CanBeRemoved
                 => "ceci peut être retiré".to_string(),
             N::CanRemoveParentheses

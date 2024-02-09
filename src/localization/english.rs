@@ -1,11 +1,126 @@
 use super::Lang;
-use crate::diagnostics::{DiagnosticKind, Note, Severity};
+use crate::{
+    com::tokens::{Token, TokenKind},
+    diagnostics::{DiagnosticKind, Note, Severity},
+};
 
 use colored::Colorize;
 
 pub struct English;
 
 impl Lang for English {
+    fn token_kind_str(&self, kind: &TokenKind) -> &str {
+        use TokenKind as K;
+        match kind {
+            K::Eof => "end-of-file",
+            K::Newline => "newline",
+            K::LeftParen => "(",
+            K::RightParen => ")",
+            K::LeftBracket => "[",
+            K::RightBracket => "]",
+            K::LeftBrace => "{{",
+            K::RightBrace => "}}",
+            K::Dot => ".",
+            K::Comma => ",",
+            K::Colon => ":",
+            K::Equal => "=",
+            K::Plus => "+",
+            K::Minus => "-",
+            K::Star => "*",
+            K::Slash => "/",
+            K::Percent => "%",
+            K::Ampersand => "&",
+            K::Bar => "|",
+            K::Caret => "^",
+            K::EqualEqual => "==",
+            K::NotEqual => "!=",
+            K::LessEqual => "<=",
+            K::LessThan => "<",
+            K::GreaterEqual => ">=",
+            K::GreaterThan => ">",
+            K::At => "@",
+            K::RightArrow => "->",
+            K::IfKw => "'if' keyword",
+            K::ThenKw => "'then' keyword",
+            K::ElseKw => "'else' keyword",
+            K::WhileKw => "'while' keyword",
+            K::DoKw => "'do' keyword",
+            K::VarKw => "'var' keyword",
+            K::FuncKw => "'func' keyword",
+            K::ReturnKw => "'return' keyword",
+            K::AndKw => "'and' keyword",
+            K::OrKw => "'or' keyword",
+            K::XorKw => "'xor' keyword",
+            K::NotKw => "'not' keyword",
+            K::CaseKw => "'case' keyword",
+            K::OtherwiseKw => "'otherwise' keyword",
+            K::TrueKw => "'true' literal",
+            K::FalseKw => "'false' literal",
+            K::TodoKw => "'todo' keyword",
+            K::UnreachableKw => "'unreachable' keyword",
+            K::Identifier => "identifier",
+            K::Integer => "integer",
+            K::MalformedNumeral => "malformed number",
+            K::DebugKw => "temporary 'debug' keyword",
+        }
+    }
+
+    fn token_str(&self, token: &Token) -> String {
+        use Token as T;
+        match token {
+            T::Eof(_, _) => "end-of-file".to_string(),
+            T::Newline(_, _) => "newline".to_string(),
+            T::LeftParen(_, _) => "(".to_string(),
+            T::RightParen(_, _) => ")".to_string(),
+            T::LeftBracket(_, _) => "[".to_string(),
+            T::RightBracket(_, _) => "]".to_string(),
+            T::LeftBrace(_, _) => "{{".to_string(),
+            T::RightBrace(_, _) => "}}".to_string(),
+            T::Dot(_, _) => ".".to_string(),
+            T::Comma(_, _) => ",".to_string(),
+            T::Colon(_, _) => ":".to_string(),
+            T::Equal(_, _) => "=".to_string(),
+            T::Plus(_, _) => "+".to_string(),
+            T::Minus(_, _) => "-".to_string(),
+            T::Star(_, _) => "*".to_string(),
+            T::Slash(_, _) => "/".to_string(),
+            T::Percent(_, _) => "%".to_string(),
+            T::Ampersand(_, _) => "&".to_string(),
+            T::Bar(_, _) => "|".to_string(),
+            T::Caret(_, _) => "^".to_string(),
+            T::EqualEqual(_, _) => "==".to_string(),
+            T::NotEqual(_, _) => "!=".to_string(),
+            T::LessEqual(_, _) => "<=".to_string(),
+            T::LessThan(_, _) => "<".to_string(),
+            T::GreaterEqual(_, _) => ">=".to_string(),
+            T::GreaterThan(_, _) => "<".to_string(),
+            T::At(_, _) => "@".to_string(),
+            T::RightArrow(_, _) => "->".to_string(),
+            T::IfKw(_, _) => "'if' keyword".to_string(),
+            T::ThenKw(_, _) => "'then' keyword".to_string(),
+            T::ElseKw(_, _) => "'else' keyword".to_string(),
+            T::WhileKw(_, _) => "'while' keyword".to_string(),
+            T::DoKw(_, _) => "'do' keyword".to_string(),
+            T::VarKw(_, _) => "'var' keyword".to_string(),
+            T::FuncKw(_, _) => "'func' keyword".to_string(),
+            T::ReturnKw(_, _) => "'return' keyword".to_string(),
+            T::AndKw(_, _) => "'and' keyword".to_string(),
+            T::OrKw(_, _) => "'or' keyword".to_string(),
+            T::XorKw(_, _) => "'xor' keyword".to_string(),
+            T::NotKw(_, _) => "'not' keyword".to_string(),
+            T::CaseKw(_, _) => "'case' keyword".to_string(),
+            T::OtherwiseKw(_, _) => "'otherwise' keyword".to_string(),
+            T::TrueKw(_, _) => "'true' literal".to_string(),
+            T::FalseKw(_, _) => "'false' literal".to_string(),
+            T::TodoKw(_, _) => "'todo' keyword".to_string(),
+            T::UnreachableKw(_, _) => "'unreachable' keyword".to_string(),
+            T::Identifier(s, _) => format!("identifier '{}'", s.0),
+            T::Integer(s, _) => format!("{}", s.0),
+            T::MalformedNumeral(_, _) => "malformed nulmber".to_string(),
+            T::DebugKw(_, _) => "temporary 'debug' keyword".to_string(),
+        }
+    }
+
     fn severity_msg(&self, severity: &Severity) -> &str {
         match severity {
             Severity::Error => "error",
@@ -25,8 +140,8 @@ impl Lang for English {
                 => format!("invalid integer literal ({e})"),
             K::ExpectedToken { found, expected }
                 => format!("expected {}, but found {}",
-                    expected.to_string().bold(),
-                    found.to_string().bold(),
+                    self.token_kind_str(expected).bold(),
+                    self.token_str(found).bold(),
                 ),
             K::ExpectedExpression
                 => "expected an expression".to_string(),
@@ -212,7 +327,7 @@ impl Lang for English {
             N::Unknown
                 => "???".to_string(),
             N::ExpectedToken(expected)
-                => format!("expected {}", expected.to_string().bold()),
+                => format!("expected {}", self.token_kind_str(expected).bold()),
             N::CanBeRemoved
                 => "this can be removed".to_string(),
             N::CanRemoveParentheses

@@ -365,7 +365,7 @@ impl<'a> Parser<'a> {
                         })
                         .with_severity(Severity::Error)
                         .with_span(span)
-                        .annotate_primary(Note::ExpectedToken(Eof::kind()), span)
+                        .annotate_primary(Note::ExpectedToken(<Eof as TokenValue>::kind()), span)
                         .done();
                     self.diagnostics.push(d);
                     break;
@@ -554,8 +554,9 @@ impl<'a> Parser<'a> {
                 if self.try_match_token::<Dot>().is_none() {
                     return Some(ExprAstKind::Integer(left.0));
                 }
+                let num_left = left.0;
                 let num_right = self.try_match_token::<Integer>().unwrap_or_default().0;
-                let decimal = format!("{left}.{num_right}").parse::<f64>().unwrap();
+                let decimal = format!("{num_left}.{num_right}").parse::<f64>().unwrap();
                 return Some(ExprAstKind::Decimal(decimal));
             }
 
