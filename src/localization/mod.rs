@@ -11,7 +11,8 @@ pub trait Lang {
     fn note_msg(&self, note: &Note) -> String;
 }
 
-pub mod english;
+mod english;
+mod french;
+
 pub use english::English;
-pub mod french;
 pub use french::French;

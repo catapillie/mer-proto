@@ -138,11 +138,20 @@ impl Lang for French {
                 ),
             K::InvalidInteger(e)
                 => format!("nombre entier invalide ({e})"),
-            K::ExpectedToken { found, expected }
-                => format!("{} attendu, mais {} trouvé",
+            K::ExpectedToken { found, expected } => {
+                let exp = match is_token_kind_feminine(expected) {
+                    true => "attendue",
+                    false => "attendu",
+                };
+                let fnd = match is_token_feminine(found) {
+                    true => "trouvée",
+                    false => "trouvé",
+                };
+                format!("{} {exp}, mais {} {fnd}",
                     self.token_kind_str(expected).bold(),
                     self.token_str(found).bold(),
-                ),
+                )
+            }
             K::ExpectedExpression
                 => "expression attendue".to_string(),
             K::ExpectedStatement
@@ -320,8 +329,13 @@ impl Lang for French {
                 => "ici".to_string(),
             N::Unknown
                 => "???".to_string(),
-            N::ExpectedToken(expected)
-                => format!("{} attendu", self.token_kind_str(expected).bold()),
+            N::ExpectedToken(expected) => {
+                let right = match is_token_kind_feminine(expected) {
+                    true => "attendue",
+                    false => "attendu",
+                };
+                format!("{} {right}", self.token_kind_str(expected).bold())
+            }
             N::CanBeRemoved
                 => "ceci peut être retiré".to_string(),
             N::CanRemoveParentheses
@@ -406,5 +420,21 @@ impl Lang for French {
                     format!(".{index}").bold(),
                 ),
         }
+    }
+}
+
+fn is_token_kind_feminine(kind: &TokenKind) -> bool {
+    use TokenKind as K;
+    match kind {
+        K::Eof | K::Newline => true,
+        _ => false,
+    }
+}
+
+fn is_token_feminine(kind: &Token) -> bool {
+    use Token as T;
+    match kind {
+        T::Eof(_, _) | T::Newline(_, _) => true,
+        _ => false,
     }
 }
