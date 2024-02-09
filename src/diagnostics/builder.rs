@@ -6,6 +6,7 @@ pub struct DiagnosticBuilder<Ki, Sev, Sp> {
     severity: Sev,
     span: Sp,
     notes: Vec<(Span, Note, NoteSeverity)>,
+    highlights: Vec<Span>,
 }
 
 pub fn create_diagnostic() -> DiagnosticBuilder<(), (), ()> {
@@ -14,6 +15,7 @@ pub fn create_diagnostic() -> DiagnosticBuilder<(), (), ()> {
         severity: (),
         span: (),
         notes: Default::default(),
+        highlights: Default::default(),
     }
 }
 
@@ -27,6 +29,11 @@ impl<Ki, Sev, Sp> DiagnosticBuilder<Ki, Sev, Sp> {
         self.notes.push((span, note, severity));
         self
     }
+
+    pub fn highlight(mut self, span: Span) -> Self {
+        self.highlights.push(span);
+        self
+    }
 }
 
 impl<Sev, Sp> DiagnosticBuilder<(), Sev, Sp> {
@@ -36,6 +43,7 @@ impl<Sev, Sp> DiagnosticBuilder<(), Sev, Sp> {
             severity: self.severity,
             span: self.span,
             notes: self.notes,
+            highlights: self.highlights,
         }
     }
 }
@@ -47,6 +55,7 @@ impl<Ki, Sp> DiagnosticBuilder<Ki, (), Sp> {
             severity,
             span: self.span,
             notes: self.notes,
+            highlights: self.highlights,
         }
     }
 }
@@ -58,6 +67,7 @@ impl<Ki, Sev> DiagnosticBuilder<Ki, Sev, ()> {
             severity: self.severity,
             span: None,
             notes: self.notes,
+            highlights: self.highlights,
         }
     }
 
@@ -67,6 +77,7 @@ impl<Ki, Sev> DiagnosticBuilder<Ki, Sev, ()> {
             severity: self.severity,
             span: Some(span),
             notes: self.notes,
+            highlights: self.highlights,
         }
     }
 
@@ -82,6 +93,7 @@ impl DiagnosticBuilder<DiagnosticKind, Severity, Option<Span>> {
             severity: self.severity,
             span: self.span,
             annotations: self.notes,
+            highlights: self.highlights,
         }
     }
 }

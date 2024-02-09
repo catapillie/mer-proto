@@ -276,8 +276,6 @@ impl Lang for French {
                     1 => format!("{} est fourni", "un".bold()),
                     _ => format!("{} sont fournis", count.to_string().bold()),
                 },
-            N::CapturingFunction
-                => "fonction capturante en question".to_string(),
             N::VariableCapturedBy(var_name, func_name)
                 => format!(
                     "'{}' est capturée dans '{}' ici",

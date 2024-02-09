@@ -126,7 +126,7 @@ impl<'d> Analyser<'d> {
                         .num(2),
                     span,
                 )
-                .annotate_secondary(Note::CapturingFunction, func_span, NoteSeverity::Annotation)
+                .highlight(func_span)
                 .annotate_secondary(
                     Note::VariableDeclaration(name.to_string())
                         .dddot_back()

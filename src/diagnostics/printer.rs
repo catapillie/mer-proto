@@ -27,7 +27,7 @@ pub fn print_diagnostic(path: &str, source: &str, diagnostic: &Diagnostic, lang:
             NoteSeverity::Annotation => Color::BrightYellow,
         };
 
-        printer.highlight_span(span, note_color);
+        printer.highlight_span(span, note_color, false);
         let line = span.to.line;
         let msg = lang.note_msg(note);
         if span.is_one_line() {
@@ -37,6 +37,10 @@ pub fn print_diagnostic(path: &str, source: &str, diagnostic: &Diagnostic, lang:
         } else if !msg.is_empty() {
             printer.add_on_line(line, note_color, &msg);
         }
+    }
+
+    for span in &diagnostic.highlights {
+        printer.highlight_span(span, Color::White, true);
     }
 
     if let Some(span) = diagnostic.span {
@@ -114,7 +118,7 @@ impl<'s> Printer<'s> {
         println!(" {:>max_line_len$} ╨", " ");
     }
 
-    fn highlight_span(&mut self, span: &Span, color: Color) {
+    fn highlight_span(&mut self, span: &Span, color: Color, bold: bool) {
         let first_line = span.from.line;
         let last_line = span.to.line;
 
@@ -130,18 +134,24 @@ impl<'s> Printer<'s> {
 
         if span.is_one_line() {
             let line = self.get_line_mut(first_line).unwrap();
-            *line = Self::color_span(line, color, Some(span.from.column), Some(span.to.column));
+            *line = Self::color_span(
+                line,
+                color,
+                bold,
+                Some(span.from.column),
+                Some(span.to.column),
+            );
         } else {
             let first = self.get_line_mut(first_line).unwrap();
-            *first = Self::color_span(first, color, Some(span.from.column), None);
+            *first = Self::color_span(first, color, bold, Some(span.from.column), None);
 
             for i in (first_line + 1)..(last_line) {
                 let line = self.get_line_mut(i).unwrap();
-                *line = Self::color_span(line, color, None, None);
+                *line = Self::color_span(line, color, bold, None, None);
             }
 
             let last = self.get_line_mut(last_line).unwrap();
-            *last = Self::color_span(last, color, None, Some(span.to.column));
+            *last = Self::color_span(last, color, bold, None, Some(span.to.column));
         }
     }
 
@@ -203,7 +213,13 @@ impl<'s> Printer<'s> {
         }
     }
 
-    fn color_span(text: &str, color: Color, from: Option<usize>, to: Option<usize>) -> String {
+    fn color_span(
+        text: &str,
+        color: Color,
+        bold: bool,
+        from: Option<usize>,
+        to: Option<usize>,
+    ) -> String {
         let chars = text.chars();
 
         let from = from.unwrap_or(0);
@@ -214,6 +230,11 @@ impl<'s> Printer<'s> {
         let at: String = chars.clone().skip(from).take(w).collect();
         let after: String = chars.clone().skip(to).collect();
 
-        format!("{before}{}{after}", at.color(color))
+        let highlighted = if bold {
+            at.color(color).bold()
+        } else {
+            at.color(color)
+        };
+        format!("{before}{highlighted}{after}")
     }
 }

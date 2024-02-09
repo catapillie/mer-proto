@@ -10,4 +10,5 @@ pub struct Diagnostic {
     pub severity: Severity,
     pub span: Option<Span>,
     pub annotations: Vec<(Span, Note, NoteSeverity)>,
+    pub highlights: Vec<Span>,
 }
