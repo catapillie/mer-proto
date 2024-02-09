@@ -6,124 +6,69 @@ pub trait TokenValue: Clone + Default {
 }
 
 gen_tokens! {
-    Eof "end-of-file"
-        self => ("end-of-file"),
+    Eof
+    Newline
 
-    Newline "newline"
-        self => ("newline"),
+    LeftParen
+    RightParen
+    LeftBracket
+    RightBracket
+    LeftBrace
+    RightBrace
 
-    LeftParen "("
-        self => ("("),
-    RightParen ")"
-        self => (")"),
-    LeftBracket "["
-        self => ("["),
-    RightBracket "]"
-        self => ("]"),
-    LeftBrace "{{"
-        self => ("{{"),
-    RightBrace "}}"
-        self => ("}}"),
+    Dot
+    Comma
+    Colon
 
-    Dot "."
-        self => ("."),
-    Comma ","
-        self => (","),
-    Colon ":"
-        self => (":"),
+    Equal
+    Plus
+    Minus
+    Star
+    Slash
+    Percent
+    Ampersand
+    Bar
+    Caret
+    EqualEqual
+    NotEqual
+    LessEqual
+    LessThan
+    GreaterEqual
+    GreaterThan
+    At
 
-    Equal "="
-        self => ("="),
-    Plus "+"
-        self => ("+"),
-    Minus "-"
-        self => ("-"),
-    Star "*"
-        self => ("*"),
-    Slash "/"
-        self => ("/"),
-    Percent "%"
-        self => ("%"),
-    Ampersand "&"
-        self => ("&"),
-    Bar "|"
-        self => ("|"),
-    Caret "^"
-        self => ("^"),
-    EqualEqual "=="
-        self => ("=="),
-    NotEqual "!="
-        self => ("!="),
-    LessEqual "<="
-        self => ("<="),
-    LessThan "<"
-        self => ("<"),
-    GreaterEqual ">="
-        self => (">="),
-    GreaterThan ">"
-        self => ("<"),
-    At "@"
-        self => ("@"),
+    RightArrow
 
-    RightArrow "->"
-        self => ("->"),
+    IfKw
+    ThenKw
+    ElseKw
+    WhileKw
+    DoKw
+    VarKw
+    FuncKw
+    ReturnKw
+    AndKw
+    OrKw
+    XorKw
+    NotKw
+    CaseKw
+    OtherwiseKw
+    TodoKw
+    UnreachableKw
+    DebugKw
 
-    IfKw "'if' keyword"
-        self => ("'if' keyword"),
-    ThenKw "'then' keyword"
-        self => ("'then' keyword"),
-    ElseKw "'else' keyword"
-        self => ("'else' keyword"),
-    WhileKw "'while' keyword"
-        self => ("'while' keyword"),
-    DoKw "'do' keyword"
-        self => ("'do' keyword"),
-    VarKw "'var' keyword"
-        self => ("'var' keyword"),
-    FuncKw "'func' keyword"
-        self => ("'func' keyword"),
-    ReturnKw "'return' keyword"
-        self => ("'return' keyword"),
-    AndKw "'and' keyword"
-        self => ("'and' keyword"),
-    OrKw "'or' keyword"
-        self => ("'or' keyword"),
-    XorKw "'xor' keyword"
-        self => ("'xor' keyword"),
-    NotKw "'not' keyword"
-        self => ("'not' keyword"),
-    CaseKw "'case' keyword"
-        self => ("'case' keyword"),
-    OtherwiseKw "'otherwise' keyword"
-        self => ("'otherwise' keyword"),
-
-    TrueKw "'true' literal"
-        self => ("'true' literal"),
-    FalseKw "'false' literal"
-        self => ("'false' literal"),
-
-    TodoKw "'todo' keyword"
-        self => ("'todo' keyword"),
-    UnreachableKw "'unreachable' keyword"
-        self => ("'unreachable' keyword"),
-
-    Identifier(String) "identifier"
-        self => ("identifier '{}'", self.0),
-    Integer(i64) "integer"
-        self => ("{}", self.0),
-    MalformedNumeral "malformed number"
-        self => ("malformed nulmber"),
-
-    DebugKw "temporary 'debug' keyword"
-        self => ("temporary 'debug' keyword"),
+    TrueKw
+    FalseKw
+    Identifier(String)
+    Integer(i64)
+    MalformedNumeral
 }
 
 macro_rules! gen_tokens {
     (
       $(
         $name:ident $( ( $($type:ty),* ) )?
-        $display:literal $self:ident => ($( $format_arg:expr ),+)
-      ),* $(,)?
+      )*
     ) => {
         #[derive(Debug, Clone)]
         pub enum Token {
