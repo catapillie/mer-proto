@@ -424,17 +424,9 @@ impl Lang for French {
 }
 
 fn is_token_kind_feminine(kind: &TokenKind) -> bool {
-    use TokenKind as K;
-    match kind {
-        K::Eof | K::Newline => true,
-        _ => false,
-    }
+    matches!(kind, TokenKind::Eof | TokenKind::Newline)
 }
 
 fn is_token_feminine(kind: &Token) -> bool {
-    use Token as T;
-    match kind {
-        T::Eof(_, _) | T::Newline(_, _) => true,
-        _ => false,
-    }
+    matches!(kind, Token::Eof(_, _) | Token::Newline(_, _))
 }
