@@ -960,7 +960,7 @@ impl Codegen {
                             binary::write_opcode(&mut self.cursor, &Opcode::add(NativeType::u64))?;
                         }
                         Ok(Either::Left(()))
-                    },
+                    }
                     Either::Right(loc) => Ok(Either::Right(loc + offset as u8)),
                 }
             }

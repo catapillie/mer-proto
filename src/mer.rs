@@ -1,4 +1,4 @@
-use cmd::{Command, CompileCommand, DisassembleCommand, RunCommand};
+use cmd::{CheckCommand, Command, CompileCommand, DisassembleCommand, RunCommand};
 use colored::Colorize;
 use std::{collections::HashMap, fs, path::PathBuf, process};
 
@@ -20,11 +20,13 @@ fn main() {
     match cli::parse_command() {
         Command::Compile(command) => compile(command),
         Command::Run(command) => run(command),
+        Command::Check(command) => check(command),
         Command::Disassemble(command) => dis(command),
         Command::Version => msg::info(format!("mer {}", env!("CARGO_PKG_VERSION"))),
         Command::Help(Some(command)) => match command.as_str() {
             "com" => msg::show_com_man(),
             "run" => msg::show_run_man(),
+            "check" => msg::show_check_man(),
             "dis" => msg::show_dis_man(),
             "version" => msg::show_version_man(),
             "help" => msg::show_help_man(),
@@ -153,6 +155,81 @@ fn compile(command: CompileCommand) {
             msg::help(format!(
                 "run {} for more help on compilation",
                 "mer help com".bold().underline()
+            ));
+            process::exit(1);
+        }
+    }
+}
+
+fn check(command: CheckCommand) {
+    match command {
+        CheckCommand::Go(path) => {
+            const DEFAULT_LANG: &dyn Lang = &localization::English;
+            let lang: &dyn Lang = match sys_locale::get_locale() {
+                Some(locale) => match &locale[..2] {
+                    "en" => &localization::English,
+                    "fr" => &localization::French,
+                    _ => DEFAULT_LANG,
+                },
+                None => DEFAULT_LANG,
+            };
+
+            let source = match fs::read_to_string(&path) {
+                Ok(source) => source,
+                Err(e) => {
+                    msg::error(format!(
+                        "could not read file {}:\n      {}",
+                        path.bold(),
+                        e.to_string().italic()
+                    ));
+                    process::exit(e.raw_os_error().unwrap_or(1));
+                }
+            };
+
+            match com::analyse_program(&source) {
+                AnalysisStage::Ok(_, diagnostics) => {
+                    let error_count = diagnostics
+                        .iter()
+                        .filter(|d| matches!(d.severity, Severity::Error))
+                        .count();
+                    let warning_count = diagnostics
+                        .iter()
+                        .filter(|d| matches!(d.severity, Severity::Warning))
+                        .count();
+                    if diagnostics.is_empty() {
+                        msg::ok("analysis finished successfully with no diagnostics at all")
+                    } else {
+                        msg::warn(format!(
+                            "analysis finished with {} error(s) and {} warning(s)",
+                            error_count.to_string().bold(),
+                            warning_count.to_string().bold(),
+                        ));
+                        for diagnostic in diagnostics.into_iter() {
+                            diagnostics::print_diagnostic(&path, &source, &diagnostic, lang);
+                            println!();
+                        }
+                        msg::info("warnings do not prevent compilation");
+                    }
+
+                    process::exit(0)
+                }
+
+                AnalysisStage::CannotCompile(diagnostics) => {
+                    for diagnostic in diagnostics.into_iter() {
+                        diagnostics::print_diagnostic(&path, &source, &diagnostic, lang);
+                        println!();
+                    }
+
+                    msg::info("this code will not compile");
+                    process::exit(1);
+                }
+            }
+        }
+        CheckCommand::NoPath => {
+            msg::error("no path provided");
+            msg::help(format!(
+                "run {} for more help on checking programs",
+                "mer help check".bold().underline()
             ));
             process::exit(1);
         }

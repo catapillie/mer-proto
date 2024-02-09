@@ -20,9 +20,9 @@ mod operations;
 mod reference;
 mod tuples;
 
+mod case;
 mod if_then;
 mod while_do;
-mod case;
 
 pub use functions::FunctionInfo;
 pub use variables::VariableInfo;

@@ -32,6 +32,18 @@ pub fn show_com_man() {
     );
 }
 
+pub fn show_check_man() {
+    println!("{}", "USAGE".bold().underline());
+    println!("    {} <{}>", "mer check".bold(), "path".bold());
+    println!("{}", "DESCRIPTION".bold().underline());
+    println!("    analyses a program and shows all compiler diagnostics, given the path to the source code");
+    println!("{}", "ARGUMENTS".bold().underline());
+    println!(
+        "    {}    the path to file containing the source code",
+        "path".bold()
+    );
+}
+
 pub fn show_run_man() {
     println!("{}", "USAGE".bold().underline());
     println!("    {} <{}>", "mer run".bold(), "path".bold());
@@ -81,6 +93,10 @@ pub fn show_man() {
     println!("    {} [{}]", "mer help".bold(), "command".bold());
     println!("{}", "COMMANDS".bold().underline());
     println!("    {}        compile a program to bytecode", "com".bold());
+    println!(
+        "    {}      analyse source code and show diagnostics",
+        "check".bold()
+    );
     println!(
         "    {}        run a bytecode program on a virtual machine",
         "run".bold()

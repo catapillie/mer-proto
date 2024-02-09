@@ -97,7 +97,7 @@ pub enum DiagnosticKind {
         index: usize,
     },
     CanBeImmediateIndex,
-    
+
     MissingOtherwisePath,
     TooManyOtherwisePaths,
     LastCasePathIsNotOtherwise,

@@ -83,7 +83,11 @@ impl<'d> Analyser<'d> {
         let ty = types
             .iter()
             .find(|ty| !matches!(ty, TypeAbt::Never))
-            .unwrap_or(types.first().expect("empty case expressions are not handled properly"));
+            .unwrap_or(
+                types
+                    .first()
+                    .expect("empty case expressions are not handled properly"),
+            );
         let all_types_match = types.iter().all(|t| t.is(ty));
         if !all_types_match {
             let mut d = diagnostics::create_diagnostic()

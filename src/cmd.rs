@@ -1,6 +1,7 @@
 #[derive(Debug)]
 pub enum Command {
     Compile(CompileCommand),
+    Check(CheckCommand),
     Run(RunCommand),
     Disassemble(DisassembleCommand),
     Version,
@@ -11,6 +12,12 @@ pub enum Command {
 
 #[derive(Debug)]
 pub enum CompileCommand {
+    Go(String),
+    NoPath,
+}
+
+#[derive(Debug)]
+pub enum CheckCommand {
     Go(String),
     NoPath,
 }
