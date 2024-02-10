@@ -124,6 +124,10 @@ impl<'d> Analyser<'d> {
         let bound_left = self.analyse_expression(left);
         let bound_right = self.analyse_expression(right);
 
+        if matches!(bound_left, ExprAbt::Unknown) {
+            return ExprAbt::Unknown;
+        }
+
         let Some((assignee, var_id, expected_type)) = self.to_assignee(&bound_left) else {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::AssigneeMustBeVariable)
