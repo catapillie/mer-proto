@@ -1,8 +1,5 @@
 use crate::{
-    com::{
-        abt::{ExprAbt, TypeAbt},
-        ast,
-    },
+    com::{abt, ast},
     diagnostics::{self, DiagnosticKind, Note, Severity},
 };
 
@@ -10,21 +7,21 @@ use super::Analyser;
 
 impl<'d> Analyser<'d> {
     #[rustfmt::skip]
-    pub fn analyse_expression(&mut self, expr: &ast::Expr) -> ExprAbt {
+    pub fn analyse_expression(&mut self, expr: &ast::Expr) -> abt::Expr {
         use ast::ExprKind as K;
         match &expr.value {
             K::Bad
-                => ExprAbt::Unknown,
+                => abt::Expr::Unknown,
             K::Unit
-                => ExprAbt::Unit,
+                => abt::Expr::Unit,
             K::Integer(num)
-                => ExprAbt::Integer(*num),
+                => abt::Expr::Integer(*num),
             K::Decimal(num)
-                => ExprAbt::Decimal(*num),
+                => abt::Expr::Decimal(*num),
             K::Identifier(id)
                 => self.analyse_variable_expression(id, expr.span),
             K::Boolean(b)
-                => ExprAbt::Boolean(*b),
+                => abt::Expr::Boolean(*b),
             K::Parenthesized(inner)
                 => self.analyse_expression(inner),
             K::Tuple(head, tail)
@@ -48,32 +45,33 @@ impl<'d> Analyser<'d> {
             K::Deref(expr)
                 => self.analyse_dereference_expression(expr),
             K::Todo
-                => ExprAbt::Todo,
+                => abt::Expr::Todo,
             K::Unreachable
-                => ExprAbt::Unreachable,
+                => abt::Expr::Unreachable,
             K::Case(paths, span)
                 => self.analyse_case_expression(paths, *span),
         }
     }
 
-    fn analyse_debug_expression(&mut self, expr: &ast::Expr) -> ExprAbt {
+    fn analyse_debug_expression(&mut self, expr: &ast::Expr) -> abt::Expr {
         let inner = self.analyse_expression(expr);
         let ty = self.type_of(&inner);
 
+        use abt::TypeAbt as Ty;
         match ty {
-            TypeAbt::U8
-            | TypeAbt::U16
-            | TypeAbt::U32
-            | TypeAbt::U64
-            | TypeAbt::I8
-            | TypeAbt::I16
-            | TypeAbt::I32
-            | TypeAbt::I64
-            | TypeAbt::F32
-            | TypeAbt::F64
-            | TypeAbt::Bool
-            | TypeAbt::Unit => ExprAbt::Debug(Box::new(inner), ty),
-            TypeAbt::Unknown => ExprAbt::Unknown,
+            Ty::U8
+            | Ty::U16
+            | Ty::U32
+            | Ty::U64
+            | Ty::I8
+            | Ty::I16
+            | Ty::I32
+            | Ty::I64
+            | Ty::F32
+            | Ty::F64
+            | Ty::Bool
+            | Ty::Unit => abt::Expr::Debug(Box::new(inner), ty),
+            Ty::Unknown => abt::Expr::Unknown,
             _ => {
                 let d = diagnostics::create_diagnostic()
                     .with_kind(DiagnosticKind::InvalidDebugExpression(ty.clone()))
@@ -82,7 +80,7 @@ impl<'d> Analyser<'d> {
                     .annotate_primary(Note::OfType(ty), expr.span)
                     .done();
                 self.diagnostics.push(d);
-                ExprAbt::Unknown
+                abt::Expr::Unknown
             }
         }
     }

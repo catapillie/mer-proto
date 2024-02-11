@@ -1,6 +1,6 @@
 use crate::{
     com::{
-        abt::{Assignee, BinOpAbt, BinOpAbtKind, ExprAbt, TypeAbt, UnOpAbt, UnOpAbtKind},
+        abt::{self, Assignee},
         ast,
     },
     diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
@@ -16,7 +16,7 @@ impl<'d> Analyser<'d> {
         left: &ast::Expr,
         right: &ast::Expr,
         span: Span,
-    ) -> ExprAbt {
+    ) -> abt::Expr {
         if matches!(op, ast::BinOp::Assign) {
             return self.analyse_assignment(left, right);
         }
@@ -28,11 +28,11 @@ impl<'d> Analyser<'d> {
         let ty_right = self.type_of(&bound_right);
 
         if !ty_left.is_known() || !ty_right.is_known() {
-            return ExprAbt::Unknown;
+            return abt::Expr::Unknown;
         }
 
         if ty_left == ty_right {
-            use TypeAbt as Ty;
+            use abt::TypeAbt as Ty;
             let ty = ty_left.clone();
             let bound_op = match ty {
                 Ty::U8 => Self::integer_binary_operation(op, ty),
@@ -50,7 +50,7 @@ impl<'d> Analyser<'d> {
             };
 
             if let Some(op) = bound_op {
-                return ExprAbt::Binary(op, Box::new(bound_left), Box::new(bound_right));
+                return abt::Expr::Binary(op, Box::new(bound_left), Box::new(bound_right));
             }
         }
 
@@ -65,33 +65,33 @@ impl<'d> Analyser<'d> {
             .annotate_primary(Note::Quiet, span)
             .done();
         self.diagnostics.push(d);
-        ExprAbt::Unknown
+        abt::Expr::Unknown
     }
 
-    fn to_assignee(&self, expr: &ExprAbt) -> Option<(Assignee, u64, TypeAbt)> {
+    fn to_assignee(&self, expr: &abt::Expr) -> Option<(Assignee, u64, abt::TypeAbt)> {
         match expr {
-            ExprAbt::Variable(var_id) => {
+            abt::Expr::Variable(var_id) => {
                 let ty = self.variables.get(var_id).unwrap().ty.clone();
                 Some((Assignee::Variable, *var_id, ty))
             }
-            ExprAbt::VarDeref(var_id) => {
+            abt::Expr::VarDeref(var_id) => {
                 let ty = match &self.variables.get(var_id).unwrap().ty {
-                    TypeAbt::Ref(inner) => *inner.to_owned(),
+                    abt::TypeAbt::Ref(inner) => *inner.to_owned(),
                     _ => unreachable!(),
                 };
                 Some((Assignee::VarDeref, *var_id, ty))
             }
-            ExprAbt::Deref(inner) => {
+            abt::Expr::Deref(inner) => {
                 let (assignee, var_id, ty) = self.to_assignee(inner)?;
                 let ty = match ty {
-                    TypeAbt::Ref(inner) => *inner.to_owned(),
+                    abt::TypeAbt::Ref(inner) => *inner.to_owned(),
                     _ => unreachable!(),
                 };
                 Some((Assignee::Deref(Box::new(assignee)), var_id, ty))
             }
-            ExprAbt::TupleImmediateIndex(expr, index) => {
+            abt::Expr::TupleImmediateIndex(expr, index) => {
                 let (assignee, var_id, tuple_ty) = self.to_assignee(expr)?;
-                let TypeAbt::Tuple(head, tail) = tuple_ty.clone() else {
+                let abt::TypeAbt::Tuple(head, tail) = tuple_ty.clone() else {
                     unreachable!()
                 };
                 let ty = if *index == 0 {
@@ -105,9 +105,9 @@ impl<'d> Analyser<'d> {
                     ty,
                 ))
             }
-            ExprAbt::ArrayImmediateIndex(expr, index) => {
+            abt::Expr::ArrayImmediateIndex(expr, index) => {
                 let (assignee, var_id, tuple_ty) = self.to_assignee(expr)?;
-                let TypeAbt::Array(inner_ty, _) = tuple_ty.clone() else {
+                let abt::TypeAbt::Array(inner_ty, _) = tuple_ty.clone() else {
                     unreachable!()
                 };
                 Some((
@@ -120,12 +120,12 @@ impl<'d> Analyser<'d> {
         }
     }
 
-    fn analyse_assignment(&mut self, left: &ast::Expr, right: &ast::Expr) -> ExprAbt {
+    fn analyse_assignment(&mut self, left: &ast::Expr, right: &ast::Expr) -> abt::Expr {
         let bound_left = self.analyse_expression(left);
         let bound_right = self.analyse_expression(right);
 
-        if matches!(bound_left, ExprAbt::Unknown) {
-            return ExprAbt::Unknown;
+        if matches!(bound_left, abt::Expr::Unknown) {
+            return abt::Expr::Unknown;
         }
 
         let Some((assignee, var_id, expected_type)) = self.to_assignee(&bound_left) else {
@@ -136,7 +136,7 @@ impl<'d> Analyser<'d> {
                 .annotate_primary(Note::CannotAssign, left.span)
                 .done();
             self.diagnostics.push(d);
-            return ExprAbt::Unknown;
+            return abt::Expr::Unknown;
         };
 
         let right_ty = self.type_of(&bound_right);
@@ -163,20 +163,20 @@ impl<'d> Analyser<'d> {
                 )
                 .done();
             self.diagnostics.push(d);
-            return ExprAbt::Unknown;
+            return abt::Expr::Unknown;
         }
 
-        ExprAbt::Assignment {
+        abt::Expr::Assignment {
             assignee,
             var_id,
             expr: Box::new(bound_right),
         }
     }
 
-    fn integer_binary_operation(op: ast::BinOp, ty: TypeAbt) -> Option<BinOpAbt> {
+    fn integer_binary_operation(op: ast::BinOp, ty: abt::TypeAbt) -> Option<abt::BinOp> {
+        use abt::BinOpKind as Abt;
+        use abt::TypeAbt as Ty;
         use ast::BinOp as Ast;
-        use BinOpAbtKind as Abt;
-        use TypeAbt as Ty;
         match op {
             Ast::Add => Some(Abt::Add.wrap(ty.clone(), ty)),
             Ast::Sub => Some(Abt::Sub.wrap(ty.clone(), ty)),
@@ -196,10 +196,10 @@ impl<'d> Analyser<'d> {
         }
     }
 
-    fn decimal_binary_operation(op: ast::BinOp, ty: TypeAbt) -> Option<BinOpAbt> {
+    fn decimal_binary_operation(op: ast::BinOp, ty: abt::TypeAbt) -> Option<abt::BinOp> {
+        use abt::BinOpKind as Abt;
+        use abt::TypeAbt as Ty;
         use ast::BinOp as Ast;
-        use BinOpAbtKind as Abt;
-        use TypeAbt as Ty;
         match op {
             Ast::Add => Some(Abt::Add.wrap(ty.clone(), ty)),
             Ast::Sub => Some(Abt::Sub.wrap(ty.clone(), ty)),
@@ -216,10 +216,10 @@ impl<'d> Analyser<'d> {
         }
     }
 
-    fn boolean_binary_operation(op: ast::BinOp) -> Option<BinOpAbt> {
+    fn boolean_binary_operation(op: ast::BinOp) -> Option<abt::BinOp> {
+        use abt::BinOpKind as Abt;
+        use abt::TypeAbt as Ty;
         use ast::BinOp as Ast;
-        use BinOpAbtKind as Abt;
-        use TypeAbt as Ty;
         match op {
             Ast::Eq => Some(Abt::Eq.wrap(Ty::Bool, Ty::Bool)),
             Ast::Ne => Some(Abt::Ne.wrap(Ty::Bool, Ty::Bool)),
@@ -238,30 +238,30 @@ impl<'d> Analyser<'d> {
         op: ast::UnOp,
         operand: &ast::Expr,
         span: Span,
-    ) -> ExprAbt {
+    ) -> abt::Expr {
         let bound_operand = self.analyse_expression(operand);
         let ty = self.type_of(&bound_operand);
 
         if !ty.is_known() {
-            return ExprAbt::Unknown;
+            return abt::Expr::Unknown;
         }
 
         let bound_op = match ty {
-            TypeAbt::U8 | TypeAbt::U16 | TypeAbt::U32 | TypeAbt::U64 => {
+            abt::TypeAbt::U8 | abt::TypeAbt::U16 | abt::TypeAbt::U32 | abt::TypeAbt::U64 => {
                 Self::number_unary_operation(false, op, ty.clone())
             }
-            TypeAbt::I8
-            | TypeAbt::I16
-            | TypeAbt::I32
-            | TypeAbt::I64
-            | TypeAbt::F32
-            | TypeAbt::F64 => Self::number_unary_operation(true, op, ty.clone()),
-            TypeAbt::Bool => Self::boolean_unary_operation(op),
+            abt::TypeAbt::I8
+            | abt::TypeAbt::I16
+            | abt::TypeAbt::I32
+            | abt::TypeAbt::I64
+            | abt::TypeAbt::F32
+            | abt::TypeAbt::F64 => Self::number_unary_operation(true, op, ty.clone()),
+            abt::TypeAbt::Bool => Self::boolean_unary_operation(op),
             _ => None,
         };
 
         if let Some(op) = bound_op {
-            return ExprAbt::Unary(op, Box::new(bound_operand));
+            return abt::Expr::Unary(op, Box::new(bound_operand));
         }
 
         let d = diagnostics::create_diagnostic()
@@ -271,20 +271,20 @@ impl<'d> Analyser<'d> {
             .annotate_primary(Note::Quiet, span)
             .done();
         self.diagnostics.push(d);
-        ExprAbt::Unknown
+        abt::Expr::Unknown
     }
 
-    fn number_unary_operation(signed: bool, op: ast::UnOp, ty: TypeAbt) -> Option<UnOpAbt> {
+    fn number_unary_operation(signed: bool, op: ast::UnOp, ty: abt::TypeAbt) -> Option<abt::UnOp> {
         match op {
-            ast::UnOp::Pos => Some(UnOpAbtKind::Pos.wrap(ty)),
-            ast::UnOp::Neg if signed => Some(UnOpAbtKind::Neg.wrap(ty)),
+            ast::UnOp::Pos => Some(abt::UnOpKind::Pos.wrap(ty)),
+            ast::UnOp::Neg if signed => Some(abt::UnOpKind::Neg.wrap(ty)),
             _ => None,
         }
     }
 
-    fn boolean_unary_operation(op: ast::UnOp) -> Option<UnOpAbt> {
+    fn boolean_unary_operation(op: ast::UnOp) -> Option<abt::UnOp> {
         match op {
-            ast::UnOp::Not => Some(UnOpAbtKind::Not.wrap(TypeAbt::Bool)),
+            ast::UnOp::Not => Some(abt::UnOpKind::Not.wrap(abt::TypeAbt::Bool)),
             _ => None,
         }
     }

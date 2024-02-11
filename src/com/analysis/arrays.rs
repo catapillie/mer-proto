@@ -1,5 +1,5 @@
 use crate::{
-    com::{abt::ExprAbt, ast, TypeAbt},
+    com::{abt, ast, TypeAbt},
     diagnostics::{self, DiagnosticKind, Note, Severity},
     utils::Span,
 };
@@ -7,7 +7,7 @@ use crate::{
 use super::Analyser;
 
 impl<'d> Analyser<'d> {
-    pub fn analyse_array_expression(&mut self, exprs: &[ast::Expr], span: Span) -> ExprAbt {
+    pub fn analyse_array_expression(&mut self, exprs: &[ast::Expr], span: Span) -> abt::Expr {
         if exprs.is_empty() {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::EmptyArray)
@@ -16,7 +16,7 @@ impl<'d> Analyser<'d> {
                 .annotate_primary(Note::Here, span)
                 .done();
             self.diagnostics.push(d);
-            return ExprAbt::Unknown;
+            return abt::Expr::Unknown;
         }
 
         if exprs.len() == 1 {
@@ -52,20 +52,20 @@ impl<'d> Analyser<'d> {
                 .annotate_primary(Note::Here, span)
                 .done();
             self.diagnostics.push(d);
-            return ExprAbt::Unknown;
+            return abt::Expr::Unknown;
         }
 
-        ExprAbt::Array(bound_exprs)
+        abt::Expr::Array(bound_exprs)
     }
 
     pub fn analyse_array_immediate_index(
         &mut self,
         expr: &ast::Expr,
-        bound_expr: ExprAbt,
+        bound_expr: abt::Expr,
         index: u64,
         size: usize,
         span: Span,
-    ) -> ExprAbt {
+    ) -> abt::Expr {
         if index as usize >= size {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::OutOfRangeArrayIndex {
@@ -77,9 +77,9 @@ impl<'d> Analyser<'d> {
                 .annotate_primary(Note::OfType(self.type_of(&bound_expr)), expr.span)
                 .done();
             self.diagnostics.push(d);
-            return ExprAbt::Unknown;
+            return abt::Expr::Unknown;
         }
 
-        ExprAbt::ArrayImmediateIndex(Box::new(bound_expr), index as usize)
+        abt::Expr::ArrayImmediateIndex(Box::new(bound_expr), index as usize)
     }
 }

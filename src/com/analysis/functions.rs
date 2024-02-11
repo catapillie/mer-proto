@@ -1,8 +1,6 @@
-use std::collections::BTreeMap;
-
 use crate::{
     com::{
-        abt::{ExprAbt, StmtAbt, StmtAbtKind, TypeAbt},
+        abt::{self, FunctionInfo},
         analysis::Declaration,
         ast,
     },
@@ -12,31 +10,13 @@ use crate::{
 
 use super::Analyser;
 
-pub struct VariableUsage {
-    pub captured: bool,
-    pub used: bool,
-}
-
-pub struct FunctionInfo {
-    pub id: u64,
-    pub name: String,
-    pub span: Option<Span>,
-    pub depth: u16,
-    pub args: Vec<(String, TypeAbt)>,
-    pub arg_ids: Vec<u64>,
-    pub ty: TypeAbt,
-    pub ty_span: Option<Span>,
-    pub used_variables: BTreeMap<u64, VariableUsage>,
-    pub code: Option<Box<StmtAbt>>,
-}
-
 impl<'d> Analyser<'d> {
     pub fn declare_function_here(
         &mut self,
         name: &str,
         span: Option<Span>,
-        args: Vec<(String, TypeAbt)>,
-        ty: TypeAbt,
+        args: Vec<(String, abt::TypeAbt)>,
+        ty: abt::TypeAbt,
         ty_span: Option<Span>,
     ) -> Declaration {
         let declared = self.make_unique_id();
@@ -73,9 +53,9 @@ impl<'d> Analyser<'d> {
         args: &[(String, ast::Type, Span)],
         body: &ast::Stmt,
         ty: &ast::Type,
-    ) -> StmtAbtKind {
+    ) -> abt::StmtKind {
         let Some((name, span)) = name else {
-            return StmtAbtKind::Empty;
+            return abt::StmtKind::Empty;
         };
 
         let info = match self.get_function(name) {
@@ -141,7 +121,7 @@ impl<'d> Analyser<'d> {
             self.diagnostics.push(d);
         }
 
-        StmtAbtKind::Empty
+        abt::StmtKind::Empty
     }
 
     pub fn analyse_call_expression(
@@ -149,20 +129,20 @@ impl<'d> Analyser<'d> {
         callee: &ast::Expr,
         args: &[ast::Expr],
         span: Span,
-    ) -> ExprAbt {
+    ) -> abt::Expr {
         let bound_callee = self.analyse_expression(callee);
         let bound_args = args
             .iter()
             .map(|arg| self.analyse_expression(arg))
             .collect::<Box<_>>();
 
-        if matches!(bound_callee, ExprAbt::Unknown) {
-            return ExprAbt::Unknown;
+        if matches!(bound_callee, abt::Expr::Unknown) {
+            return abt::Expr::Unknown;
         };
 
-        if let ExprAbt::Function(id) = bound_callee {
+        if let abt::Expr::Function(id) = bound_callee {
             self.analyse_immediate_call(args, bound_args, span, id)
-        } else if let TypeAbt::Func(func_args, func_return_ty) = self.type_of(&bound_callee) {
+        } else if let abt::TypeAbt::Func(func_args, func_return_ty) = self.type_of(&bound_callee) {
             self.analyse_indirect_call(
                 args,
                 bound_args,
@@ -179,17 +159,17 @@ impl<'d> Analyser<'d> {
                 .annotate_primary(Note::NotFunction(self.type_of(&bound_callee)), callee.span)
                 .done();
             self.diagnostics.push(d);
-            ExprAbt::Unknown
+            abt::Expr::Unknown
         }
     }
 
     fn analyse_immediate_call(
         &mut self,
         args: &[ast::Expr],
-        bound_args: Box<[ExprAbt]>,
+        bound_args: Box<[abt::Expr]>,
         span: Span,
         id: u64,
-    ) -> ExprAbt {
+    ) -> abt::Expr {
         let info = self.functions.get(&id).unwrap();
 
         let func_span = info.span.unwrap();
@@ -265,21 +245,21 @@ impl<'d> Analyser<'d> {
         }
 
         if invalid {
-            ExprAbt::Unknown
+            abt::Expr::Unknown
         } else {
-            ExprAbt::Call(id, bound_args, ty.clone())
+            abt::Expr::Call(id, bound_args, ty.clone())
         }
     }
 
     fn analyse_indirect_call(
         &mut self,
         args: &[ast::Expr],
-        bound_args: Box<[ExprAbt]>,
-        func_args: &[TypeAbt],
-        func_return_ty: TypeAbt,
-        bound_callee: ExprAbt,
+        bound_args: Box<[abt::Expr]>,
+        func_args: &[abt::TypeAbt],
+        func_return_ty: abt::TypeAbt,
+        bound_callee: abt::Expr,
         span: Span,
-    ) -> ExprAbt {
+    ) -> abt::Expr {
         let mut invalid = false;
         for ((bound_arg, span), arg_ty) in bound_args
             .iter()
@@ -319,14 +299,14 @@ impl<'d> Analyser<'d> {
         }
 
         if invalid {
-            ExprAbt::Unknown
+            abt::Expr::Unknown
         } else {
-            ExprAbt::IndirectCall(Box::new(bound_callee), bound_args, func_return_ty)
+            abt::Expr::IndirectCall(Box::new(bound_callee), bound_args, func_return_ty)
         }
     }
 
-    pub fn analyse_return_statement(&mut self, span: Span) -> StmtAbtKind {
-        let ty = TypeAbt::Unit;
+    pub fn analyse_return_statement(&mut self, span: Span) -> abt::StmtKind {
+        let ty = abt::TypeAbt::Unit;
         let return_ty = {
             let id = self.scope.current_func_id;
             let info = self.functions.get(&id).unwrap();
@@ -355,13 +335,13 @@ impl<'d> Analyser<'d> {
                 _ => d.done(),
             };
             self.diagnostics.push(d);
-            return StmtAbtKind::Return(Box::new(ExprAbt::Unknown));
+            return abt::StmtKind::Return(Box::new(abt::Expr::Unknown));
         }
 
-        StmtAbtKind::Return(Box::new(ExprAbt::Unit))
+        abt::StmtKind::Return(Box::new(abt::Expr::Unit))
     }
 
-    pub fn analyse_return_with_statement(&mut self, expr: &ast::Expr) -> StmtAbtKind {
+    pub fn analyse_return_with_statement(&mut self, expr: &ast::Expr) -> abt::StmtKind {
         let bound_expr = self.analyse_expression(expr);
         let ty_expr = self.type_of(&bound_expr);
         let return_ty = {
@@ -400,10 +380,10 @@ impl<'d> Analyser<'d> {
             };
 
             self.diagnostics.push(d);
-            return StmtAbtKind::Return(Box::new(ExprAbt::Unknown));
+            return abt::StmtKind::Return(Box::new(abt::Expr::Unknown));
         }
 
-        StmtAbtKind::Return(Box::new(bound_expr))
+        abt::StmtKind::Return(Box::new(bound_expr))
     }
 
     pub fn analyse_function_variable_usage(&mut self) {

@@ -1,5 +1,5 @@
 use crate::{
-    com::{abt::ExprAbt, ast, TypeAbt},
+    com::{abt, ast},
     diagnostics::{self, DiagnosticKind, Note, Severity},
     utils::Span,
 };
@@ -12,14 +12,14 @@ impl<'d> Analyser<'d> {
         expr: &ast::Expr,
         index_expr: &ast::Expr,
         span: Span,
-    ) -> ExprAbt {
+    ) -> abt::Expr {
         let bound_expr = self.analyse_expression(expr);
         let bound_index = self.analyse_expression(index_expr);
 
         let expr_ty = self.type_of(&bound_expr);
         let index_ty = self.type_of(&bound_index);
 
-        if !index_ty.is(&TypeAbt::I64) {
+        if !index_ty.is(&abt::TypeAbt::I64) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::ArrayIndexMustBeInteger)
                 .with_span(index_expr.span)
@@ -27,14 +27,14 @@ impl<'d> Analyser<'d> {
                 .annotate_primary(Note::OfType(index_ty), index_expr.span)
                 .done();
             self.diagnostics.push(d);
-            return ExprAbt::Unknown;
+            return abt::Expr::Unknown;
         }
 
         if !expr_ty.is_known() {
-            return ExprAbt::Unknown;
+            return abt::Expr::Unknown;
         }
 
-        let TypeAbt::Array(_, size) = expr_ty else {
+        let abt::TypeAbt::Array(_, size) = expr_ty else {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::InvalidIndex)
                 .with_span(span)
@@ -42,10 +42,10 @@ impl<'d> Analyser<'d> {
                 .annotate_primary(Note::OfType(expr_ty), expr.span)
                 .done();
             self.diagnostics.push(d);
-            return ExprAbt::Unknown;
+            return abt::Expr::Unknown;
         };
 
-        if let ExprAbt::Integer(index) = bound_index {
+        if let abt::Expr::Integer(index) = bound_index {
             let d = if index as usize >= size {
                 diagnostics::create_diagnostic()
                     .with_kind(DiagnosticKind::OutOfRangeConstantIndex {
@@ -67,20 +67,25 @@ impl<'d> Analyser<'d> {
             self.diagnostics.push(d);
         }
 
-        ExprAbt::ArrayIndex(Box::new(bound_expr), Box::new(bound_index))
+        abt::Expr::ArrayIndex(Box::new(bound_expr), Box::new(bound_index))
     }
 
-    pub fn analyse_immediate_index(&mut self, expr: &ast::Expr, index: u64, span: Span) -> ExprAbt {
+    pub fn analyse_immediate_index(
+        &mut self,
+        expr: &ast::Expr,
+        index: u64,
+        span: Span,
+    ) -> abt::Expr {
         let bound_expr = self.analyse_expression(expr);
         let ty = self.type_of(&bound_expr);
 
         if !ty.is_known() {
-            return ExprAbt::Unknown;
+            return abt::Expr::Unknown;
         }
 
-        if let TypeAbt::Tuple(_, tail) = ty {
+        if let abt::TypeAbt::Tuple(_, tail) = ty {
             self.analyse_tuple_immediate_index(expr, bound_expr, &tail, index, span)
-        } else if let TypeAbt::Array(_, size) = ty {
+        } else if let abt::TypeAbt::Array(_, size) = ty {
             self.analyse_array_immediate_index(expr, bound_expr, index, size, span)
         } else {
             let d = diagnostics::create_diagnostic()
@@ -90,7 +95,7 @@ impl<'d> Analyser<'d> {
                 .annotate_primary(Note::OfType(ty), expr.span)
                 .done();
             self.diagnostics.push(d);
-            ExprAbt::Unknown
+            abt::Expr::Unknown
         }
     }
 }

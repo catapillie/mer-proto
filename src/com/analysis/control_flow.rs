@@ -1,5 +1,5 @@
 use crate::{
-    com::abt::{ExprAbt, StmtAbt, StmtAbtKind},
+    com::abt,
     diagnostics::{self, DiagnosticKind, Note, Severity},
     utils::Span,
 };
@@ -8,8 +8,8 @@ use super::Analyser;
 
 impl<'d> Analyser<'d> {
     // returns whether the provided statement is guaranteed to return
-    pub fn analyse_control_flow(&mut self, stmt: &StmtAbt) -> bool {
-        use StmtAbtKind as S;
+    pub fn analyse_control_flow(&mut self, stmt: &abt::Stmt) -> bool {
+        use abt::StmtKind as S;
         match &stmt.value {
             S::Block(stmts) => {
                 let mut does_return = false;
@@ -58,8 +58,8 @@ impl<'d> Analyser<'d> {
         }
     }
 
-    fn is_never(expr: &ExprAbt) -> bool {
-        use ExprAbt as E;
+    fn is_never(expr: &abt::Expr) -> bool {
+        use abt::Expr as E;
         match expr {
             E::Unknown => false,
             E::Unit => false,

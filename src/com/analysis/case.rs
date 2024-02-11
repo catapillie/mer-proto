@@ -1,6 +1,6 @@
 use super::Analyser;
 use crate::{
-    com::{abt::ExprAbt, ast, TypeAbt},
+    com::{abt, ast, TypeAbt},
     diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
     utils::Span,
 };
@@ -10,7 +10,7 @@ impl<'d> Analyser<'d> {
         &mut self,
         paths: &[(Option<ast::Expr>, ast::Expr)],
         span: Span,
-    ) -> ExprAbt {
+    ) -> abt::Expr {
         let mut bound_paths = paths
             .iter()
             .map(|(guard, expr)| {
@@ -36,7 +36,7 @@ impl<'d> Analyser<'d> {
                     .annotate_primary(Note::MustBeOfType(TypeAbt::Bool), guard.span)
                     .done();
                 self.diagnostics.push(d);
-                return ExprAbt::Unknown;
+                return abt::Expr::Unknown;
             }
         }
 
@@ -50,7 +50,7 @@ impl<'d> Analyser<'d> {
                 .annotate_primary(Note::Quiet, span)
                 .done();
             self.diagnostics.push(d);
-            return ExprAbt::Unknown;
+            return abt::Expr::Unknown;
         } else if otherwise_count > 1 {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::TooManyOtherwisePaths)
@@ -59,7 +59,7 @@ impl<'d> Analyser<'d> {
                 .annotate_primary(Note::Quiet, span)
                 .done();
             self.diagnostics.push(d);
-            return ExprAbt::Unknown;
+            return abt::Expr::Unknown;
         }
 
         // ensure last case is otherwise path
@@ -72,7 +72,7 @@ impl<'d> Analyser<'d> {
                 .annotate_primary(Note::Quiet, span)
                 .done();
             self.diagnostics.push(d);
-            return ExprAbt::Unknown;
+            return abt::Expr::Unknown;
         }
 
         // ensure all paths give the same type
@@ -103,7 +103,7 @@ impl<'d> Analyser<'d> {
                 );
             }
             self.diagnostics.push(d.done());
-            return ExprAbt::Unknown;
+            return abt::Expr::Unknown;
         }
 
         if bound_paths.len() == 1 {
@@ -123,6 +123,6 @@ impl<'d> Analyser<'d> {
             .into_iter()
             .map(|(guard, expr)| (guard.unwrap(), expr))
             .collect();
-        ExprAbt::Case(bound_paths, Box::new(last_expr), ty.clone())
+        abt::Expr::Case(bound_paths, Box::new(last_expr), ty.clone())
     }
 }

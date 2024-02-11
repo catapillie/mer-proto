@@ -3,14 +3,14 @@ use std::{fs, io, path::Path};
 use crate::diagnostics::{DiagnosticList, Severity};
 
 use super::{
-    abt::{ProgramAbt, TypeAbt},
+    abt::{Program, TypeAbt},
     analysis::Analyser,
     codegen::Codegen,
     parser::Parser,
 };
 
 pub enum AnalysisStage {
-    Ok(ProgramAbt, DiagnosticList),
+    Ok(Program, DiagnosticList),
     CannotCompile(DiagnosticList),
 }
 
@@ -32,7 +32,7 @@ pub fn analyse_program_with_type(source: &str, expected_type: TypeAbt) -> Analys
     }
 }
 
-pub fn compile_to_bytecode(abt: ProgramAbt) -> io::Result<Vec<u8>> {
+pub fn compile_to_bytecode(abt: Program) -> io::Result<Vec<u8>> {
     Codegen::new().gen(&abt)
 }
 

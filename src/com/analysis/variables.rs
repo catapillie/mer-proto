@@ -1,25 +1,21 @@
 use crate::{
     com::{
-        abt::{ExprAbt, StmtAbtKind, TypeAbt},
+        abt::{self, VariableInfo, VariableUsage},
         ast,
     },
     diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
     utils::Span,
 };
 
-use super::{functions::VariableUsage, Analyser, Declaration};
-
-pub struct VariableInfo {
-    pub id: u64,
-    pub name: String,
-    pub depth: u16,
-    pub ty: TypeAbt,
-    pub declaration_span: Span,
-    pub is_on_heap: bool,
-}
+use super::{Analyser, Declaration};
 
 impl<'d> Analyser<'d> {
-    pub fn declare_variable_here(&mut self, name: &str, ty: TypeAbt, span: Span) -> Declaration {
+    pub fn declare_variable_here(
+        &mut self,
+        name: &str,
+        ty: abt::TypeAbt,
+        span: Span,
+    ) -> Declaration {
         let declared = self.make_unique_id();
         let shadowed = self.scope.bindings.insert(name.to_string(), declared);
 
@@ -59,18 +55,18 @@ impl<'d> Analyser<'d> {
         id: &Option<(String, Span)>,
         expr: &ast::Expr,
         span: Span,
-    ) -> StmtAbtKind {
+    ) -> abt::StmtKind {
         let bound_expr = self.analyse_expression(expr);
 
         let Some((name, _)) = id else {
-            return StmtAbtKind::Empty;
+            return abt::StmtKind::Empty;
         };
 
         let decl = self.declare_variable_here(name, self.type_of(&bound_expr), span);
-        StmtAbtKind::VarInit(decl.declared, Box::new(bound_expr))
+        abt::StmtKind::VarInit(decl.declared, Box::new(bound_expr))
     }
 
-    pub fn analyse_variable_expression(&mut self, name: &str, span: Span) -> ExprAbt {
+    pub fn analyse_variable_expression(&mut self, name: &str, span: Span) -> abt::Expr {
         if let Some(expr) = self.get_function_as_variable(name) {
             return expr;
         }
@@ -83,7 +79,7 @@ impl<'d> Analyser<'d> {
                 .annotate_primary(Note::Unknown, span)
                 .done();
             self.diagnostics.push(d);
-            return ExprAbt::Unknown;
+            return abt::Expr::Unknown;
         };
 
         let id = info.id;
@@ -138,11 +134,11 @@ impl<'d> Analyser<'d> {
             self.diagnostics.push(d);
         }
 
-        ExprAbt::Variable(id)
+        abt::Expr::Variable(id)
     }
 
-    fn get_function_as_variable(&mut self, name: &str) -> Option<ExprAbt> {
+    fn get_function_as_variable(&mut self, name: &str) -> Option<abt::Expr> {
         let func_info = self.get_function(name)?;
-        Some(ExprAbt::Function(func_info.id))
+        Some(abt::Expr::Function(func_info.id))
     }
 }

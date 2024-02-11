@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use self::scope::Scope;
+use super::abt::{FunctionInfo, VariableInfo};
 use crate::diagnostics::DiagnosticList;
 
 mod scope;
@@ -23,9 +24,6 @@ mod tuples;
 mod case;
 mod if_then;
 mod while_do;
-
-pub use functions::FunctionInfo;
-pub use variables::VariableInfo;
 
 pub struct Declaration {
     pub declared: u64,

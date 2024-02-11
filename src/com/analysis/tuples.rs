@@ -1,5 +1,5 @@
 use crate::{
-    com::{abt::ExprAbt, ast, TypeAbt},
+    com::{abt, ast},
     diagnostics::{self, DiagnosticKind, Note, Severity},
     utils::Span,
 };
@@ -7,8 +7,8 @@ use crate::{
 use super::Analyser;
 
 impl<'d> Analyser<'d> {
-    pub fn analyse_tuple_expression(&mut self, head: &ast::Expr, tail: &[ast::Expr]) -> ExprAbt {
-        ExprAbt::Tuple(
+    pub fn analyse_tuple_expression(&mut self, head: &ast::Expr, tail: &[ast::Expr]) -> abt::Expr {
+        abt::Expr::Tuple(
             Box::new(self.analyse_expression(head)),
             tail.iter().map(|e| self.analyse_expression(e)).collect(),
         )
@@ -17,13 +17,13 @@ impl<'d> Analyser<'d> {
     pub fn analyse_tuple_immediate_index(
         &mut self,
         expr: &ast::Expr,
-        bound_expr: ExprAbt,
-        tail: &[TypeAbt],
+        bound_expr: abt::Expr,
+        tail: &[abt::TypeAbt],
         index: u64,
         span: Span,
-    ) -> ExprAbt {
+    ) -> abt::Expr {
         if index == 0 {
-            return ExprAbt::TupleImmediateIndex(Box::new(bound_expr), 0);
+            return abt::Expr::TupleImmediateIndex(Box::new(bound_expr), 0);
         }
 
         let len = 1 + tail.len();
@@ -38,9 +38,9 @@ impl<'d> Analyser<'d> {
                 .annotate_primary(Note::TupleValueCount(len), expr.span)
                 .done();
             self.diagnostics.push(d);
-            return ExprAbt::Unknown;
+            return abt::Expr::Unknown;
         }
 
-        ExprAbt::TupleImmediateIndex(Box::new(bound_expr), index as usize)
+        abt::Expr::TupleImmediateIndex(Box::new(bound_expr), index as usize)
     }
 }

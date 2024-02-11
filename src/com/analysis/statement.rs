@@ -1,20 +1,17 @@
-use crate::com::{
-    abt::{StmtAbt, StmtAbtKind},
-    ast,
-};
+use crate::com::{abt, ast};
 
 use super::Analyser;
 
 impl<'d> Analyser<'d> {
     #[rustfmt::skip]
-    pub fn analyse_statement(&mut self, stmt: &ast::Stmt) -> StmtAbt {
+    pub fn analyse_statement(&mut self, stmt: &ast::Stmt) -> abt::Stmt {
         match &stmt.value {
             ast::StmtKind::Empty
-                => StmtAbtKind::Empty,
+                => abt::StmtKind::Empty,
             ast::StmtKind::VarDef(name, value)
                 => self.analyse_variable_definition(name, value, stmt.span),
             ast::StmtKind::Expr(expr)
-                => StmtAbtKind::Expr(Box::new(self.analyse_expression(expr))),
+                => abt::StmtKind::Expr(Box::new(self.analyse_expression(expr))),
             ast::StmtKind::Block(stmts)
                 => self.analyse_block_statement(stmts),
             ast::StmtKind::IfThen(guard, body)
@@ -41,19 +38,19 @@ impl<'d> Analyser<'d> {
         .wrap(stmt.span)
     }
 
-    fn analyse_block_statement(&mut self, stmts: &[ast::Stmt]) -> StmtAbtKind {
+    fn analyse_block_statement(&mut self, stmts: &[ast::Stmt]) -> abt::StmtKind {
         self.open_scope();
         let bound_stmts = stmts
             .iter()
             .map(|stmt| self.analyse_statement(stmt))
-            .filter(|stmt| !matches!(stmt.value, StmtAbtKind::Empty))
+            .filter(|stmt| !matches!(stmt.value, abt::StmtKind::Empty))
             .collect::<Box<_>>();
         self.close_scope();
 
         if bound_stmts.is_empty() {
-            StmtAbtKind::Empty
+            abt::StmtKind::Empty
         } else {
-            StmtAbtKind::Block(bound_stmts)
+            abt::StmtKind::Block(bound_stmts)
         }
     }
 }

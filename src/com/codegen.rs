@@ -9,17 +9,14 @@ use either::Either;
 
 use crate::{
     binary,
-    com::abt::{BinOpAbtKind, StmtAbtKind, TypeAbt, UnOpAbtKind},
+    com::abt::{BinOpKind, StmtKind, TypeAbt, UnOpKind},
     runtime::{
         native_type::NativeType,
         opcode::{self, Opcode},
     },
 };
 
-use super::{
-    abt::{Assignee, ExprAbt, ProgramAbt, StmtAbt},
-    analysis::FunctionInfo,
-};
+use super::abt::{Assignee, Expr, FunctionInfo, Program, Stmt};
 
 struct Loc {
     offset: u8,
@@ -92,7 +89,7 @@ impl Codegen {
         }
     }
 
-    fn size_of_var_storage(id: u64, abt: &ProgramAbt) -> usize {
+    fn size_of_var_storage(id: u64, abt: &Program) -> usize {
         let info = abt.variables.get(&id).unwrap();
         if info.is_on_heap {
             1
@@ -102,8 +99,8 @@ impl Codegen {
     }
 
     // TODO: refactor (this is a duplicate of Analyser::type_of)
-    pub fn type_of(expr: &ExprAbt, abt: &ProgramAbt) -> TypeAbt {
-        use ExprAbt as E;
+    pub fn type_of(expr: &Expr, abt: &Program) -> TypeAbt {
+        use Expr as E;
         use TypeAbt as Ty;
         match expr {
             E::Unknown => Ty::Unknown,
@@ -190,7 +187,7 @@ impl Codegen {
         }
     }
 
-    pub fn gen(mut self, abt: &ProgramAbt) -> io::Result<Vec<u8>> {
+    pub fn gen(mut self, abt: &Program) -> io::Result<Vec<u8>> {
         self.cursor.write_u8(opcode::entry_point)?;
         self.add_fn_addr_placeholder(abt.main_fn_id)?;
 
@@ -207,7 +204,7 @@ impl Codegen {
         Ok(self.cursor.into_inner())
     }
 
-    fn gen_function(&mut self, info: &FunctionInfo, abt: &ProgramAbt) -> io::Result<()> {
+    fn gen_function(&mut self, info: &FunctionInfo, abt: &Program) -> io::Result<()> {
         let param_count: u8 = info
             .arg_ids
             .iter()
@@ -270,8 +267,8 @@ impl Codegen {
         Ok(())
     }
 
-    fn gen_statement(&mut self, stmt: &StmtAbt, abt: &ProgramAbt) -> io::Result<()> {
-        use StmtAbtKind as S;
+    fn gen_statement(&mut self, stmt: &Stmt, abt: &Program) -> io::Result<()> {
+        use StmtKind as S;
         match &stmt.value {
             S::Empty => {}
             S::Block(stmts) => {
@@ -384,8 +381,8 @@ impl Codegen {
         Ok(())
     }
 
-    fn gen_expression(&mut self, expr: &ExprAbt, abt: &ProgramAbt) -> io::Result<()> {
-        use super::abt::ExprAbt as E;
+    fn gen_expression(&mut self, expr: &Expr, abt: &Program) -> io::Result<()> {
+        use super::abt::Expr as E;
         match expr {
             E::Unknown => unreachable!(),
             E::Todo => binary::write_opcode(&mut self.cursor, &Opcode::todo),
@@ -537,7 +534,7 @@ impl Codegen {
                 Ok(())
             }
             E::Binary(op, left, right) => {
-                use BinOpAbtKind as K;
+                use BinOpKind as K;
                 use NativeType as Nt;
                 use Opcode as O;
                 use TypeAbt as Ty;
@@ -702,7 +699,7 @@ impl Codegen {
                 self.gen_expression(expr, abt)?;
 
                 use TypeAbt as Ty;
-                use UnOpAbtKind as K;
+                use UnOpKind as K;
                 let opcode = match (&op.ty, &op.kind) {
                     (Ty::U8, K::Pos)
                     | (Ty::U16, K::Pos)
@@ -816,9 +813,9 @@ impl Codegen {
 
     fn gen_short_circuit_and(
         &mut self,
-        left: &ExprAbt,
-        right: &ExprAbt,
-        abt: &ProgramAbt,
+        left: &Expr,
+        right: &Expr,
+        abt: &Program,
     ) -> io::Result<()> {
         self.gen_expression(left, abt)?;
         self.cursor.write_u8(opcode::dup)?;
@@ -836,9 +833,9 @@ impl Codegen {
 
     fn gen_short_circuit_or(
         &mut self,
-        left: &ExprAbt,
-        right: &ExprAbt,
-        abt: &ProgramAbt,
+        left: &Expr,
+        right: &Expr,
+        abt: &Program,
     ) -> Result<(), io::Error> {
         self.gen_expression(left, abt)?;
         self.cursor.write_u8(opcode::dup)?;
@@ -857,8 +854,8 @@ impl Codegen {
         &mut self,
         assignee: &Assignee,
         var_id: u64,
-        expr: &ExprAbt,
-        abt: &ProgramAbt,
+        expr: &Expr,
+        abt: &Program,
     ) -> Result<(), io::Error> {
         // write right-hand side
         let size = Self::size_of(&Self::type_of(expr, abt)) as u8;
@@ -889,7 +886,7 @@ impl Codegen {
         &mut self,
         assignee: &Assignee,
         var_id: u64,
-        abt: &ProgramAbt,
+        abt: &Program,
     ) -> Result<Either<(), u8>, io::Error> {
         let loc = self.current_locals.get(&var_id).unwrap();
         let info = abt.variables.get(&var_id).unwrap();

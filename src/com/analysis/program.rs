@@ -1,7 +1,6 @@
 use crate::{
     com::{
-        abt::{ProgramAbt, TypeAbt},
-        analysis::FunctionInfo,
+        abt::{self, FunctionInfo},
         ast,
     },
     diagnostics::{self, DiagnosticKind, Severity},
@@ -10,7 +9,7 @@ use crate::{
 use super::Analyser;
 
 impl<'d> Analyser<'d> {
-    pub fn analyse_program(mut self, ast: &ast::Stmt, expected_type: TypeAbt) -> ProgramAbt {
+    pub fn analyse_program(mut self, ast: &ast::Stmt, expected_type: abt::TypeAbt) -> abt::Program {
         let main_fn_id = 0;
         self.functions.insert(
             main_fn_id,
@@ -60,7 +59,7 @@ impl<'d> Analyser<'d> {
         // correct scope usage
         assert!(self.scope.is_root());
 
-        ProgramAbt {
+        abt::Program {
             main_fn_id,
             functions: self.functions,
             variables: self.variables,

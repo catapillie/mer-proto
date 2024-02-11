@@ -1,8 +1,5 @@
 use crate::{
-    com::{
-        abt::{StmtAbtKind, TypeAbt},
-        ast,
-    },
+    com::{abt, ast},
     diagnostics::{self, DiagnosticKind, Note, Severity},
 };
 
@@ -13,14 +10,14 @@ impl<'d> Analyser<'d> {
         &mut self,
         guard: &ast::Expr,
         body: &ast::Stmt,
-    ) -> StmtAbtKind {
+    ) -> abt::StmtKind {
         let bound_guard = self.analyse_expression(guard);
 
         self.open_scope();
         let bound_body = self.analyse_statement(body);
         self.close_scope();
 
-        if matches!(bound_body.value, StmtAbtKind::Empty) {
+        if matches!(bound_body.value, abt::StmtKind::Empty) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::EmptyThenStatement)
                 .with_severity(Severity::Warning)
@@ -30,17 +27,17 @@ impl<'d> Analyser<'d> {
             self.diagnostics.push(d);
         }
 
-        if !self.type_of(&bound_guard).is(&TypeAbt::Bool) {
+        if !self.type_of(&bound_guard).is(&abt::TypeAbt::Bool) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::GuardNotBoolean)
                 .with_severity(Severity::Error)
                 .with_span(guard.span)
-                .annotate_primary(Note::MustBeOfType(TypeAbt::Bool), guard.span)
+                .annotate_primary(Note::MustBeOfType(abt::TypeAbt::Bool), guard.span)
                 .done();
             self.diagnostics.push(d);
         }
 
-        StmtAbtKind::IfThen(Box::new(bound_guard), Box::new(bound_body))
+        abt::StmtKind::IfThen(Box::new(bound_guard), Box::new(bound_body))
     }
 
     pub fn analyse_if_then_else_statement(
@@ -48,7 +45,7 @@ impl<'d> Analyser<'d> {
         guard: &ast::Expr,
         body_then: &ast::Stmt,
         body_else: &ast::Stmt,
-    ) -> StmtAbtKind {
+    ) -> abt::StmtKind {
         let bound_guard = self.analyse_expression(guard);
 
         self.open_scope();
@@ -59,7 +56,7 @@ impl<'d> Analyser<'d> {
         let bound_body_else = self.analyse_statement(body_else);
         self.close_scope();
 
-        if matches!(bound_body_then.value, StmtAbtKind::Empty) {
+        if matches!(bound_body_then.value, abt::StmtKind::Empty) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::EmptyThenStatement)
                 .with_severity(Severity::Warning)
@@ -69,7 +66,7 @@ impl<'d> Analyser<'d> {
             self.diagnostics.push(d);
         }
 
-        if matches!(bound_body_else.value, StmtAbtKind::Empty) {
+        if matches!(bound_body_else.value, abt::StmtKind::Empty) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::EmptyElseStatement)
                 .with_severity(Severity::Warning)
@@ -79,24 +76,24 @@ impl<'d> Analyser<'d> {
             self.diagnostics.push(d);
         }
 
-        if !self.type_of(&bound_guard).is(&TypeAbt::Bool) {
+        if !self.type_of(&bound_guard).is(&abt::TypeAbt::Bool) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::GuardNotBoolean)
                 .with_severity(Severity::Error)
                 .with_span(guard.span)
-                .annotate_primary(Note::MustBeOfType(TypeAbt::Bool), guard.span)
+                .annotate_primary(Note::MustBeOfType(abt::TypeAbt::Bool), guard.span)
                 .done();
             self.diagnostics.push(d);
         }
 
-        StmtAbtKind::IfThenElse(
+        abt::StmtKind::IfThenElse(
             Box::new(bound_guard),
             Box::new(bound_body_then),
             Box::new(bound_body_else),
         )
     }
 
-    pub fn analyse_then_statement(&mut self, body: &ast::Stmt) -> StmtAbtKind {
+    pub fn analyse_then_statement(&mut self, body: &ast::Stmt) -> abt::StmtKind {
         self.open_scope();
         self.analyse_statement(body);
         self.close_scope();
@@ -109,10 +106,10 @@ impl<'d> Analyser<'d> {
             .done();
         self.diagnostics.push(d);
 
-        StmtAbtKind::Empty
+        abt::StmtKind::Empty
     }
 
-    pub fn analyse_else_statement(&mut self, body: &ast::Stmt) -> StmtAbtKind {
+    pub fn analyse_else_statement(&mut self, body: &ast::Stmt) -> abt::StmtKind {
         self.open_scope();
         self.analyse_statement(body);
         self.close_scope();
@@ -125,6 +122,6 @@ impl<'d> Analyser<'d> {
             .done();
         self.diagnostics.push(d);
 
-        StmtAbtKind::Empty
+        abt::StmtKind::Empty
     }
 }

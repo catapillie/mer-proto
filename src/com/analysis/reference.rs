@@ -1,40 +1,37 @@
 use crate::{
-    com::{
-        abt::{ExprAbt, TypeAbt},
-        ast,
-    },
+    com::{abt, ast},
     diagnostics::{self, DiagnosticKind, Note, Severity},
 };
 
 use super::Analyser;
 
 impl<'d> Analyser<'d> {
-    pub fn analyse_reference_expression(&mut self, expr: &ast::Expr) -> ExprAbt {
+    pub fn analyse_reference_expression(&mut self, expr: &ast::Expr) -> abt::Expr {
         let bound_expr = self.analyse_expression(expr);
 
-        if let ExprAbt::Variable(var_id) = bound_expr {
+        if let abt::Expr::Variable(var_id) = bound_expr {
             // mark variable as heap-allocated
             if let Some(info) = self.variables.get_mut(&var_id) {
                 info.is_on_heap = true;
             }
-            ExprAbt::VarRef(var_id)
+            abt::Expr::VarRef(var_id)
         } else {
-            ExprAbt::Ref(Box::new(bound_expr))
+            abt::Expr::Ref(Box::new(bound_expr))
         }
     }
 
-    pub fn analyse_dereference_expression(&mut self, expr: &ast::Expr) -> ExprAbt {
+    pub fn analyse_dereference_expression(&mut self, expr: &ast::Expr) -> abt::Expr {
         let bound_expr = self.analyse_expression(expr);
         let ty = self.type_of(&bound_expr);
 
-        if matches!(bound_expr, ExprAbt::Unknown) {
-            return ExprAbt::Unknown;
+        if matches!(bound_expr, abt::Expr::Unknown) {
+            return abt::Expr::Unknown;
         }
 
         match ty {
-            TypeAbt::Ref(_) => match bound_expr {
-                ExprAbt::Variable(var_id) => ExprAbt::VarDeref(var_id),
-                _ => ExprAbt::Deref(Box::new(bound_expr)),
+            abt::TypeAbt::Ref(_) => match bound_expr {
+                abt::Expr::Variable(var_id) => abt::Expr::VarDeref(var_id),
+                _ => abt::Expr::Deref(Box::new(bound_expr)),
             },
             _ => {
                 let d = diagnostics::create_diagnostic()
@@ -44,7 +41,7 @@ impl<'d> Analyser<'d> {
                     .annotate_primary(Note::OfType(ty), expr.span)
                     .done();
                 self.diagnostics.push(d);
-                ExprAbt::Unknown
+                abt::Expr::Unknown
             }
         }
     }
