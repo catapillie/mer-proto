@@ -1,0 +1,25 @@
+var xs = [0.57464, 0.21949, 0.34306, 0.77136, 0.91908, 0.61450, 0.53843, 0.89569, 0.23997, 0.62264]
+var ys = [0.96443, 0.40812, 0.99004, 0.77049, 0.25120, 0.23511, 0.72042, 0.70777, 0.73944, 0.03200]
+
+var b = true
+var i = 0
+while i < 10 do
+{
+    var x = xs[i]
+    var y = ys[i]
+
+    var left = case {
+        (1.0 - x) + (1.0 - y) >= 1.0 then x + y
+        otherwise x * y
+    }
+
+    var right = case
+        (1.0 - x) + (1.0 - y) >= 1.0 then x + y
+        otherwise x * y
+    
+    b = b & (left == right)
+
+    i = i + 1
+}
+
+return b

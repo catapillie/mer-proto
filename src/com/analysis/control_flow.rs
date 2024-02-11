@@ -97,6 +97,9 @@ impl<'d> Analyser<'d> {
                     .any(|(guard, expr)| Self::is_never(guard) || Self::is_never(expr))
                     || Self::is_never(default)
             }
+            E::CaseTernary(guard, expr, fallback, _) => {
+                Self::is_never(guard) || Self::is_never(expr) || Self::is_never(fallback)
+            }
         }
     }
 }

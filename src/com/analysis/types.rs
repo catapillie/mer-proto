@@ -136,6 +136,7 @@ impl<'d> Analyser<'d> {
             E::Unreachable => Ty::Never,
 
             E::Case(_, _, ty) => ty.clone(),
+            E::CaseTernary(_, _, _, ty) => ty.clone(),
         }
     }
 

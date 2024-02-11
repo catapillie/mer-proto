@@ -48,6 +48,8 @@ impl<'d> Analyser<'d> {
                 => abt::Expr::Todo,
             K::Unreachable
                 => abt::Expr::Unreachable,
+            K::TernaryCase(guard, expr, fallback, span)
+                => self.analyse_ternary_case_expression(guard, expr, fallback, *span),
             K::Case(paths, span)
                 => self.analyse_case_expression(paths, *span),
         }

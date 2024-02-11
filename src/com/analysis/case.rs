@@ -6,6 +6,68 @@ use crate::{
 };
 
 impl<'d> Analyser<'d> {
+    pub fn analyse_ternary_case_expression(
+        &mut self,
+        guard: &ast::Expr,
+        expr: &ast::Expr,
+        fallback: &ast::Expr,
+        span: Span,
+    ) -> abt::Expr {
+        let bound_guard = self.analyse_expression(guard);
+        let bound_expr = self.analyse_expression(expr);
+        let bound_fallback = self.analyse_expression(fallback);
+
+        let guard_ty = self.type_of(&bound_guard);
+        if !guard_ty.is(&abt::Type::Bool) {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::GuardNotBoolean)
+                .with_span(guard.span)
+                .with_severity(Severity::Error)
+                .annotate_primary(Note::MustBeOfType(abt::Type::Bool), guard.span)
+                .done();
+            self.diagnostics.push(d);
+            return abt::Expr::Unknown;
+        }
+
+        let expr_ty = self.type_of(&bound_expr);
+        let fallback_ty = self.type_of(&bound_fallback);
+
+        if !expr_ty.is_known() || !fallback_ty.is_known() {
+            return abt::Expr::Unknown;
+        }
+
+        let ty = if expr_ty == abt::Type::Never || fallback_ty == abt::Type::Never {
+            abt::Type::Never
+        } else if expr_ty.is(&fallback_ty) {
+            expr_ty
+        } else {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::CasePathsTypeMismatch)
+                .with_span(span)
+                .with_severity(Severity::Error)
+                .annotate_primary(Note::Quiet, span)
+                .annotate_secondary(Note::Type(expr_ty), expr.span, NoteSeverity::Annotation)
+                .annotate_secondary(
+                    Note::Type(fallback_ty),
+                    fallback.span,
+                    NoteSeverity::Annotation,
+                )
+                .done();
+            self.diagnostics.push(d);
+            return abt::Expr::Unknown;
+        };
+
+        // TODO: warning for always-matching case
+        // TODO: warning for never-matching case
+
+        abt::Expr::CaseTernary(
+            Box::new(bound_guard),
+            Box::new(bound_expr),
+            Box::new(bound_fallback),
+            ty,
+        )
+    }
+
     pub fn analyse_case_expression(
         &mut self,
         paths: &[(Option<ast::Expr>, ast::Expr)],
@@ -125,7 +187,7 @@ impl<'d> Analyser<'d> {
                 .done();
             self.diagnostics.push(d);
         }
-        
+
         // TODO: warning for always-matching case
         // TODO: warning for never-matching case
 

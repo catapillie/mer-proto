@@ -3,7 +3,7 @@ use std::fs;
 use colored::Colorize;
 use merlib::{
     binary,
-    com::{self, AnalysisStage, abt::Type},
+    com::{self, abt::Type, AnalysisStage},
     diagnostics::Severity,
     runtime::VM,
 };
@@ -126,6 +126,7 @@ check_program_output!(case_two => (bool, Type::Bool) true);
 check_program_output!(case_many => (bool, Type::Bool) true);
 check_program_output!(case_order => (bool, Type::Bool) true);
 check_program_output!(case_nested => (bool, Type::Bool) true);
+check_program_output!(case_simple_syntax_eq => (bool, Type::Bool) true);
 
 macro_rules! check_program_output {
     ($name:ident => ($expected_ty:ty, $type_abt:expr) $expected:expr) => {

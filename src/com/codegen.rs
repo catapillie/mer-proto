@@ -179,6 +179,7 @@ impl Codegen {
             E::Unreachable => Ty::Never,
 
             E::Case(_, _, ty) => ty.clone(),
+            E::CaseTernary(_, _, _, ty) => ty.clone(),
         }
     }
 
@@ -800,6 +801,28 @@ impl Codegen {
                 for placeholder in skip_placeholders {
                     self.patch_u32_placeholder(placeholder, cursor_end)?;
                 }
+
+                Ok(())
+            }
+            E::CaseTernary(guard, expr, fallback, _) => {
+                // <guard> then ...
+                self.gen_expression(guard, abt)?;
+                self.cursor.write_u8(opcode::jmp_if)?;
+                let cursor_guard_end = self.gen_u32_placeholder()?;
+
+                // otherwise <fallback>
+                self.gen_expression(fallback, abt)?;
+                self.cursor.write_u8(opcode::jmp)?;
+                let cursor_body_else_end = self.gen_u32_placeholder()?;
+
+                // ... then <expr>
+                let cursor_body_then_start = self.position();
+                self.gen_expression(expr, abt)?;
+                let cursor_body_then_end = self.position();
+
+                // write saved jump addresses
+                self.patch_u32_placeholder(cursor_body_else_end, cursor_body_then_end)?;
+                self.patch_u32_placeholder(cursor_guard_end, cursor_body_then_start)?;
 
                 Ok(())
             }

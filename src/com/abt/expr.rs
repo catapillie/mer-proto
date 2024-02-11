@@ -31,4 +31,5 @@ pub enum Expr {
     Todo,
     Unreachable,
     Case(Box<[(Expr, Expr)]>, Box<Expr>, Type),
+    CaseTernary(Box<Expr>, Box<Expr>, Box<Expr>, Type),
 }

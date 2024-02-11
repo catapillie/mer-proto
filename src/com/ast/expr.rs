@@ -24,6 +24,7 @@ pub enum ExprKind {
     Deref(Box<Expr>),
     Todo,
     Unreachable,
+    TernaryCase(Box<Expr>, Box<Expr>, Box<Expr>, Span),
     Case(Box<[(Option<Expr>, Expr)]>, Span),
 }
 

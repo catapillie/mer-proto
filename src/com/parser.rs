@@ -661,8 +661,12 @@ impl<'a> Parser<'a> {
             self.match_token::<OtherwiseKw>();
             let fallback = self.expect_expression();
 
-            let paths = vec![(Some(guard), expr), (None, fallback)]; 
-            return Some(ExprKind::Case(paths.into_boxed_slice(), case_kw_span))
+            return Some(ExprKind::TernaryCase(
+                Box::new(guard),
+                Box::new(expr),
+                Box::new(fallback),
+                case_kw_span,
+            ));
         }
 
         self.skip_newlines();
