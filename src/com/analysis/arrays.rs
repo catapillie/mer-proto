@@ -74,7 +74,7 @@ impl<'d> Analyser<'d> {
                 })
                 .with_span(span)
                 .with_severity(Severity::Error)
-                .annotate_primary(Note::OfType(self.type_of(&bound_expr)), expr.span)
+                .annotate_primary(Note::OfType(self.type_of(&bound_expr).repr()), expr.span)
                 .done();
             self.diagnostics.push(d);
             return abt::Expr::Unknown;

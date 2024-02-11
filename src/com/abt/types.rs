@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use crate::diagnostics::TypeRepr;
 
 #[rustfmt::skip]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -36,65 +36,38 @@ impl Type {
         }
     }
 
-    fn fmt_paren(&self, f: &mut std::fmt::Formatter<'_>, paren: bool) -> std::fmt::Result {
+    #[rustfmt::skip]
+    pub fn repr(&self) -> TypeRepr {
+        use TypeRepr as Ty;
         match self {
-            Self::Unknown => write!(f, "unknown"),
-            Self::Never => write!(f, "!"),
-            Self::Unit => write!(f, "()"),
-            Self::U8 => write!(f, "u8"),
-            Self::U16 => write!(f, "u16"),
-            Self::U32 => write!(f, "u32"),
-            Self::U64 => write!(f, "u64"),
-            Self::I8 => write!(f, "i8"),
-            Self::I16 => write!(f, "i16"),
-            Self::I32 => write!(f, "i32"),
-            Self::I64 => write!(f, "i64"),
-            Self::F32 => write!(f, "f32"),
-            Self::F64 => write!(f, "f64"),
-            Self::Bool => write!(f, "bool"),
-            Self::Tuple(head, tail) => {
-                write!(f, "({head}")?;
-                for ty in tail.iter() {
-                    write!(f, ", ")?;
-                    ty.fmt_paren(f, false)?;
-                }
-                write!(f, ")")?;
-                Ok(())
-            }
-            Self::Array(ty, size) => {
-                write!(f, "[{size}]")?;
-                ty.fmt_paren(f, true)?;
-                Ok(())
-            }
-            Self::Ref(inner) => {
-                write!(f, "&")?;
-                inner.fmt_paren(f, true)
-            }
-            Self::Func(args, to) => {
-                if paren {
-                    write!(f, "(")?;
-                }
-                if let Some((head, tail)) = args.split_first() {
-                    head.fmt_paren(f, true)?;
-                    for arg in tail {
-                        write!(f, ", ")?;
-                        arg.fmt_paren(f, true)?;
-                    }
-                    write!(f, " -> {to}")?;
-                } else {
-                    write!(f, "-> {to}")?;
-                }
-                if paren {
-                    write!(f, ")")?;
-                }
-                Ok(())
-            }
+            Self::Unknown => Ty::Unknown,
+            Self::Never => Ty::Never,
+            Self::Unit => Ty::Unit,
+            Self::U8 => Ty::U8,
+            Self::U16 => Ty::U16,
+            Self::U32 => Ty::U32,
+            Self::U64 => Ty::U64,
+            Self::I8 => Ty::I8,
+            Self::I16 => Ty::I16,
+            Self::I32 => Ty::I32,
+            Self::I64 => Ty::I64,
+            Self::F32 => Ty::F32,
+            Self::F64 => Ty::F64,
+            Self::Bool => Ty::Bool,
+            Self::Tuple(head, tail)
+                => Ty::Tuple(
+                    Box::new(head.repr()),
+                    tail.iter().map(Self::repr).collect()
+                ),
+            Self::Array(ty, size)
+                => Ty::Array(Box::new(ty.repr()), *size),
+            Self::Ref(inner)
+                => Ty::Ref(Box::new(inner.repr())),
+            Self::Func(args, ty)
+                => Ty::Func(
+                    args.iter().map(Self::repr).collect(),
+                    Box::new(ty.repr())
+                ),
         }
-    }
-}
-
-impl Display for Type {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.fmt_paren(f, false)
     }
 }

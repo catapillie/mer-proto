@@ -31,7 +31,7 @@ impl<'d> Analyser<'d> {
                 .with_kind(DiagnosticKind::GuardNotBoolean)
                 .with_severity(Severity::Error)
                 .with_span(guard.span)
-                .annotate_primary(Note::MustBeOfType(abt::Type::Bool), guard.span)
+                .annotate_primary(Note::MustBeOfType(abt::Type::Bool.repr()), guard.span)
                 .done();
             self.diagnostics.push(d);
         }
@@ -65,7 +65,7 @@ impl<'d> Analyser<'d> {
                 .with_kind(DiagnosticKind::GuardNotBoolean)
                 .with_severity(Severity::Error)
                 .with_span(guard.span)
-                .annotate_primary(Note::MustBeOfType(abt::Type::Bool), guard.span)
+                .annotate_primary(Note::MustBeOfType(abt::Type::Bool.repr()), guard.span)
                 .done();
             self.diagnostics.push(d);
         }

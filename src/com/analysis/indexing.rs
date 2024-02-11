@@ -24,7 +24,7 @@ impl<'d> Analyser<'d> {
                 .with_kind(DiagnosticKind::ArrayIndexMustBeInteger)
                 .with_span(index_expr.span)
                 .with_severity(Severity::Error)
-                .annotate_primary(Note::OfType(index_ty), index_expr.span)
+                .annotate_primary(Note::OfType(index_ty.repr()), index_expr.span)
                 .done();
             self.diagnostics.push(d);
             return abt::Expr::Unknown;
@@ -39,7 +39,7 @@ impl<'d> Analyser<'d> {
                 .with_kind(DiagnosticKind::InvalidIndex)
                 .with_span(span)
                 .with_severity(Severity::Error)
-                .annotate_primary(Note::OfType(expr_ty), expr.span)
+                .annotate_primary(Note::OfType(expr_ty.repr()), expr.span)
                 .done();
             self.diagnostics.push(d);
             return abt::Expr::Unknown;
@@ -92,7 +92,7 @@ impl<'d> Analyser<'d> {
                 .with_kind(DiagnosticKind::InvalidImmediateIndex)
                 .with_span(span)
                 .with_severity(Severity::Error)
-                .annotate_primary(Note::OfType(ty), expr.span)
+                .annotate_primary(Note::OfType(ty.repr()), expr.span)
                 .done();
             self.diagnostics.push(d);
             abt::Expr::Unknown

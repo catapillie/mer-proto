@@ -1,7 +1,8 @@
 use std::num::ParseIntError;
 
+use super::TypeRepr;
 use crate::com::{
-    abt, ast,
+    ast,
     tokens::{Token, TokenKind},
 };
 
@@ -45,22 +46,22 @@ pub enum DiagnosticKind {
 
     UnknownType(String),
     TypeMismatch {
-        found: abt::Type,
-        expected: abt::Type,
+        found: TypeRepr,
+        expected: TypeRepr,
     },
 
     InvalidUnaryOperation {
         op: ast::UnOp,
-        ty: abt::Type,
+        ty: TypeRepr,
     },
     InvalidBinaryOperation {
         op: ast::BinOp,
-        left: abt::Type,
-        right: abt::Type,
+        left: TypeRepr,
+        right: TypeRepr,
     },
 
     MustReturnValue {
-        expected: abt::Type,
+        expected: TypeRepr,
     },
     NotAllPathsReturn,
     TopLevelMustReturn,
@@ -72,9 +73,9 @@ pub enum DiagnosticKind {
         var_name: String,
     },
 
-    InvalidDebugExpression(abt::Type),
+    InvalidDebugExpression(TypeRepr),
 
-    InvalidDereference(abt::Type),
+    InvalidDereference(TypeRepr),
 
     InvalidImmediateIndex,
     InvalidTupleIndex {

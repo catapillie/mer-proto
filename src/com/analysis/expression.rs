@@ -76,10 +76,10 @@ impl<'d> Analyser<'d> {
             Ty::Unknown => abt::Expr::Unknown,
             _ => {
                 let d = diagnostics::create_diagnostic()
-                    .with_kind(DiagnosticKind::InvalidDebugExpression(ty.clone()))
+                    .with_kind(DiagnosticKind::InvalidDebugExpression(ty.repr()))
                     .with_severity(Severity::Error)
                     .with_span(expr.span)
-                    .annotate_primary(Note::OfType(ty), expr.span)
+                    .annotate_primary(Note::OfType(ty.repr()), expr.span)
                     .done();
                 self.diagnostics.push(d);
                 abt::Expr::Unknown

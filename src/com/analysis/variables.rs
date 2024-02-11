@@ -10,12 +10,7 @@ use crate::{
 use super::{Analyser, Declaration};
 
 impl<'d> Analyser<'d> {
-    pub fn declare_variable_here(
-        &mut self,
-        name: &str,
-        ty: abt::Type,
-        span: Span,
-    ) -> Declaration {
+    pub fn declare_variable_here(&mut self, name: &str, ty: abt::Type, span: Span) -> Declaration {
         let declared = self.make_unique_id();
         let shadowed = self.scope.bindings.insert(name.to_string(), declared);
 

@@ -23,7 +23,7 @@ impl<'d> Analyser<'d> {
                 .with_kind(DiagnosticKind::GuardNotBoolean)
                 .with_span(guard.span)
                 .with_severity(Severity::Error)
-                .annotate_primary(Note::MustBeOfType(abt::Type::Bool), guard.span)
+                .annotate_primary(Note::MustBeOfType(abt::Type::Bool.repr()), guard.span)
                 .done();
             self.diagnostics.push(d);
             return abt::Expr::Unknown;
@@ -46,9 +46,13 @@ impl<'d> Analyser<'d> {
                 .with_span(span)
                 .with_severity(Severity::Error)
                 .annotate_primary(Note::Quiet, span)
-                .annotate_secondary(Note::Type(expr_ty), expr.span, NoteSeverity::Annotation)
                 .annotate_secondary(
-                    Note::Type(fallback_ty),
+                    Note::Type(expr_ty.repr()),
+                    expr.span,
+                    NoteSeverity::Annotation,
+                )
+                .annotate_secondary(
+                    Note::Type(fallback_ty.repr()),
                     fallback.span,
                     NoteSeverity::Annotation,
                 )
@@ -95,7 +99,7 @@ impl<'d> Analyser<'d> {
                     .with_kind(DiagnosticKind::GuardNotBoolean)
                     .with_span(guard.span)
                     .with_severity(Severity::Error)
-                    .annotate_primary(Note::MustBeOfType(abt::Type::Bool), guard.span)
+                    .annotate_primary(Note::MustBeOfType(abt::Type::Bool.repr()), guard.span)
                     .done();
                 self.diagnostics.push(d);
                 return abt::Expr::Unknown;
@@ -159,7 +163,7 @@ impl<'d> Analyser<'d> {
                 .annotate_primary(Note::Quiet, span);
             for ((_, bound_expr), (_, expr)) in bound_paths.iter().zip(paths.iter()) {
                 d = d.annotate_secondary(
-                    Note::Type(self.type_of(bound_expr)),
+                    Note::Type(self.type_of(bound_expr).repr()),
                     expr.span,
                     NoteSeverity::Annotation,
                 );

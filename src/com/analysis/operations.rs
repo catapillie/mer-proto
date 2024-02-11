@@ -57,8 +57,8 @@ impl<'d> Analyser<'d> {
         let d = diagnostics::create_diagnostic()
             .with_kind(DiagnosticKind::InvalidBinaryOperation {
                 op,
-                left: ty_left,
-                right: ty_right,
+                left: ty_left.repr(),
+                right: ty_right.repr(),
             })
             .with_severity(Severity::Error)
             .with_span(span)
@@ -156,17 +156,20 @@ impl<'d> Analyser<'d> {
         if !right_ty.is(&expected_type) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::TypeMismatch {
-                    found: right_ty,
-                    expected: expected_type.clone(),
+                    found: right_ty.repr(),
+                    expected: expected_type.repr(),
                 })
                 .with_severity(Severity::Error)
                 .with_span(right.span)
                 .annotate_primary(
-                    Note::MustBeOfType(expected_type).so().dddot_front().num(2),
+                    Note::MustBeOfType(expected_type.repr())
+                        .so()
+                        .dddot_front()
+                        .num(2),
                     right.span,
                 )
                 .annotate_secondary(
-                    Note::VariableType(info.name.clone(), info.ty.clone())
+                    Note::VariableType(info.name.clone(), info.ty.repr())
                         .dddot_back()
                         .num(1),
                     info.declaration_span,
@@ -276,7 +279,7 @@ impl<'d> Analyser<'d> {
         }
 
         let d = diagnostics::create_diagnostic()
-            .with_kind(DiagnosticKind::InvalidUnaryOperation { op, ty })
+            .with_kind(DiagnosticKind::InvalidUnaryOperation { op, ty: ty.repr() })
             .with_severity(Severity::Error)
             .with_span(span)
             .annotate_primary(Note::Quiet, span)

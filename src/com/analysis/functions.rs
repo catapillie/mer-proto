@@ -156,7 +156,10 @@ impl<'d> Analyser<'d> {
                 .with_kind(DiagnosticKind::InvalidCallee)
                 .with_span(callee.span)
                 .with_severity(Severity::Error)
-                .annotate_primary(Note::NotFunction(self.type_of(&bound_callee)), callee.span)
+                .annotate_primary(
+                    Note::NotFunction(self.type_of(&bound_callee).repr()),
+                    callee.span,
+                )
                 .done();
             self.diagnostics.push(d);
             abt::Expr::Unknown
@@ -196,20 +199,20 @@ impl<'d> Analyser<'d> {
             let arg_span = arg_info.declaration_span;
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::TypeMismatch {
-                    found: ty_param.clone(),
-                    expected: arg_ty.clone(),
+                    found: ty_param.repr(),
+                    expected: arg_ty.repr(),
                 })
                 .with_severity(Severity::Error)
                 .with_span(span)
                 .annotate_secondary(
-                    Note::ArgumentType(arg_name, arg_ty.clone())
+                    Note::ArgumentType(arg_name, arg_ty.repr())
                         .dddot_back()
                         .num(1),
                     arg_span,
                     NoteSeverity::Annotation,
                 )
                 .annotate_primary(
-                    Note::MustBeOfType(arg_ty.clone()).so().dddot_front().num(2),
+                    Note::MustBeOfType(arg_ty.repr()).so().dddot_front().num(2),
                     span,
                 )
                 .done();
@@ -273,12 +276,12 @@ impl<'d> Analyser<'d> {
 
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::TypeMismatch {
-                    found: ty,
-                    expected: arg_ty.clone(),
+                    found: ty.repr(),
+                    expected: arg_ty.repr(),
                 })
                 .with_span(span)
                 .with_severity(Severity::Error)
-                .annotate_primary(Note::MustBeOfType(arg_ty.clone()), span)
+                .annotate_primary(Note::MustBeOfType(arg_ty.repr()), span)
                 .done();
             self.diagnostics.push(d);
             invalid = true;
@@ -316,16 +319,16 @@ impl<'d> Analyser<'d> {
         if !ty.is(&return_ty.0) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::MustReturnValue {
-                    expected: return_ty.0.clone(),
+                    expected: return_ty.0.repr(),
                 })
                 .with_severity(Severity::Error)
                 .with_span(span)
-                .annotate_primary(Note::OfType(ty.clone()).but().dddot_front().num(2), span);
+                .annotate_primary(Note::OfType(ty.repr()).but().dddot_front().num(2), span);
 
             let d = match return_ty.1 {
                 Some((Some(span), name)) => d
                     .annotate_secondary(
-                        Note::FunctionReturnType(name, return_ty.0.clone())
+                        Note::FunctionReturnType(name, return_ty.0.repr())
                             .dddot_back()
                             .num(1),
                         span,
@@ -353,13 +356,13 @@ impl<'d> Analyser<'d> {
         if !ty_expr.is(&return_ty.0) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::TypeMismatch {
-                    found: ty_expr,
-                    expected: return_ty.0.clone(),
+                    found: ty_expr.repr(),
+                    expected: return_ty.0.repr(),
                 })
                 .with_severity(Severity::Error)
                 .with_span(expr.span)
                 .annotate_primary(
-                    Note::MustBeOfType(return_ty.0.clone())
+                    Note::MustBeOfType(return_ty.0.repr())
                         .so()
                         .dddot_front()
                         .num(2),
@@ -369,7 +372,7 @@ impl<'d> Analyser<'d> {
             let d = match return_ty.1 {
                 Some((Some(span), name)) => d
                     .annotate_secondary(
-                        Note::FunctionReturnType(name, return_ty.0.clone())
+                        Note::FunctionReturnType(name, return_ty.0.repr())
                             .dddot_back()
                             .num(1),
                         span,
