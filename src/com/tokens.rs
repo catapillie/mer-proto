@@ -1,3 +1,5 @@
+use crate::utils::Span;
+
 pub trait TokenValue: Clone + Default {
     fn wrap(self, span: Span) -> Token;
     fn is_inside(token: &Token) -> bool;
@@ -52,6 +54,7 @@ gen_tokens! {
     XorKw
     NotKw
     CaseKw
+    DataKw
     OtherwiseKw
     TodoKw
     UnreachableKw
@@ -130,5 +133,3 @@ macro_rules! gen_tokens {
 }
 
 use gen_tokens;
-
-use crate::utils::Span;

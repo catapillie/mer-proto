@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use super::pos::Pos;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct Span {
     pub from: Pos,
     pub to: Pos,

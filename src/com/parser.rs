@@ -2,7 +2,7 @@ use super::{ast::*, tokens::*};
 use crate::{
     com::ast::types::TypeKind,
     diagnostics::{self, DiagnosticKind, DiagnosticList, Note, Severity},
-    utils::{Cursor, Pos, Span},
+    utils::{Cursor, Pos, Span, Spanned},
 };
 
 pub struct Parser<'a> {
@@ -95,26 +95,60 @@ impl<'a> Parser<'a> {
     pub fn parse_statement(&mut self) -> Option<Stmt> {
         self.skip_newlines();
 
+        try_return_some!(self.parse_data_definition());
         try_return_some!(self.parse_variable_definition());
+        try_return_some!(self.parse_block_statement());
+        try_return_some!(self.parse_if_then_statement());
+        try_return_some!(self.parse_then_statement());
+        try_return_some!(self.parse_else_statement());
+        try_return_some!(self.parse_while_do_statement());
+        try_return_some!(self.parse_do_while_statement());
+        try_return_some!(self.parse_function_statement());
+        try_return_some!(self.parse_return_statement());
 
         if let Some(expr) = self.parse_expression() {
             let span = expr.span;
             return Some(StmtKind::Expr(Box::new(expr)).wrap(span));
         }
 
-        try_return_some!(self.parse_block_statement());
-
-        try_return_some!(self.parse_if_then_statement());
-        try_return_some!(self.parse_then_statement());
-        try_return_some!(self.parse_else_statement());
-
-        try_return_some!(self.parse_while_do_statement());
-        try_return_some!(self.parse_do_while_statement());
-
-        try_return_some!(self.parse_function_statement());
-        try_return_some!(self.parse_return_statement());
-
         None
+    }
+
+    fn parse_data_definition(&mut self) -> Option<Stmt> {
+        let (stmt, span) = take_span!(self => {
+            self.try_match_token::<DataKw>()?;
+
+            let name = self.match_token::<Identifier>().map(|id| Spanned {
+                value: id.0,
+                span: self.last_span(),
+            }).unwrap_or_default();
+
+            self.skip_newlines();
+            self.match_token::<LeftBrace>();
+            self.skip_newlines();
+
+            let mut fields = Vec::new();
+
+            while let Some(id) = self.try_match_token::<Identifier>() {
+                let field_name = Spanned {
+                    value: id.0,
+                    span: self.last_span()
+                };
+
+                self.match_token::<Colon>();
+                let field_type = self.expect_type_expression();
+
+                fields.push((field_name, field_type));
+            }
+
+            self.skip_newlines();
+            self.match_token::<RightBrace>();
+            self.skip_newlines();
+
+            Some(StmtKind::DataDef(name, fields.into_boxed_slice()))
+        });
+
+        Some(stmt?.wrap(span))
     }
 
     fn parse_variable_definition(&mut self) -> Option<Stmt> {
@@ -1095,6 +1129,7 @@ impl<'a> Parser<'a> {
                     "not" => NotKw.wrap(span),
                     "debug" => DebugKw.wrap(span),
                     "case" => CaseKw.wrap(span),
+                    "data" => DataKw.wrap(span),
                     "otherwise" => OtherwiseKw.wrap(span),
                     "todo" => TodoKw.wrap(span),
                     "unreachable" => UnreachableKw.wrap(span),
