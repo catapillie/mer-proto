@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use clap::{Args, Parser, Subcommand};
+use clap::{Args, Parser, Subcommand, ValueEnum};
 
 #[derive(Parser)]
 #[command(version)]
@@ -26,6 +26,10 @@ pub struct Com {
     /// The path to the file containing the source code
     pub path: PathBuf,
 
+    /// The path to the output file
+    #[arg(short, long)]
+    pub out: Option<PathBuf>,
+
     /// Whether the program should be ran after compilation
     #[arg(short, long)]
     pub run: bool,
@@ -33,12 +37,20 @@ pub struct Com {
     /// Hide compiler status messages
     #[arg(short, long)]
     pub quiet: bool,
+
+    /// Language for compiler diagnostics
+    #[arg(short, long)]
+    pub lang: Option<LangValue>,
 }
 
 #[derive(Args)]
 pub struct Check {
     /// The path to the file containing the source code
     pub path: PathBuf,
+
+    /// Language for compiler diagnostics
+    #[arg(short, long)]
+    pub lang: Option<LangValue>,
 }
 
 #[derive(Args)]
@@ -51,4 +63,10 @@ pub struct Run {
 pub struct Dis {
     /// The path to the bytecode file
     pub path: PathBuf,
+}
+
+#[derive(Clone, ValueEnum)]
+pub enum LangValue {
+    En,
+    Fr,
 }

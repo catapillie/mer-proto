@@ -30,13 +30,19 @@ fn main() {
 }
 
 fn com(args: Com) {
-    let lang: &dyn Lang = match sys_locale::get_locale() {
-        Some(locale) => match &locale[..2] {
-            "en" => &localization::English,
-            "fr" => &localization::French,
-            _ => DEFAULT_LANG,
+    let lang: &dyn Lang = match args.lang {
+        Some(lang) => match lang {
+            LangValue::En => &localization::English,
+            LangValue::Fr => &localization::French,
         },
-        None => DEFAULT_LANG,
+        None => match sys_locale::get_locale() {
+            Some(locale) => match &locale[..2] {
+                "en" => &localization::English,
+                "fr" => &localization::French,
+                _ => DEFAULT_LANG,
+            },
+            None => DEFAULT_LANG,
+        },
     };
 
     let path_str = args.path.to_string_lossy();
@@ -105,18 +111,18 @@ fn com(args: Com) {
         }
     };
 
-    let out_path = args
-        .path
-        .with_extension("out")
-        .to_string_lossy()
-        .to_string();
+    let out_path = match args.out {
+        Some(path) => path,
+        None => args.path.with_extension("out"),
+    };
 
+    let out_path_str = out_path.to_string_lossy();
     match com::write_bytecode(&out_path, &bytecode) {
         Ok(_) => {}
         Err(err) => {
             msg::error(format!(
                 "something went wrong when writing bytecode into {}:\n{}",
-                out_path.bold().underline(),
+                out_path_str.bold().underline(),
                 err.to_string().italic(),
             ));
         }
@@ -125,7 +131,7 @@ fn com(args: Com) {
     if !args.quiet {
         msg::ok(format!(
             "compilation finished successfully to {}",
-            out_path.bold().underline(),
+            out_path_str.bold().underline(),
         ));
     }
 
@@ -146,13 +152,19 @@ fn com(args: Com) {
 }
 
 fn check(args: Check) {
-    let lang: &dyn Lang = match sys_locale::get_locale() {
-        Some(locale) => match &locale[..2] {
-            "en" => &localization::English,
-            "fr" => &localization::French,
-            _ => DEFAULT_LANG,
+    let lang: &dyn Lang = match args.lang {
+        Some(lang) => match lang {
+            LangValue::En => &localization::English,
+            LangValue::Fr => &localization::French,
         },
-        None => DEFAULT_LANG,
+        None => match sys_locale::get_locale() {
+            Some(locale) => match &locale[..2] {
+                "en" => &localization::English,
+                "fr" => &localization::French,
+                _ => DEFAULT_LANG,
+            },
+            None => DEFAULT_LANG,
+        },
     };
 
     let path_str = args.path.to_string_lossy();
