@@ -10,7 +10,7 @@ use super::Analyser;
 
 impl<'d> Analyser<'d> {
     pub fn analyse_type(&mut self, ty: &ast::Type) -> TypeAbt {
-        match &ty.kind {
+        match &ty.value {
             ast::TypeKind::Bad => TypeAbt::Unknown,
             ast::TypeKind::Unit => TypeAbt::Unit,
             ast::TypeKind::Tuple(head, tail) => TypeAbt::Tuple(

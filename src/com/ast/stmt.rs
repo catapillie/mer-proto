@@ -1,11 +1,7 @@
-use super::{expr::Expr, types::Type};
-use crate::utils::Span;
+use super::{Expr, Type};
+use crate::utils::{Span, Spanned};
 
-#[derive(Debug)]
-pub struct Stmt {
-    pub kind: StmtKind,
-    pub span: Span,
-}
+pub type Stmt = Spanned<StmtKind>;
 
 #[derive(Debug)]
 pub enum StmtKind {
@@ -32,6 +28,6 @@ pub enum StmtKind {
 
 impl StmtKind {
     pub fn wrap(self, span: Span) -> Stmt {
-        Stmt { kind: self, span }
+        Spanned { value: self, span }
     }
 }

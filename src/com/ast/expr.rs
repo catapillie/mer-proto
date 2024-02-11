@@ -1,11 +1,7 @@
-use super::{bin_op::BinOp, un_op::UnOp};
-use crate::utils::Span;
+use super::{BinOp, UnOp};
+use crate::utils::{Span, Spanned};
 
-#[derive(Debug)]
-pub struct Expr {
-    pub kind: ExprKind,
-    pub span: Span,
-}
+pub type Expr = Spanned<ExprKind>;
 
 #[derive(Debug)]
 pub enum ExprKind {
@@ -33,6 +29,6 @@ pub enum ExprKind {
 
 impl ExprKind {
     pub fn wrap(self, span: Span) -> Expr {
-        Expr { kind: self, span }
+        Spanned { value: self, span }
     }
 }

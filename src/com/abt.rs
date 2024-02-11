@@ -1,7 +1,7 @@
 use std::{collections::HashMap, fmt::Display};
 
 use super::analysis::{FunctionInfo, VariableInfo};
-use crate::utils::Span;
+use crate::utils::{Span, Spanned};
 
 pub struct ProgramAbt {
     pub main_fn_id: u64,
@@ -9,11 +9,7 @@ pub struct ProgramAbt {
     pub variables: HashMap<u64, VariableInfo>,
 }
 
-#[derive(Debug)]
-pub struct StmtAbt {
-    pub kind: StmtAbtKind,
-    pub span: Span,
-}
+pub type StmtAbt = Spanned<StmtAbtKind>;
 
 #[derive(Debug)]
 pub enum StmtAbtKind {
@@ -30,7 +26,7 @@ pub enum StmtAbtKind {
 
 impl StmtAbtKind {
     pub fn wrap(self, span: Span) -> StmtAbt {
-        StmtAbt { kind: self, span }
+        Spanned { value: self, span }
     }
 }
 

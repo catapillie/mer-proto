@@ -20,7 +20,7 @@ impl<'d> Analyser<'d> {
         let bound_body = self.analyse_statement(body);
         self.close_scope();
 
-        if matches!(bound_body.kind, StmtAbtKind::Empty) {
+        if matches!(bound_body.value, StmtAbtKind::Empty) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::EmptyThenStatement)
                 .with_severity(Severity::Warning)
@@ -59,7 +59,7 @@ impl<'d> Analyser<'d> {
         let bound_body_else = self.analyse_statement(body_else);
         self.close_scope();
 
-        if matches!(bound_body_then.kind, StmtAbtKind::Empty) {
+        if matches!(bound_body_then.value, StmtAbtKind::Empty) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::EmptyThenStatement)
                 .with_severity(Severity::Warning)
@@ -69,7 +69,7 @@ impl<'d> Analyser<'d> {
             self.diagnostics.push(d);
         }
 
-        if matches!(bound_body_else.kind, StmtAbtKind::Empty) {
+        if matches!(bound_body_else.value, StmtAbtKind::Empty) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::EmptyElseStatement)
                 .with_severity(Severity::Warning)

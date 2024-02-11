@@ -8,7 +8,7 @@ use super::Analyser;
 impl<'d> Analyser<'d> {
     #[rustfmt::skip]
     pub fn analyse_statement(&mut self, stmt: &ast::Stmt) -> StmtAbt {
-        match &stmt.kind {
+        match &stmt.value {
             ast::StmtKind::Empty
                 => StmtAbtKind::Empty,
             ast::StmtKind::VarDef(name, value)
@@ -46,7 +46,7 @@ impl<'d> Analyser<'d> {
         let bound_stmts = stmts
             .iter()
             .map(|stmt| self.analyse_statement(stmt))
-            .filter(|stmt| !matches!(stmt.kind, StmtAbtKind::Empty))
+            .filter(|stmt| !matches!(stmt.value, StmtAbtKind::Empty))
             .collect::<Box<_>>();
         self.close_scope();
 

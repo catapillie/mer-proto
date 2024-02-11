@@ -12,7 +12,7 @@ impl<'d> Analyser<'d> {
     #[rustfmt::skip]
     pub fn analyse_expression(&mut self, expr: &ast::Expr) -> ExprAbt {
         use ast::ExprKind as K;
-        match &expr.kind {
+        match &expr.value {
             K::Bad
                 => ExprAbt::Unknown,
             K::Unit

@@ -10,7 +10,7 @@ impl<'d> Analyser<'d> {
     // returns whether the provided statement is guaranteed to return
     pub fn analyse_control_flow(&mut self, stmt: &StmtAbt) -> bool {
         use StmtAbtKind as S;
-        match &stmt.kind {
+        match &stmt.value {
             S::Block(stmts) => {
                 let mut does_return = false;
 

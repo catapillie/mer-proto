@@ -272,7 +272,7 @@ impl Codegen {
 
     fn gen_statement(&mut self, stmt: &StmtAbt, abt: &ProgramAbt) -> io::Result<()> {
         use StmtAbtKind as S;
-        match &stmt.kind {
+        match &stmt.value {
             S::Empty => {}
             S::Block(stmts) => {
                 for stmt in stmts.iter() {

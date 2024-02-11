@@ -722,7 +722,7 @@ impl<'a> Parser<'a> {
                 let ret_ty = self.expect_type_expression();
                 Some(TypeKind::Func(types.into(), Box::new(ret_ty)))
             } else {
-                Some(types.swap_remove(0).kind)
+                Some(types.swap_remove(0).value)
             }
         });
 

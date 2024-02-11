@@ -19,7 +19,7 @@ impl<'d> Analyser<'d> {
         let bound_body = self.analyse_statement(body);
         self.close_scope();
 
-        if matches!(bound_body.kind, StmtAbtKind::Empty) {
+        if matches!(bound_body.value, StmtAbtKind::Empty) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::EmptyWhileDoStatement)
                 .with_severity(Severity::Warning)
@@ -53,7 +53,7 @@ impl<'d> Analyser<'d> {
         let bound_body = self.analyse_statement(body);
         self.close_scope();
 
-        if matches!(bound_body.kind, StmtAbtKind::Empty) {
+        if matches!(bound_body.value, StmtAbtKind::Empty) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::EmptyDoWhileStatement)
                 .with_severity(Severity::Warning)

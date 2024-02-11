@@ -1,10 +1,6 @@
-use crate::utils::Span;
+use crate::utils::{Span, Spanned};
 
-#[derive(Debug)]
-pub struct Type {
-    pub kind: TypeKind,
-    pub span: Span,
-}
+pub type Type = Spanned<TypeKind>;
 
 #[derive(Debug)]
 pub enum TypeKind {
@@ -19,6 +15,6 @@ pub enum TypeKind {
 
 impl TypeKind {
     pub fn wrap(self, span: Span) -> Type {
-        Type { kind: self, span }
+        Spanned { value: self, span }
     }
 }
