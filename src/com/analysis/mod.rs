@@ -1,12 +1,13 @@
 use std::collections::HashMap;
 
 use self::scope::Scope;
-use super::abt::{FunctionInfo, VariableInfo};
+use super::abt::{DataInfo, FunctionInfo, VariableInfo};
 use crate::diagnostics::DiagnosticList;
 
 mod scope;
 
 mod control_flow;
+mod data;
 mod expression;
 mod program;
 mod statement;
@@ -35,6 +36,7 @@ pub struct Analyser<'d> {
     scope: Scope,
     variables: HashMap<u64, VariableInfo>,
     functions: HashMap<u64, FunctionInfo>,
+    datas: HashMap<u64, DataInfo>,
     uid: u64,
 }
 
@@ -45,6 +47,7 @@ impl<'d> Analyser<'d> {
             scope: Scope::root(),
             variables: HashMap::default(),
             functions: HashMap::default(),
+            datas: HashMap::default(),
             uid: 0,
         }
     }

@@ -8,8 +8,8 @@ impl<'d> Analyser<'d> {
         match &stmt.value {
             ast::StmtKind::Empty
                 => abt::StmtKind::Empty,
-            ast::StmtKind::DataDef(_, _)
-                => todo!(),
+            ast::StmtKind::DataDef(name, fields)
+                => self.analyse_data_structure_definition(name, fields),
             ast::StmtKind::VarDef(name, value)
                 => self.analyse_variable_definition(name, value, stmt.span),
             ast::StmtKind::Expr(expr)

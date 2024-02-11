@@ -137,8 +137,9 @@ impl<'a> Parser<'a> {
 
                 self.match_token::<Colon>();
                 let field_type = self.expect_type_expression();
-
                 fields.push((field_name, field_type));
+
+                self.expect_newlines_or_eof();
             }
 
             self.skip_newlines();
