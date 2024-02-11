@@ -115,6 +115,17 @@ impl<'d> Analyser<'d> {
                 .done();
             self.diagnostics.push(d);
         }
+
+        if bound_paths.len() == 2 {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::CaseThenOtherwiseCanBeSimplified)
+                .with_span(span)
+                .with_severity(Severity::Warning)
+                .annotate_primary(Note::Here, span)
+                .done();
+            self.diagnostics.push(d);
+        }
+        
         // TODO: warning for always-matching case
         // TODO: warning for never-matching case
 

@@ -102,4 +102,5 @@ pub enum DiagnosticKind {
     LastCasePathIsNotOtherwise,
     CasePathsTypeMismatch,
     CaseOtherwiseCanBeSimplified,
+    CaseThenOtherwiseCanBeSimplified,
 }

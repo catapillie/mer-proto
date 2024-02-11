@@ -304,6 +304,8 @@ impl Lang for French {
                 => "tous les chemins dans une expression case doivent donner le même type".to_string(),
             K::CaseOtherwiseCanBeSimplified
                 => "l'expression case-otherwise ne contient qu'un unique chemin, et peut être simplifiée".to_string(),
+            K::CaseThenOtherwiseCanBeSimplified
+                => "il existe une syntaxe plus simple pour les expressions case-then-otherwise".to_string(),
         }
     }
 

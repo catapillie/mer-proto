@@ -651,7 +651,20 @@ impl<'a> Parser<'a> {
         let case_kw_span = self.last_span();
 
         self.skip_newlines();
-        self.match_token::<LeftBrace>();
+        if self.try_match_token::<LeftBrace>().is_none() {
+            // short-form case-otherwise
+            let guard = self.expect_expression();
+            self.match_token::<ThenKw>();
+            let expr = self.expect_expression();
+
+            self.skip_newlines();
+            self.match_token::<OtherwiseKw>();
+            let fallback = self.expect_expression();
+
+            let paths = vec![(Some(guard), expr), (None, fallback)]; 
+            return Some(ExprKind::Case(paths.into_boxed_slice(), case_kw_span))
+        }
+
         self.skip_newlines();
 
         let mut paths = Vec::new();
