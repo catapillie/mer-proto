@@ -1,0 +1,5 @@
+return case {
+    5 > 8 then 5
+    5 == 6 then 4
+    otherwise -1
+} == -1

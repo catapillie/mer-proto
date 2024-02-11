@@ -1,0 +1,4 @@
+return case {
+    true then 6.0
+    otherwise 2.0
+} == 6.0

@@ -1,0 +1,5 @@
+return case {
+    10 >= 5 then 5
+    55 == 55 then 4
+    otherwise -1
+} == 5

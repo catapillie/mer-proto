@@ -120,6 +120,13 @@ check_program_output!(array_func_arg_realloc => (bool, Type::Bool) true);
 check_program_output!(assign_complex_00 => (bool, Type::Bool) true);
 check_program_output!(assign_complex_01 => (bool, Type::Bool) true);
 
+check_program_output!(case_zero => (bool, Type::Bool) true);
+check_program_output!(case_one => (bool, Type::Bool) true);
+check_program_output!(case_two => (bool, Type::Bool) true);
+check_program_output!(case_many => (bool, Type::Bool) true);
+check_program_output!(case_order => (bool, Type::Bool) true);
+check_program_output!(case_nested => (bool, Type::Bool) true);
+
 macro_rules! check_program_output {
     ($name:ident => ($expected_ty:ty, $type_abt:expr) $expected:expr) => {
         #[test]

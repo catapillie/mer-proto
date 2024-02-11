@@ -1,0 +1,13 @@
+return case {
+    2 == 1 then 9
+    10 == 2 then 8
+    4 == 8 then 7
+    4 == 9 then 5
+    7 == 5 then 6
+    10 == 10 then 4
+    8 == 9 then 3
+    9 == 1 then 2
+    4 == 2 then 1
+    1 == 5 then 0
+    otherwise -1
+} == 4

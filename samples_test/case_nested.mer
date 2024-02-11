@@ -1,0 +1,12 @@
+var x = 0.484295
+var y = 1.0 - x
+return case {
+    x == 0.0 then 0.0
+    y == 1.0 then 0.0
+    x != y then case {
+        x + y == 1.0 then 1.0
+        otherwise unreachable
+    }
+    x == y then 0.5
+    otherwise -1.0
+} == 1.0
