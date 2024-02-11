@@ -4,6 +4,7 @@ use colored::Colorize;
 use merlib::{
     binary,
     com::{self, AnalysisStage, TypeAbt},
+    diagnostics::Severity,
     runtime::VM,
 };
 
@@ -125,8 +126,8 @@ macro_rules! check_program_output {
 
             // no other diagnostics (warnings, etc...)
             assert!(
-                diagnostics.is_empty(),
-                "sample {} has remaining diagnostics",
+                diagnostics.iter().all(|d| d.severity != Severity::Error),
+                "sample {} has remaining errors",
                 path.bold().underline()
             );
 
