@@ -13,7 +13,7 @@ impl<'d> Analyser<'d> {
     pub fn declare_variable_here(
         &mut self,
         name: &str,
-        ty: abt::TypeAbt,
+        ty: abt::Type,
         span: Span,
     ) -> Declaration {
         let declared = self.make_unique_id();

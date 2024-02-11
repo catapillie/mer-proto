@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use super::{Stmt, TypeAbt, VariableUsage};
+use super::{Stmt, Type, VariableUsage};
 use crate::utils::Span;
 
 pub struct FunctionInfo {
@@ -8,9 +8,9 @@ pub struct FunctionInfo {
     pub name: String,
     pub span: Option<Span>,
     pub depth: u16,
-    pub args: Vec<(String, TypeAbt)>,
+    pub args: Vec<(String, Type)>,
     pub arg_ids: Vec<u64>,
-    pub ty: TypeAbt,
+    pub ty: Type,
     pub ty_span: Option<Span>,
     pub used_variables: BTreeMap<u64, VariableUsage>,
     pub code: Option<Box<Stmt>>,

@@ -1,10 +1,10 @@
-use super::TypeAbt;
+use super::Type;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BinOp {
     pub kind: BinOpKind,
-    pub in_ty: TypeAbt,
-    pub out_ty: TypeAbt,
+    pub in_ty: Type,
+    pub out_ty: Type,
 }
 
 #[derive(Debug, Clone)]
@@ -29,7 +29,7 @@ pub enum BinOpKind {
 }
 
 impl BinOpKind {
-    pub fn wrap(self, in_ty: TypeAbt, out_ty: TypeAbt) -> BinOp {
+    pub fn wrap(self, in_ty: Type, out_ty: Type) -> BinOp {
         BinOp {
             kind: self,
             in_ty,

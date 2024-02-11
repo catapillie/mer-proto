@@ -57,7 +57,7 @@ impl<'d> Analyser<'d> {
         let inner = self.analyse_expression(expr);
         let ty = self.type_of(&inner);
 
-        use abt::TypeAbt as Ty;
+        use abt::Type as Ty;
         match ty {
             Ty::U8
             | Ty::U16

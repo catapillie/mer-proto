@@ -3,7 +3,7 @@ use std::{fs, io, path::Path};
 use crate::diagnostics::{DiagnosticList, Severity};
 
 use super::{
-    abt::{Program, TypeAbt},
+    abt::{Program, Type},
     analysis::Analyser,
     codegen::Codegen,
     parser::Parser,
@@ -15,10 +15,10 @@ pub enum AnalysisStage {
 }
 
 pub fn analyse_program(source: &str) -> AnalysisStage {
-    analyse_program_with_type(source, TypeAbt::Unit)
+    analyse_program_with_type(source, Type::Unit)
 }
 
-pub fn analyse_program_with_type(source: &str, expected_type: TypeAbt) -> AnalysisStage {
+pub fn analyse_program_with_type(source: &str, expected_type: Type) -> AnalysisStage {
     let mut diagnostics = DiagnosticList::new();
 
     let ast = Parser::new(source, &mut diagnostics).parse_program();

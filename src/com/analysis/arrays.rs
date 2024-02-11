@@ -1,5 +1,5 @@
 use crate::{
-    com::{abt, ast, TypeAbt},
+    com::{abt, ast, Type},
     diagnostics::{self, DiagnosticKind, Note, Severity},
     utils::Span,
 };
@@ -40,7 +40,7 @@ impl<'d> Analyser<'d> {
             .collect::<Vec<_>>();
         let first_ty = tys
             .iter()
-            .find(|ty| !matches!(ty, TypeAbt::Never))
+            .find(|ty| !matches!(ty, Type::Never))
             .unwrap_or(tys.first().expect("empty arrays are not handled properly"));
 
         let all_types_match = tys.iter().all(|ty| ty.is(first_ty));

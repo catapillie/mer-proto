@@ -9,7 +9,7 @@ use crate::{
 use super::Analyser;
 
 impl<'d> Analyser<'d> {
-    pub fn analyse_program(mut self, ast: &ast::Stmt, expected_type: abt::TypeAbt) -> abt::Program {
+    pub fn analyse_program(mut self, ast: &ast::Stmt, expected_type: abt::Type) -> abt::Program {
         let main_fn_id = 0;
         self.functions.insert(
             main_fn_id,

@@ -18,7 +18,7 @@ impl<'d> Analyser<'d> {
         &mut self,
         expr: &ast::Expr,
         bound_expr: abt::Expr,
-        tail: &[abt::TypeAbt],
+        tail: &[abt::Type],
         index: u64,
         span: Span,
     ) -> abt::Expr {

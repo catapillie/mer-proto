@@ -13,7 +13,7 @@ pub use program::Program;
 pub use assignee::Assignee;
 pub use expr::Expr;
 pub use stmt::{Stmt, StmtKind};
-pub use types::TypeAbt;
+pub use types::Type;
 
 pub use function::FunctionInfo;
 pub use variable::{VariableInfo, VariableUsage};

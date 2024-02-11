@@ -29,7 +29,7 @@ impl<'d> Analyser<'d> {
         }
 
         match ty {
-            abt::TypeAbt::Ref(_) => match bound_expr {
+            abt::Type::Ref(_) => match bound_expr {
                 abt::Expr::Variable(var_id) => abt::Expr::VarDeref(var_id),
                 _ => abt::Expr::Deref(Box::new(bound_expr)),
             },

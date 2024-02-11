@@ -1,10 +1,10 @@
-use super::TypeAbt;
+use super::Type;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Assignee {
     Variable,
     VarDeref,
     Deref(Box<Assignee>),
-    TupleImmediateIndex(Box<Assignee>, TypeAbt, usize),
-    ArrayImmediateIndex(Box<Assignee>, TypeAbt, usize),
+    TupleImmediateIndex(Box<Assignee>, Type, usize),
+    ArrayImmediateIndex(Box<Assignee>, Type, usize),
 }

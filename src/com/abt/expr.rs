@@ -1,6 +1,6 @@
-use super::{Assignee, BinOp, TypeAbt, UnOp};
+use super::{Assignee, BinOp, Type, UnOp};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expr {
     Unknown,
     Unit,
@@ -21,14 +21,14 @@ pub enum Expr {
     },
     Binary(BinOp, Box<Expr>, Box<Expr>),
     Unary(UnOp, Box<Expr>),
-    Call(u64, Box<[Expr]>, TypeAbt),
-    IndirectCall(Box<Expr>, Box<[Expr]>, TypeAbt),
-    Debug(Box<Expr>, TypeAbt),
+    Call(u64, Box<[Expr]>, Type),
+    IndirectCall(Box<Expr>, Box<[Expr]>, Type),
+    Debug(Box<Expr>, Type),
     Ref(Box<Expr>),
     VarRef(u64),
     Deref(Box<Expr>),
     VarDeref(u64),
     Todo,
     Unreachable,
-    Case(Box<[(Expr, Expr)]>, Box<Expr>, TypeAbt),
+    Case(Box<[(Expr, Expr)]>, Box<Expr>, Type),
 }

@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 #[rustfmt::skip]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum TypeAbt {
+pub enum Type {
     Unknown,
     Never, // bottom type
     Unit,
@@ -10,13 +10,13 @@ pub enum TypeAbt {
     I8, I16, I32, I64,
     F32, F64,
     Bool,
-    Tuple(Box<TypeAbt>, Box<[TypeAbt]>), // non-empty
-    Array(Box<TypeAbt>, usize),
-    Ref(Box<TypeAbt>),
-    Func(Box<[TypeAbt]>, Box<TypeAbt>),
+    Tuple(Box<Type>, Box<[Type]>), // non-empty
+    Array(Box<Type>, usize),
+    Ref(Box<Type>),
+    Func(Box<[Type]>, Box<Type>),
 }
 
-impl TypeAbt {
+impl Type {
     /// Determines whether [`self`] is of the specified type.
     /// If [`self`] is [`TypeAbt::Unknown`], then the check is true.
     pub fn is(&self, ty: &Self) -> bool {
@@ -29,9 +29,9 @@ impl TypeAbt {
 
     pub fn is_known(&self) -> bool {
         match self {
-            TypeAbt::Unknown => false,
-            TypeAbt::Ref(inner) => inner.is_known(),
-            TypeAbt::Func(args, ty) => args.iter().all(Self::is_known) && ty.is_known(),
+            Type::Unknown => false,
+            Type::Ref(inner) => inner.is_known(),
+            Type::Func(args, ty) => args.iter().all(Self::is_known) && ty.is_known(),
             _ => true,
         }
     }
@@ -93,7 +93,7 @@ impl TypeAbt {
     }
 }
 
-impl Display for TypeAbt {
+impl Display for Type {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.fmt_paren(f, false)
     }

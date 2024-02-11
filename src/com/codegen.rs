@@ -9,7 +9,7 @@ use either::Either;
 
 use crate::{
     binary,
-    com::abt::{BinOpKind, StmtKind, TypeAbt, UnOpKind},
+    com::abt::{BinOpKind, StmtKind, Type, UnOpKind},
     runtime::{
         native_type::NativeType,
         opcode::{self, Opcode},
@@ -64,28 +64,28 @@ impl Codegen {
         Ok(())
     }
 
-    fn size_of(ty: &TypeAbt) -> usize {
+    fn size_of(ty: &Type) -> usize {
         match ty {
-            TypeAbt::Unknown => unreachable!(),
-            TypeAbt::Never => 0,
-            TypeAbt::Unit => 1,
-            TypeAbt::U8 => 1,
-            TypeAbt::U16 => 1,
-            TypeAbt::U32 => 1,
-            TypeAbt::U64 => 1,
-            TypeAbt::I8 => 1,
-            TypeAbt::I16 => 1,
-            TypeAbt::I32 => 1,
-            TypeAbt::I64 => 1,
-            TypeAbt::F32 => 1,
-            TypeAbt::F64 => 1,
-            TypeAbt::Bool => 1,
-            TypeAbt::Tuple(head, tail) => {
+            Type::Unknown => unreachable!(),
+            Type::Never => 0,
+            Type::Unit => 1,
+            Type::U8 => 1,
+            Type::U16 => 1,
+            Type::U32 => 1,
+            Type::U64 => 1,
+            Type::I8 => 1,
+            Type::I16 => 1,
+            Type::I32 => 1,
+            Type::I64 => 1,
+            Type::F32 => 1,
+            Type::F64 => 1,
+            Type::Bool => 1,
+            Type::Tuple(head, tail) => {
                 Self::size_of(head) + tail.iter().map(Self::size_of).sum::<usize>()
             }
-            TypeAbt::Array(ty, size) => Self::size_of(ty) * size,
-            TypeAbt::Ref(_) => 1,
-            TypeAbt::Func(_, _) => 1,
+            Type::Array(ty, size) => Self::size_of(ty) * size,
+            Type::Ref(_) => 1,
+            Type::Func(_, _) => 1,
         }
     }
 
@@ -99,9 +99,9 @@ impl Codegen {
     }
 
     // TODO: refactor (this is a duplicate of Analyser::type_of)
-    pub fn type_of(expr: &Expr, abt: &Program) -> TypeAbt {
+    pub fn type_of(expr: &Expr, abt: &Program) -> Type {
         use Expr as E;
-        use TypeAbt as Ty;
+        use Type as Ty;
         match expr {
             E::Unknown => Ty::Unknown,
             E::Unit => Ty::Unit,
@@ -390,18 +390,18 @@ impl Codegen {
             E::Debug(inner, ty) => {
                 self.gen_expression(inner, abt)?;
                 let ty = match ty {
-                    TypeAbt::Unit => NativeType::unit,
-                    TypeAbt::U8 => NativeType::u8,
-                    TypeAbt::U16 => NativeType::u16,
-                    TypeAbt::U32 => NativeType::u32,
-                    TypeAbt::U64 => NativeType::u64,
-                    TypeAbt::I8 => NativeType::i8,
-                    TypeAbt::I16 => NativeType::i16,
-                    TypeAbt::I32 => NativeType::i32,
-                    TypeAbt::I64 => NativeType::i64,
-                    TypeAbt::F32 => NativeType::f32,
-                    TypeAbt::F64 => NativeType::f64,
-                    TypeAbt::Bool => NativeType::bool,
+                    Type::Unit => NativeType::unit,
+                    Type::U8 => NativeType::u8,
+                    Type::U16 => NativeType::u16,
+                    Type::U32 => NativeType::u32,
+                    Type::U64 => NativeType::u64,
+                    Type::I8 => NativeType::i8,
+                    Type::I16 => NativeType::i16,
+                    Type::I32 => NativeType::i32,
+                    Type::I64 => NativeType::i64,
+                    Type::F32 => NativeType::f32,
+                    Type::F64 => NativeType::f64,
+                    Type::Bool => NativeType::bool,
                     _ => unreachable!(),
                 };
                 binary::write_opcode(&mut self.cursor, &Opcode::dbg(ty))?;
@@ -428,7 +428,7 @@ impl Codegen {
             E::TupleImmediateIndex(tuple, index) => {
                 let tuple_ty = Self::type_of(tuple, abt);
                 let total_size = Self::size_of(&tuple_ty) as u8;
-                let TypeAbt::Tuple(head, tail) = tuple_ty else {
+                let Type::Tuple(head, tail) = tuple_ty else {
                     unreachable!()
                 };
                 self.gen_expression(tuple, abt)?;
@@ -458,7 +458,7 @@ impl Codegen {
             E::ArrayImmediateIndex(array, index) => {
                 let array_ty = Self::type_of(array, abt);
                 let total_size = Self::size_of(&array_ty) as u8;
-                let TypeAbt::Array(inner_ty, _) = array_ty else {
+                let Type::Array(inner_ty, _) = array_ty else {
                     unreachable!()
                 };
                 self.gen_expression(array, abt)?;
@@ -471,7 +471,7 @@ impl Codegen {
             E::ArrayIndex(array, index) => {
                 let array_ty = Self::type_of(array, abt);
                 let total_size = Self::size_of(&array_ty) as u8;
-                let TypeAbt::Array(inner_ty, _) = array_ty else {
+                let Type::Array(inner_ty, _) = array_ty else {
                     unreachable!()
                 };
 
@@ -537,7 +537,7 @@ impl Codegen {
                 use BinOpKind as K;
                 use NativeType as Nt;
                 use Opcode as O;
-                use TypeAbt as Ty;
+                use Type as Ty;
 
                 // short-circuiting logic
                 match &op.kind {
@@ -698,7 +698,7 @@ impl Codegen {
             E::Unary(op, expr) => {
                 self.gen_expression(expr, abt)?;
 
-                use TypeAbt as Ty;
+                use Type as Ty;
                 use UnOpKind as K;
                 let opcode = match (&op.ty, &op.kind) {
                     (Ty::U8, K::Pos)
@@ -741,7 +741,7 @@ impl Codegen {
             }
             E::Deref(expr) => {
                 self.gen_expression(expr, abt)?;
-                let TypeAbt::Ref(inner) = Self::type_of(expr, abt) else {
+                let Type::Ref(inner) = Self::type_of(expr, abt) else {
                     unreachable!()
                 };
 
@@ -757,7 +757,7 @@ impl Codegen {
                 let loc = self.current_locals.get(var_id).unwrap();
                 binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(loc.offset))?;
 
-                let TypeAbt::Ref(inner) = &abt.variables.get(var_id).unwrap().ty else {
+                let Type::Ref(inner) = &abt.variables.get(var_id).unwrap().ty else {
                     unreachable!()
                 };
                 let size = Self::size_of(inner) as u8;
@@ -913,7 +913,7 @@ impl Codegen {
             }
             Assignee::TupleImmediateIndex(a, ty, index) => {
                 let assignment = self.gen_assignment_lhs(a, var_id, abt)?;
-                let TypeAbt::Tuple(head, tail) = ty else {
+                let Type::Tuple(head, tail) = ty else {
                     unreachable!()
                 };
 
@@ -943,7 +943,7 @@ impl Codegen {
             }
             Assignee::ArrayImmediateIndex(a, ty, index) => {
                 let assignment = self.gen_assignment_lhs(a, var_id, abt)?;
-                let TypeAbt::Array(inner, _) = ty else {
+                let Type::Array(inner, _) = ty else {
                     unreachable!()
                 };
                 let offset = Self::size_of(inner) * index;

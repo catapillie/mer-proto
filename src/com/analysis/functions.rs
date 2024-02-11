@@ -15,8 +15,8 @@ impl<'d> Analyser<'d> {
         &mut self,
         name: &str,
         span: Option<Span>,
-        args: Vec<(String, abt::TypeAbt)>,
-        ty: abt::TypeAbt,
+        args: Vec<(String, abt::Type)>,
+        ty: abt::Type,
         ty_span: Option<Span>,
     ) -> Declaration {
         let declared = self.make_unique_id();
@@ -142,7 +142,7 @@ impl<'d> Analyser<'d> {
 
         if let abt::Expr::Function(id) = bound_callee {
             self.analyse_immediate_call(args, bound_args, span, id)
-        } else if let abt::TypeAbt::Func(func_args, func_return_ty) = self.type_of(&bound_callee) {
+        } else if let abt::Type::Func(func_args, func_return_ty) = self.type_of(&bound_callee) {
             self.analyse_indirect_call(
                 args,
                 bound_args,
@@ -255,8 +255,8 @@ impl<'d> Analyser<'d> {
         &mut self,
         args: &[ast::Expr],
         bound_args: Box<[abt::Expr]>,
-        func_args: &[abt::TypeAbt],
-        func_return_ty: abt::TypeAbt,
+        func_args: &[abt::Type],
+        func_return_ty: abt::Type,
         bound_callee: abt::Expr,
         span: Span,
     ) -> abt::Expr {
@@ -306,7 +306,7 @@ impl<'d> Analyser<'d> {
     }
 
     pub fn analyse_return_statement(&mut self, span: Span) -> abt::StmtKind {
-        let ty = abt::TypeAbt::Unit;
+        let ty = abt::Type::Unit;
         let return_ty = {
             let id = self.scope.current_func_id;
             let info = self.functions.get(&id).unwrap();

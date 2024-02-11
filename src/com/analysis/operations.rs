@@ -32,7 +32,7 @@ impl<'d> Analyser<'d> {
         }
 
         if ty_left == ty_right {
-            use abt::TypeAbt as Ty;
+            use abt::Type as Ty;
             let ty = ty_left.clone();
             let bound_op = match ty {
                 Ty::U8 => Self::integer_binary_operation(op, ty),
@@ -68,7 +68,7 @@ impl<'d> Analyser<'d> {
         abt::Expr::Unknown
     }
 
-    fn to_assignee(&self, expr: &abt::Expr) -> Option<(Assignee, u64, abt::TypeAbt)> {
+    fn to_assignee(&self, expr: &abt::Expr) -> Option<(Assignee, u64, abt::Type)> {
         match expr {
             abt::Expr::Variable(var_id) => {
                 let ty = self.variables.get(var_id).unwrap().ty.clone();
@@ -76,7 +76,7 @@ impl<'d> Analyser<'d> {
             }
             abt::Expr::VarDeref(var_id) => {
                 let ty = match &self.variables.get(var_id).unwrap().ty {
-                    abt::TypeAbt::Ref(inner) => *inner.to_owned(),
+                    abt::Type::Ref(inner) => *inner.to_owned(),
                     _ => unreachable!(),
                 };
                 Some((Assignee::VarDeref, *var_id, ty))
@@ -84,14 +84,14 @@ impl<'d> Analyser<'d> {
             abt::Expr::Deref(inner) => {
                 let (assignee, var_id, ty) = self.to_assignee(inner)?;
                 let ty = match ty {
-                    abt::TypeAbt::Ref(inner) => *inner.to_owned(),
+                    abt::Type::Ref(inner) => *inner.to_owned(),
                     _ => unreachable!(),
                 };
                 Some((Assignee::Deref(Box::new(assignee)), var_id, ty))
             }
             abt::Expr::TupleImmediateIndex(expr, index) => {
                 let (assignee, var_id, tuple_ty) = self.to_assignee(expr)?;
-                let abt::TypeAbt::Tuple(head, tail) = tuple_ty.clone() else {
+                let abt::Type::Tuple(head, tail) = tuple_ty.clone() else {
                     unreachable!()
                 };
                 let ty = if *index == 0 {
@@ -107,7 +107,7 @@ impl<'d> Analyser<'d> {
             }
             abt::Expr::ArrayImmediateIndex(expr, index) => {
                 let (assignee, var_id, tuple_ty) = self.to_assignee(expr)?;
-                let abt::TypeAbt::Array(inner_ty, _) = tuple_ty.clone() else {
+                let abt::Type::Array(inner_ty, _) = tuple_ty.clone() else {
                     unreachable!()
                 };
                 Some((
@@ -173,9 +173,9 @@ impl<'d> Analyser<'d> {
         }
     }
 
-    fn integer_binary_operation(op: ast::BinOp, ty: abt::TypeAbt) -> Option<abt::BinOp> {
+    fn integer_binary_operation(op: ast::BinOp, ty: abt::Type) -> Option<abt::BinOp> {
         use abt::BinOpKind as Abt;
-        use abt::TypeAbt as Ty;
+        use abt::Type as Ty;
         use ast::BinOp as Ast;
         match op {
             Ast::Add => Some(Abt::Add.wrap(ty.clone(), ty)),
@@ -196,9 +196,9 @@ impl<'d> Analyser<'d> {
         }
     }
 
-    fn decimal_binary_operation(op: ast::BinOp, ty: abt::TypeAbt) -> Option<abt::BinOp> {
+    fn decimal_binary_operation(op: ast::BinOp, ty: abt::Type) -> Option<abt::BinOp> {
         use abt::BinOpKind as Abt;
-        use abt::TypeAbt as Ty;
+        use abt::Type as Ty;
         use ast::BinOp as Ast;
         match op {
             Ast::Add => Some(Abt::Add.wrap(ty.clone(), ty)),
@@ -218,7 +218,7 @@ impl<'d> Analyser<'d> {
 
     fn boolean_binary_operation(op: ast::BinOp) -> Option<abt::BinOp> {
         use abt::BinOpKind as Abt;
-        use abt::TypeAbt as Ty;
+        use abt::Type as Ty;
         use ast::BinOp as Ast;
         match op {
             Ast::Eq => Some(Abt::Eq.wrap(Ty::Bool, Ty::Bool)),
@@ -247,16 +247,16 @@ impl<'d> Analyser<'d> {
         }
 
         let bound_op = match ty {
-            abt::TypeAbt::U8 | abt::TypeAbt::U16 | abt::TypeAbt::U32 | abt::TypeAbt::U64 => {
+            abt::Type::U8 | abt::Type::U16 | abt::Type::U32 | abt::Type::U64 => {
                 Self::number_unary_operation(false, op, ty.clone())
             }
-            abt::TypeAbt::I8
-            | abt::TypeAbt::I16
-            | abt::TypeAbt::I32
-            | abt::TypeAbt::I64
-            | abt::TypeAbt::F32
-            | abt::TypeAbt::F64 => Self::number_unary_operation(true, op, ty.clone()),
-            abt::TypeAbt::Bool => Self::boolean_unary_operation(op),
+            abt::Type::I8
+            | abt::Type::I16
+            | abt::Type::I32
+            | abt::Type::I64
+            | abt::Type::F32
+            | abt::Type::F64 => Self::number_unary_operation(true, op, ty.clone()),
+            abt::Type::Bool => Self::boolean_unary_operation(op),
             _ => None,
         };
 
@@ -274,7 +274,7 @@ impl<'d> Analyser<'d> {
         abt::Expr::Unknown
     }
 
-    fn number_unary_operation(signed: bool, op: ast::UnOp, ty: abt::TypeAbt) -> Option<abt::UnOp> {
+    fn number_unary_operation(signed: bool, op: ast::UnOp, ty: abt::Type) -> Option<abt::UnOp> {
         match op {
             ast::UnOp::Pos => Some(abt::UnOpKind::Pos.wrap(ty)),
             ast::UnOp::Neg if signed => Some(abt::UnOpKind::Neg.wrap(ty)),
@@ -284,7 +284,7 @@ impl<'d> Analyser<'d> {
 
     fn boolean_unary_operation(op: ast::UnOp) -> Option<abt::UnOp> {
         match op {
-            ast::UnOp::Not => Some(abt::UnOpKind::Not.wrap(abt::TypeAbt::Bool)),
+            ast::UnOp::Not => Some(abt::UnOpKind::Not.wrap(abt::Type::Bool)),
             _ => None,
         }
     }

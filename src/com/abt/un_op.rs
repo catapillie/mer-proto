@@ -1,9 +1,9 @@
-use super::TypeAbt;
+use super::Type;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct UnOp {
     pub kind: UnOpKind,
-    pub ty: TypeAbt,
+    pub ty: Type,
 }
 
 #[derive(Debug, Clone)]
@@ -14,7 +14,7 @@ pub enum UnOpKind {
 }
 
 impl UnOpKind {
-    pub fn wrap(self, ty: TypeAbt) -> UnOp {
+    pub fn wrap(self, ty: Type) -> UnOp {
         UnOp { kind: self, ty }
     }
 }

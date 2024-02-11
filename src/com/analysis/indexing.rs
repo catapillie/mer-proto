@@ -19,7 +19,7 @@ impl<'d> Analyser<'d> {
         let expr_ty = self.type_of(&bound_expr);
         let index_ty = self.type_of(&bound_index);
 
-        if !index_ty.is(&abt::TypeAbt::I64) {
+        if !index_ty.is(&abt::Type::I64) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::ArrayIndexMustBeInteger)
                 .with_span(index_expr.span)
@@ -34,7 +34,7 @@ impl<'d> Analyser<'d> {
             return abt::Expr::Unknown;
         }
 
-        let abt::TypeAbt::Array(_, size) = expr_ty else {
+        let abt::Type::Array(_, size) = expr_ty else {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::InvalidIndex)
                 .with_span(span)
@@ -83,9 +83,9 @@ impl<'d> Analyser<'d> {
             return abt::Expr::Unknown;
         }
 
-        if let abt::TypeAbt::Tuple(_, tail) = ty {
+        if let abt::Type::Tuple(_, tail) = ty {
             self.analyse_tuple_immediate_index(expr, bound_expr, &tail, index, span)
-        } else if let abt::TypeAbt::Array(_, size) = ty {
+        } else if let abt::Type::Array(_, size) = ty {
             self.analyse_array_immediate_index(expr, bound_expr, index, size, span)
         } else {
             let d = diagnostics::create_diagnostic()
