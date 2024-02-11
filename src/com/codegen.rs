@@ -1,22 +1,17 @@
+use byteorder::{WriteBytesExt, LE};
 use std::{
     collections::HashMap,
     io::{self, Cursor},
 };
 
-use byteorder::WriteBytesExt;
-use byteorder::LE;
-use either::Either;
-
 use crate::{
     binary,
-    com::abt::{BinOpKind, StmtKind, Type, UnOpKind},
+    com::abt::{Assignee, BinOpKind, Expr, FunctionInfo, Program, Stmt, StmtKind, Type, UnOpKind},
     runtime::{
         native_type::NativeType,
         opcode::{self, Opcode},
     },
 };
-
-use super::abt::{Assignee, Expr, FunctionInfo, Program, Stmt};
 
 struct Loc {
     offset: u8,
@@ -871,13 +866,17 @@ impl Codegen {
 
         // write assignment
         match assignment {
-            Either::Left(()) => match size {
-                1 => binary::write_opcode(&mut self.cursor, &Opcode::st_heap),
-                _ => binary::write_opcode(&mut self.cursor, &Opcode::st_heap_n(size)),
-            },
-            Either::Right(loc_offset) => match size {
+            Lhs::Local(loc_offset) => match size {
                 1 => binary::write_opcode(&mut self.cursor, &Opcode::st_loc(loc_offset)),
                 _ => binary::write_opcode(&mut self.cursor, &Opcode::st_loc_n(loc_offset, size)),
+            },
+            Lhs::UnknownLocal => match size {
+                1 => binary::write_opcode(&mut self.cursor, &Opcode::st_sloc),
+                _ => binary::write_opcode(&mut self.cursor, &Opcode::st_sloc_n(size)),
+            },
+            Lhs::Address => match size {
+                1 => binary::write_opcode(&mut self.cursor, &Opcode::st_heap),
+                _ => binary::write_opcode(&mut self.cursor, &Opcode::st_heap_n(size)),
             },
         }
     }
@@ -887,16 +886,16 @@ impl Codegen {
         assignee: &Assignee,
         var_id: u64,
         abt: &Program,
-    ) -> Result<Either<(), u8>, io::Error> {
+    ) -> Result<Lhs, io::Error> {
         let loc = self.current_locals.get(&var_id).unwrap();
         let info = abt.variables.get(&var_id).unwrap();
         match assignee {
             Assignee::Variable => {
                 if info.is_on_heap {
                     binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(loc.offset))?;
-                    Ok(Either::Left(()))
+                    Ok(Lhs::Address)
                 } else {
-                    Ok(Either::Right(loc.offset))
+                    Ok(Lhs::Local(loc.offset))
                 }
             }
             Assignee::VarDeref => {
@@ -904,7 +903,7 @@ impl Codegen {
                 if info.is_on_heap {
                     binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?;
                 }
-                Ok(Either::Left(()))
+                Ok(Lhs::Address)
             }
             Assignee::Deref(a) => {
                 let assignment = self.gen_assignment_lhs(a, var_id, abt)?;
@@ -928,7 +927,13 @@ impl Codegen {
                 };
 
                 match assignment {
-                    Either::Left(()) => {
+                    Lhs::Local(loc) => Ok(Lhs::Local(loc + offset)),
+                    Lhs::UnknownLocal => {
+                        binary::write_opcode(&mut self.cursor, &Opcode::ld_u8(offset))?;
+                        binary::write_opcode(&mut self.cursor, &Opcode::add(NativeType::u64))?;
+                        Ok(Lhs::UnknownLocal)
+                    }
+                    Lhs::Address => {
                         if offset != 0 {
                             binary::write_opcode(
                                 &mut self.cursor,
@@ -936,9 +941,8 @@ impl Codegen {
                             )?;
                             binary::write_opcode(&mut self.cursor, &Opcode::add(NativeType::u64))?;
                         }
-                        Ok(Either::Left(()))
+                        Ok(Lhs::Address)
                     }
-                    Either::Right(loc) => Ok(Either::Right(loc + offset)),
                 }
             }
             Assignee::ArrayImmediateIndex(a, ty, index) => {
@@ -948,7 +952,13 @@ impl Codegen {
                 };
                 let offset = Self::size_of(inner) * index;
                 match assignment {
-                    Either::Left(()) => {
+                    Lhs::Local(loc) => Ok(Lhs::Local(loc + offset as u8)),
+                    Lhs::UnknownLocal => {
+                        binary::write_opcode(&mut self.cursor, &Opcode::ld_u8(offset as u8))?;
+                        binary::write_opcode(&mut self.cursor, &Opcode::add(NativeType::u64))?;
+                        Ok(Lhs::UnknownLocal)
+                    }
+                    Lhs::Address => {
                         if offset != 0 {
                             binary::write_opcode(
                                 &mut self.cursor,
@@ -956,11 +966,50 @@ impl Codegen {
                             )?;
                             binary::write_opcode(&mut self.cursor, &Opcode::add(NativeType::u64))?;
                         }
-                        Ok(Either::Left(()))
+                        Ok(Lhs::Address)
                     }
-                    Either::Right(loc) => Ok(Either::Right(loc + offset as u8)),
+                }
+            }
+            Assignee::ArrayIndex(a, ty, index_expr) => {
+                let assignment = self.gen_assignment_lhs(a, var_id, abt)?;
+                let Type::Array(inner, _) = ty else {
+                    unreachable!()
+                };
+
+                // gen index
+                let inner_size = Self::size_of(inner);
+                self.gen_expression(index_expr, abt)?;
+                if inner_size > 1 {
+                    binary::write_opcode(&mut self.cursor, &Opcode::ld_u64(inner_size as u64))?;
+                    binary::write_opcode(&mut self.cursor, &Opcode::mul(NativeType::u64))?;
+                }
+
+                match assignment {
+                    Lhs::Local(loc) => {
+                        // index is unknown at compile time
+                        // we're going to have to push the local on the stack
+                        binary::write_opcode(&mut self.cursor, &Opcode::ld_u8(loc))?;
+                        binary::write_opcode(&mut self.cursor, &Opcode::add(NativeType::u64))?;
+                        Ok(Lhs::UnknownLocal)
+                    }
+                    Lhs::UnknownLocal => {
+                        binary::write_opcode(&mut self.cursor, &Opcode::add(NativeType::u64))?;
+                        Ok(Lhs::UnknownLocal)
+                    }
+                    Lhs::Address => {
+                        binary::write_opcode(&mut self.cursor, &Opcode::ld_u64(8))?;
+                        binary::write_opcode(&mut self.cursor, &Opcode::mul(NativeType::u64))?;
+                        binary::write_opcode(&mut self.cursor, &Opcode::add(NativeType::u64))?;
+                        Ok(Lhs::Address)
+                    }
                 }
             }
         }
     }
+}
+
+enum Lhs {
+    Local(u8),
+    UnknownLocal,
+    Address,
 }

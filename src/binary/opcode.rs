@@ -69,6 +69,10 @@ where
         opcode::ld_loc_n => Ok(Opcode::ld_loc_n(cursor.read_u8()?, cursor.read_u8()?)),
         opcode::st_loc => Ok(Opcode::st_loc(cursor.read_u8()?)),
         opcode::st_loc_n => Ok(Opcode::st_loc_n(cursor.read_u8()?, cursor.read_u8()?)),
+        opcode::ld_sloc => Ok(Opcode::ld_sloc),
+        opcode::ld_sloc_n => Ok(Opcode::ld_sloc_n(cursor.read_u8()?)),
+        opcode::st_sloc => Ok(Opcode::st_sloc),
+        opcode::st_sloc_n => Ok(Opcode::st_sloc_n(cursor.read_u8()?)),
 
         opcode::alloc => Ok(Opcode::alloc),
         opcode::alloc_n => Ok(Opcode::alloc_n(cursor.read_u8()?)),
@@ -204,6 +208,24 @@ where
         Opcode::st_loc_n(loc, n) => {
             cursor.write_u8(opcode::st_loc_n)?;
             cursor.write_u8(*loc)?;
+            cursor.write_u8(*n)?;
+            Ok(())
+        }
+        Opcode::ld_sloc => {
+            cursor.write_u8(opcode::ld_sloc)?;
+            Ok(())
+        }
+        Opcode::ld_sloc_n(n) => {
+            cursor.write_u8(opcode::ld_sloc_n)?;
+            cursor.write_u8(*n)?;
+            Ok(())
+        }
+        Opcode::st_sloc => {
+            cursor.write_u8(opcode::st_sloc)?;
+            Ok(())
+        }
+        Opcode::st_sloc_n(n) => {
+            cursor.write_u8(opcode::st_sloc_n)?;
             cursor.write_u8(*n)?;
             Ok(())
         }

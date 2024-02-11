@@ -116,6 +116,17 @@ impl<'d> Analyser<'d> {
                     *inner_ty,
                 ))
             }
+            abt::Expr::ArrayIndex(expr, index_expr) => {
+                let (assignee, var_id, tuple_ty) = self.to_assignee(expr)?;
+                let abt::Type::Array(inner_ty, _) = tuple_ty.clone() else {
+                    unreachable!()
+                };
+                Some((
+                    Assignee::ArrayIndex(Box::new(assignee), tuple_ty, index_expr.clone()),
+                    var_id,
+                    *inner_ty,
+                ))
+            }
             _ => None,
         }
     }

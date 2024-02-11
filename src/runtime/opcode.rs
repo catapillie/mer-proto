@@ -20,6 +20,10 @@ opcodes! {
     0xd1 ld_loc_n(u8, u8)
     0xd2 st_loc(u8)
     0xd3 st_loc_n(u8, u8)
+    0xd4 ld_sloc
+    0xd5 ld_sloc_n(u8)
+    0xd6 st_sloc
+    0xd7 st_sloc_n(u8)
 
     0xe0 alloc
     0xe1 alloc_n(u8)

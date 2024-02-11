@@ -3,7 +3,7 @@ use std::fs;
 use colored::Colorize;
 use merlib::{
     binary,
-    com::{self, AnalysisStage, Type},
+    com::{self, AnalysisStage, abt::Type},
     diagnostics::Severity,
     runtime::VM,
 };

@@ -1,4 +1,4 @@
-use crate::com::{tokens::TokenKind, Type};
+use crate::com::{abt, tokens::TokenKind};
 
 #[derive(Debug, Clone)]
 pub enum Note {
@@ -18,15 +18,15 @@ pub enum Note {
     FollowsIfThen,
     MissingWhile,
     CannotAssign,
-    MustBeOfType(Type),
-    OfType(Type),
-    Type(Type),
+    MustBeOfType(abt::Type),
+    OfType(abt::Type),
+    Type(abt::Type),
     VariableDeclaration(String),
-    VariableType(String, Type),
-    ArgumentType(String, Type),
-    NotFunction(Type),
+    VariableType(String, abt::Type),
+    ArgumentType(String, abt::Type),
+    NotFunction(abt::Type),
     FunctionArgs(String, usize),
-    FunctionReturnType(String, Type),
+    FunctionReturnType(String, abt::Type),
     FunctionVariableCount(usize),
     ProvidedArgs(usize),
     VariableCapturedBy(String, String),

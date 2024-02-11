@@ -1,6 +1,6 @@
 use super::Analyser;
 use crate::{
-    com::{abt, ast, Type},
+    com::{abt, ast},
     diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
     utils::Span,
 };
@@ -28,12 +28,12 @@ impl<'d> Analyser<'d> {
             };
 
             let guard_ty = self.type_of(bound_guard);
-            if !guard_ty.is(&Type::Bool) {
+            if !guard_ty.is(&abt::Type::Bool) {
                 let d = diagnostics::create_diagnostic()
                     .with_kind(DiagnosticKind::GuardNotBoolean)
                     .with_span(guard.span)
                     .with_severity(Severity::Error)
-                    .annotate_primary(Note::MustBeOfType(Type::Bool), guard.span)
+                    .annotate_primary(Note::MustBeOfType(abt::Type::Bool), guard.span)
                     .done();
                 self.diagnostics.push(d);
                 return abt::Expr::Unknown;
@@ -82,7 +82,7 @@ impl<'d> Analyser<'d> {
             .collect::<Vec<_>>();
         let ty = types
             .iter()
-            .find(|ty| !matches!(ty, Type::Never))
+            .find(|ty| !matches!(ty, abt::Type::Never))
             .unwrap_or(
                 types
                     .first()

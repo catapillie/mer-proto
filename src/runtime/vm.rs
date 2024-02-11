@@ -126,6 +126,10 @@ impl<'a> VM<'a> {
                 opcode::ld_loc_n => self.ld_loc_n(),
                 opcode::st_loc => self.st_loc()?,
                 opcode::st_loc_n => self.st_loc_n()?,
+                opcode::ld_sloc => self.ld_sloc()?,
+                opcode::ld_sloc_n => self.ld_sloc_n()?,
+                opcode::st_sloc => self.st_sloc()?,
+                opcode::st_sloc_n => self.st_sloc_n()?,
 
                 opcode::alloc => self.alloc()?,
                 opcode::alloc_n => self.alloc_n()?,
@@ -351,6 +355,40 @@ impl<'a> VM<'a> {
 
     fn st_loc_n(&mut self) -> Result<(), Error> {
         let index = self.read_u8() as usize;
+        let size = self.read_u8() as usize;
+        let offset = self.frames.last().unwrap().local_offset;
+        for i in 0..size {
+            self.stack[offset + index + (size - i - 1)] = self.pop()?;
+        }
+        Ok(())
+    }
+
+    fn ld_sloc(&mut self) -> Result<(), Error> {
+        let index = self.pop()?.get_u8() as usize;
+        let offset = self.frames.last().unwrap().local_offset;
+        self.push(self.stack[offset + index]);
+        Ok(())
+    }
+
+    fn ld_sloc_n(&mut self) -> Result<(), Error> {
+        let index = self.pop()?.get_u8() as usize;
+        let size = self.read_u8() as usize;
+        let offset = self.frames.last().unwrap().local_offset;
+        for i in 0..size {
+            self.push(self.stack[offset + index + i]);
+        }
+        Ok(())
+    }
+
+    fn st_sloc(&mut self) -> Result<(), Error> {
+        let index = self.pop()?.get_u8() as usize;
+        let offset = self.frames.last().unwrap().local_offset;
+        self.stack[offset + index] = self.pop()?;
+        Ok(())
+    }
+
+    fn st_sloc_n(&mut self) -> Result<(), Error> {
+        let index = self.pop()?.get_u8() as usize;
         let size = self.read_u8() as usize;
         let offset = self.frames.last().unwrap().local_offset;
         for i in 0..size {
