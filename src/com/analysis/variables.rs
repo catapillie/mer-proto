@@ -22,11 +22,11 @@ impl<'d> Analyser<'d> {
             declaration_span: span,
             is_on_heap: false,
         };
-        let prev = self.variables.insert(declared, info);
+        let prev = self.program.variables.insert(declared, info);
         assert!(prev.is_none(), "ids must be unique");
 
         let func_id = self.scope.current_func_id;
-        let func_info = self.functions.get_mut(&func_id).unwrap();
+        let func_info = self.program.functions.get_mut(&func_id).unwrap();
         func_info.used_variables.insert(
             declared,
             VariableUsage {
@@ -40,7 +40,7 @@ impl<'d> Analyser<'d> {
 
     pub fn get_variable(&self, name: &str) -> Option<&VariableInfo> {
         self.scope.search(|scope| match scope.bindings.get(name) {
-            Some(id) => self.variables.get(id),
+            Some(id) => self.program.variables.get(id),
             None => None,
         })
     }
@@ -57,7 +57,7 @@ impl<'d> Analyser<'d> {
             return abt::StmtKind::Empty;
         };
 
-        let decl = self.declare_variable_here(name, self.type_of(&bound_expr), span);
+        let decl = self.declare_variable_here(name, self.program.type_of(&bound_expr), span);
         abt::StmtKind::VarInit(decl.declared, Box::new(bound_expr))
     }
 
@@ -82,7 +82,7 @@ impl<'d> Analyser<'d> {
         let declaration_span = info.declaration_span;
 
         let func_id = self.scope.current_func_id;
-        let func_info = self.functions.get_mut(&func_id).unwrap();
+        let func_info = self.program.functions.get_mut(&func_id).unwrap();
         let captured = depth <= func_info.depth;
         let mut alread_captured = false;
 

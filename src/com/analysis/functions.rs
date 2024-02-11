@@ -34,7 +34,7 @@ impl<'d> Analyser<'d> {
             used_variables: Default::default(),
             code: None,
         };
-        let prev = self.functions.insert(declared, info);
+        let prev = self.program.functions.insert(declared, info);
         assert!(prev.is_none(), "ids must be unique");
 
         Declaration { declared, shadowed }
@@ -42,7 +42,7 @@ impl<'d> Analyser<'d> {
 
     pub fn get_function(&self, name: &str) -> Option<&FunctionInfo> {
         self.scope.search(|scope| match scope.bindings.get(name) {
-            Some(id) => self.functions.get(id),
+            Some(id) => self.program.functions.get(id),
             None => None,
         })
     }
@@ -74,7 +74,7 @@ impl<'d> Analyser<'d> {
                     bound_ty,
                     Some(ty.span),
                 );
-                self.functions.get(&decl.declared).unwrap() // was just declared, cannot be none
+                self.program.functions.get(&decl.declared).unwrap() // was just declared, cannot be none
             }
         };
 
@@ -88,7 +88,8 @@ impl<'d> Analyser<'d> {
 
         for ((arg_name, arg_ty), &span) in bound_spanned_args {
             let decl = self.declare_variable_here(arg_name.as_str(), arg_ty.clone(), span);
-            self.functions
+            self.program
+                .functions
                 .get_mut(&id)
                 .unwrap()
                 .arg_ids
@@ -107,7 +108,7 @@ impl<'d> Analyser<'d> {
 
         self.close_scope();
 
-        let info = self.functions.get_mut(&id).unwrap();
+        let info = self.program.functions.get_mut(&id).unwrap();
         info.code = Some(Box::new(bound_body));
 
         let var_count = self.count_all_variable_sizes(id);
@@ -142,7 +143,9 @@ impl<'d> Analyser<'d> {
 
         if let abt::Expr::Function(id) = bound_callee {
             self.analyse_immediate_call(args, bound_args, span, id)
-        } else if let abt::Type::Func(func_args, func_return_ty) = self.type_of(&bound_callee) {
+        } else if let abt::Type::Func(func_args, func_return_ty) =
+            self.program.type_of(&bound_callee)
+        {
             self.analyse_indirect_call(
                 args,
                 bound_args,
@@ -157,7 +160,7 @@ impl<'d> Analyser<'d> {
                 .with_span(callee.span)
                 .with_severity(Severity::Error)
                 .annotate_primary(
-                    Note::NotFunction(self.type_of(&bound_callee).repr()),
+                    Note::NotFunction(self.program.type_repr(&self.program.type_of(&bound_callee))),
                     callee.span,
                 )
                 .done();
@@ -173,7 +176,7 @@ impl<'d> Analyser<'d> {
         span: Span,
         id: u64,
     ) -> abt::Expr {
-        let info = self.functions.get(&id).unwrap();
+        let info = self.program.functions.get(&id).unwrap();
 
         let func_span = info.span.unwrap();
         let func_name = info.name.clone();
@@ -188,31 +191,34 @@ impl<'d> Analyser<'d> {
             .zip(args.iter().map(|arg| arg.span))
             .zip(func_args.iter().map(|(_, arg_ty)| arg_ty))
         {
-            let ty_param = self.type_of(bound_arg);
+            let ty_param = self.program.type_of(bound_arg);
             if ty_param.is(arg_ty) {
                 continue;
             }
 
             let arg_id = func_arg_ids.get(i).unwrap();
-            let arg_info = self.variables.get(arg_id).unwrap();
+            let arg_info = self.program.variables.get(arg_id).unwrap();
             let arg_name = arg_info.name.clone();
             let arg_span = arg_info.declaration_span;
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::TypeMismatch {
-                    found: ty_param.repr(),
-                    expected: arg_ty.repr(),
+                    found: self.program.type_repr(&ty_param),
+                    expected: self.program.type_repr(arg_ty),
                 })
                 .with_severity(Severity::Error)
                 .with_span(span)
                 .annotate_secondary(
-                    Note::ArgumentType(arg_name, arg_ty.repr())
+                    Note::ArgumentType(arg_name, self.program.type_repr(arg_ty))
                         .dddot_back()
                         .num(1),
                     arg_span,
                     NoteSeverity::Annotation,
                 )
                 .annotate_primary(
-                    Note::MustBeOfType(arg_ty.repr()).so().dddot_front().num(2),
+                    Note::MustBeOfType(self.program.type_repr(arg_ty))
+                        .so()
+                        .dddot_front()
+                        .num(2),
                     span,
                 )
                 .done();
@@ -269,19 +275,19 @@ impl<'d> Analyser<'d> {
             .zip(args.iter().map(|arg| arg.span))
             .zip(func_args.iter())
         {
-            let ty = self.type_of(bound_arg);
+            let ty = self.program.type_of(bound_arg);
             if ty.is(arg_ty) {
                 continue;
             }
 
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::TypeMismatch {
-                    found: ty.repr(),
-                    expected: arg_ty.repr(),
+                    found: self.program.type_repr(&ty),
+                    expected: self.program.type_repr(arg_ty),
                 })
                 .with_span(span)
                 .with_severity(Severity::Error)
-                .annotate_primary(Note::MustBeOfType(arg_ty.repr()), span)
+                .annotate_primary(Note::MustBeOfType(self.program.type_repr(arg_ty)), span)
                 .done();
             self.diagnostics.push(d);
             invalid = true;
@@ -312,23 +318,29 @@ impl<'d> Analyser<'d> {
         let ty = abt::Type::Unit;
         let return_ty = {
             let id = self.scope.current_func_id;
-            let info = self.functions.get(&id).unwrap();
+            let info = self.program.functions.get(&id).unwrap();
             (info.ty.clone(), Some((info.ty_span, info.name.clone())))
         };
 
         if !ty.is(&return_ty.0) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::MustReturnValue {
-                    expected: return_ty.0.repr(),
+                    expected: self.program.type_repr(&return_ty.0),
                 })
                 .with_severity(Severity::Error)
                 .with_span(span)
-                .annotate_primary(Note::OfType(ty.repr()).but().dddot_front().num(2), span);
+                .annotate_primary(
+                    Note::OfType(self.program.type_repr(&ty))
+                        .but()
+                        .dddot_front()
+                        .num(2),
+                    span,
+                );
 
             let d = match return_ty.1 {
                 Some((Some(span), name)) => d
                     .annotate_secondary(
-                        Note::FunctionReturnType(name, return_ty.0.repr())
+                        Note::FunctionReturnType(name, self.program.type_repr(&return_ty.0))
                             .dddot_back()
                             .num(1),
                         span,
@@ -346,23 +358,23 @@ impl<'d> Analyser<'d> {
 
     pub fn analyse_return_with_statement(&mut self, expr: &ast::Expr) -> abt::StmtKind {
         let bound_expr = self.analyse_expression(expr);
-        let ty_expr = self.type_of(&bound_expr);
+        let ty_expr = self.program.type_of(&bound_expr);
         let return_ty = {
             let id = self.scope.current_func_id;
-            let info = self.functions.get(&id).unwrap();
+            let info = self.program.functions.get(&id).unwrap();
             (info.ty.clone(), Some((info.ty_span, info.name.clone())))
         };
 
         if !ty_expr.is(&return_ty.0) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::TypeMismatch {
-                    found: ty_expr.repr(),
-                    expected: return_ty.0.repr(),
+                    found: self.program.type_repr(&ty_expr),
+                    expected: self.program.type_repr(&return_ty.0),
                 })
                 .with_severity(Severity::Error)
                 .with_span(expr.span)
                 .annotate_primary(
-                    Note::MustBeOfType(return_ty.0.repr())
+                    Note::MustBeOfType(self.program.type_repr(&return_ty.0))
                         .so()
                         .dddot_front()
                         .num(2),
@@ -372,7 +384,7 @@ impl<'d> Analyser<'d> {
             let d = match return_ty.1 {
                 Some((Some(span), name)) => d
                     .annotate_secondary(
-                        Note::FunctionReturnType(name, return_ty.0.repr())
+                        Note::FunctionReturnType(name, self.program.type_repr(&return_ty.0))
                             .dddot_back()
                             .num(1),
                         span,
@@ -391,13 +403,13 @@ impl<'d> Analyser<'d> {
 
     pub fn analyse_function_variable_usage(&mut self) {
         let id = self.scope.current_func_id;
-        let info = self.functions.get(&id).unwrap();
+        let info = self.program.functions.get(&id).unwrap();
         for (var_id, usage) in &info.used_variables {
             if usage.used {
                 continue;
             }
 
-            let var_info = self.variables.get(var_id).unwrap();
+            let var_info = self.program.variables.get(var_id).unwrap();
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::UnusedVariable(var_info.name.clone()))
                 .with_span(var_info.declaration_span)
@@ -409,13 +421,14 @@ impl<'d> Analyser<'d> {
     }
 
     pub fn count_all_variable_sizes(&mut self, func_id: u64) -> usize {
-        self.functions
+        self.program
+            .functions
             .get(&func_id)
             .unwrap()
             .used_variables
             .keys()
-            .map(|var_id| self.variables.get(var_id).unwrap())
-            .map(|var_info| Self::size_of(&var_info.ty))
+            .map(|var_id| self.program.variables.get(var_id).unwrap())
+            .map(|var_info| self.program.size_of(&var_info.ty))
             .sum::<usize>()
     }
 }

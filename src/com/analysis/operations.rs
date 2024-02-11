@@ -24,8 +24,8 @@ impl<'d> Analyser<'d> {
         let bound_left = self.analyse_expression(left);
         let bound_right = self.analyse_expression(right);
 
-        let ty_left = self.type_of(&bound_left);
-        let ty_right = self.type_of(&bound_right);
+        let ty_left = self.program.type_of(&bound_left);
+        let ty_right = self.program.type_of(&bound_right);
 
         if !ty_left.is_known() || !ty_right.is_known() {
             return abt::Expr::Unknown;
@@ -57,8 +57,8 @@ impl<'d> Analyser<'d> {
         let d = diagnostics::create_diagnostic()
             .with_kind(DiagnosticKind::InvalidBinaryOperation {
                 op,
-                left: ty_left.repr(),
-                right: ty_right.repr(),
+                left: self.program.type_repr(&ty_left),
+                right: self.program.type_repr(&ty_right),
             })
             .with_severity(Severity::Error)
             .with_span(span)
@@ -71,11 +71,11 @@ impl<'d> Analyser<'d> {
     fn to_assignee(&self, expr: &abt::Expr) -> Option<(Assignee, u64, abt::Type)> {
         match expr {
             abt::Expr::Variable(var_id) => {
-                let ty = self.variables.get(var_id).unwrap().ty.clone();
+                let ty = self.program.variables.get(var_id).unwrap().ty.clone();
                 Some((Assignee::Variable, *var_id, ty))
             }
             abt::Expr::VarDeref(var_id) => {
-                let ty = match &self.variables.get(var_id).unwrap().ty {
+                let ty = match &self.program.variables.get(var_id).unwrap().ty {
                     abt::Type::Ref(inner) => *inner.to_owned(),
                     _ => unreachable!(),
                 };
@@ -150,26 +150,26 @@ impl<'d> Analyser<'d> {
             return abt::Expr::Unknown;
         };
 
-        let right_ty = self.type_of(&bound_right);
-        let info = self.variables.get(&var_id).unwrap();
+        let right_ty = self.program.type_of(&bound_right);
+        let info = self.program.variables.get(&var_id).unwrap();
 
         if !right_ty.is(&expected_type) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::TypeMismatch {
-                    found: right_ty.repr(),
-                    expected: expected_type.repr(),
+                    found: self.program.type_repr(&right_ty),
+                    expected: self.program.type_repr(&expected_type),
                 })
                 .with_severity(Severity::Error)
                 .with_span(right.span)
                 .annotate_primary(
-                    Note::MustBeOfType(expected_type.repr())
+                    Note::MustBeOfType(self.program.type_repr(&expected_type))
                         .so()
                         .dddot_front()
                         .num(2),
                     right.span,
                 )
                 .annotate_secondary(
-                    Note::VariableType(info.name.clone(), info.ty.repr())
+                    Note::VariableType(info.name.clone(), self.program.type_repr(&info.ty))
                         .dddot_back()
                         .num(1),
                     info.declaration_span,
@@ -254,7 +254,7 @@ impl<'d> Analyser<'d> {
         span: Span,
     ) -> abt::Expr {
         let bound_operand = self.analyse_expression(operand);
-        let ty = self.type_of(&bound_operand);
+        let ty = self.program.type_of(&bound_operand);
 
         if !ty.is_known() {
             return abt::Expr::Unknown;
@@ -279,7 +279,10 @@ impl<'d> Analyser<'d> {
         }
 
         let d = diagnostics::create_diagnostic()
-            .with_kind(DiagnosticKind::InvalidUnaryOperation { op, ty: ty.repr() })
+            .with_kind(DiagnosticKind::InvalidUnaryOperation {
+                op,
+                ty: self.program.type_repr(&ty),
+            })
             .with_severity(Severity::Error)
             .with_span(span)
             .annotate_primary(Note::Quiet, span)

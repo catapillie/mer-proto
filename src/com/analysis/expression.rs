@@ -57,7 +57,7 @@ impl<'d> Analyser<'d> {
 
     fn analyse_debug_expression(&mut self, expr: &ast::Expr) -> abt::Expr {
         let inner = self.analyse_expression(expr);
-        let ty = self.type_of(&inner);
+        let ty = self.program.type_of(&inner);
 
         use abt::Type as Ty;
         match ty {
@@ -76,10 +76,12 @@ impl<'d> Analyser<'d> {
             Ty::Unknown => abt::Expr::Unknown,
             _ => {
                 let d = diagnostics::create_diagnostic()
-                    .with_kind(DiagnosticKind::InvalidDebugExpression(ty.repr()))
+                    .with_kind(DiagnosticKind::InvalidDebugExpression(
+                        self.program.type_repr(&ty),
+                    ))
                     .with_severity(Severity::Error)
                     .with_span(expr.span)
-                    .annotate_primary(Note::OfType(ty.repr()), expr.span)
+                    .annotate_primary(Note::OfType(self.program.type_repr(&ty)), expr.span)
                     .done();
                 self.diagnostics.push(d);
                 abt::Expr::Unknown

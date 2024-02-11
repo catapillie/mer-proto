@@ -16,15 +16,18 @@ impl<'d> Analyser<'d> {
         let bound_expr = self.analyse_expression(expr);
         let bound_index = self.analyse_expression(index_expr);
 
-        let expr_ty = self.type_of(&bound_expr);
-        let index_ty = self.type_of(&bound_index);
+        let expr_ty = self.program.type_of(&bound_expr);
+        let index_ty = self.program.type_of(&bound_index);
 
         if !index_ty.is(&abt::Type::I64) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::ArrayIndexMustBeInteger)
                 .with_span(index_expr.span)
                 .with_severity(Severity::Error)
-                .annotate_primary(Note::OfType(index_ty.repr()), index_expr.span)
+                .annotate_primary(
+                    Note::OfType(self.program.type_repr(&index_ty)),
+                    index_expr.span,
+                )
                 .done();
             self.diagnostics.push(d);
             return abt::Expr::Unknown;
@@ -39,7 +42,7 @@ impl<'d> Analyser<'d> {
                 .with_kind(DiagnosticKind::InvalidIndex)
                 .with_span(span)
                 .with_severity(Severity::Error)
-                .annotate_primary(Note::OfType(expr_ty.repr()), expr.span)
+                .annotate_primary(Note::OfType(self.program.type_repr(&expr_ty)), expr.span)
                 .done();
             self.diagnostics.push(d);
             return abt::Expr::Unknown;
@@ -77,7 +80,7 @@ impl<'d> Analyser<'d> {
         span: Span,
     ) -> abt::Expr {
         let bound_expr = self.analyse_expression(expr);
-        let ty = self.type_of(&bound_expr);
+        let ty = self.program.type_of(&bound_expr);
 
         if !ty.is_known() {
             return abt::Expr::Unknown;
@@ -92,7 +95,7 @@ impl<'d> Analyser<'d> {
                 .with_kind(DiagnosticKind::InvalidImmediateIndex)
                 .with_span(span)
                 .with_severity(Severity::Error)
-                .annotate_primary(Note::OfType(ty.repr()), expr.span)
+                .annotate_primary(Note::OfType(self.program.type_repr(&ty)), expr.span)
                 .done();
             self.diagnostics.push(d);
             abt::Expr::Unknown

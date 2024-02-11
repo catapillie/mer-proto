@@ -10,6 +10,7 @@ pub enum TypeRepr {
     I8, I16, I32, I64,
     F32, F64,
     Bool,
+    Data(String),
     Tuple(Box<TypeRepr>, Box<[TypeRepr]>),
     Array(Box<TypeRepr>, usize),
     Ref(Box<TypeRepr>),
@@ -39,6 +40,7 @@ impl Display for TypeRepr {
                 Ty::F32 => write!(f, "f32"),
                 Ty::F64 => write!(f, "f64"),
                 Ty::Bool => write!(f, "bool"),
+                Ty::Data(name) => write!(f, "{name}"),
                 Ty::Tuple(head, tail) => {
                     write!(f, "({head}")?;
                     for ty in tail.iter() {

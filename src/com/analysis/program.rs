@@ -10,8 +10,8 @@ use super::Analyser;
 
 impl<'d> Analyser<'d> {
     pub fn analyse_program(mut self, ast: &ast::Stmt, expected_type: abt::Type) -> abt::Program {
-        let main_fn_id = 0;
-        self.functions.insert(
+        let main_fn_id = self.program.main_fn_id;
+        self.program.functions.insert(
             main_fn_id,
             FunctionInfo {
                 id: main_fn_id,
@@ -41,7 +41,7 @@ impl<'d> Analyser<'d> {
             self.diagnostics.push(d);
         }
 
-        let info = self.functions.get_mut(&main_fn_id).unwrap();
+        let info = self.program.functions.get_mut(&main_fn_id).unwrap();
         info.code = Some(Box::new(abt));
 
         let var_count = self.count_all_variable_sizes(main_fn_id);
@@ -59,11 +59,7 @@ impl<'d> Analyser<'d> {
         // correct scope usage
         assert!(self.scope.is_root());
 
-        abt::Program {
-            main_fn_id,
-            functions: self.functions,
-            variables: self.variables,
-        }
+        self.program
     }
 
     fn reach_top_level_declarations(&mut self, ast: &ast::Stmt) {

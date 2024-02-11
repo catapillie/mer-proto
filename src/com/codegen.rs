@@ -59,127 +59,12 @@ impl Codegen {
         Ok(())
     }
 
-    fn size_of(ty: &Type) -> usize {
-        match ty {
-            Type::Unknown => unreachable!(),
-            Type::Never => 0,
-            Type::Unit => 1,
-            Type::U8 => 1,
-            Type::U16 => 1,
-            Type::U32 => 1,
-            Type::U64 => 1,
-            Type::I8 => 1,
-            Type::I16 => 1,
-            Type::I32 => 1,
-            Type::I64 => 1,
-            Type::F32 => 1,
-            Type::F64 => 1,
-            Type::Bool => 1,
-            Type::Tuple(head, tail) => {
-                Self::size_of(head) + tail.iter().map(Self::size_of).sum::<usize>()
-            }
-            Type::Array(ty, size) => Self::size_of(ty) * size,
-            Type::Ref(_) => 1,
-            Type::Func(_, _) => 1,
-        }
-    }
-
     fn size_of_var_storage(id: u64, abt: &Program) -> usize {
         let info = abt.variables.get(&id).unwrap();
         if info.is_on_heap {
             1
         } else {
-            Self::size_of(&info.ty)
-        }
-    }
-
-    // TODO: refactor (this is a duplicate of Analyser::type_of)
-    pub fn type_of(expr: &Expr, abt: &Program) -> Type {
-        use Expr as E;
-        use Type as Ty;
-        match expr {
-            E::Unknown => Ty::Unknown,
-            E::Unit => Ty::Unit,
-            E::Integer(_) => Ty::I64,
-            E::Decimal(_) => Ty::F64,
-            E::Boolean(_) => Ty::Bool,
-
-            E::Tuple(head, tail) => Ty::Tuple(
-                Box::new(Self::type_of(head, abt)),
-                tail.iter().map(|e| Self::type_of(e, abt)).collect(),
-            ),
-            E::TupleImmediateIndex(tuple, index) => {
-                let ty = Self::type_of(tuple, abt);
-                let Ty::Tuple(head, tail) = ty else {
-                    unreachable!()
-                };
-
-                if *index == 0 {
-                    *head
-                } else {
-                    tail[*index - 1].clone()
-                }
-            }
-
-            E::Array(exprs) => Ty::Array(
-                Box::new(Self::type_of(exprs.first().unwrap(), abt)),
-                exprs.len(),
-            ),
-            E::ArrayImmediateIndex(array, _) => {
-                let ty = Self::type_of(array, abt);
-                let Ty::Array(inner_ty, _) = ty else {
-                    unreachable!()
-                };
-                *inner_ty
-            }
-            E::ArrayIndex(array, _) => {
-                let ty = Self::type_of(array, abt);
-                let Ty::Array(inner_ty, _) = ty else {
-                    unreachable!()
-                };
-                *inner_ty
-            }
-
-            E::Variable(var_id) => abt.variables.get(var_id).unwrap().ty.clone(),
-            E::Function(func_id) => {
-                let info = abt.functions.get(func_id).unwrap();
-                let args = info
-                    .args
-                    .iter()
-                    .map(|(_, ty)| ty.clone())
-                    .collect::<Box<_>>();
-                Ty::Func(args, Box::new(info.ty.clone()))
-            }
-
-            E::Call(func_id, _, _) => abt.functions.get(func_id).unwrap().ty.clone(),
-            E::IndirectCall(_, _, ty) => ty.clone(),
-
-            E::Assignment {
-                assignee: _,
-                var_id: _,
-                expr,
-            } => Self::type_of(expr, abt),
-
-            E::Binary(op, _, _) => op.out_ty.clone(),
-            E::Unary(op, _) => op.ty.clone(),
-            E::Debug(_, ty) => ty.clone(),
-
-            E::Ref(inner) => Ty::Ref(Box::new(Self::type_of(inner, abt))),
-            E::VarRef(var_id) => Ty::Ref(Box::new(Self::type_of(&E::Variable(*var_id), abt))),
-            E::Deref(inner) => match Self::type_of(inner, abt) {
-                Ty::Ref(ty) => *ty,
-                _ => unreachable!(),
-            },
-            E::VarDeref(var_id) => match Self::type_of(&E::Variable(*var_id), abt) {
-                Ty::Ref(ty) => *ty,
-                _ => unreachable!(),
-            },
-
-            E::Todo => Ty::Never,
-            E::Unreachable => Ty::Never,
-
-            E::Case(_, _, ty) => ty.clone(),
-            E::CaseTernary(_, _, _, ty) => ty.clone(),
+            abt.size_of(&info.ty)
         }
     }
 
@@ -204,12 +89,12 @@ impl Codegen {
         let param_count: u8 = info
             .arg_ids
             .iter()
-            .map(|id| Self::size_of(&abt.variables.get(id).unwrap().ty) as u8)
+            .map(|id| abt.size_of(&abt.variables.get(id).unwrap().ty) as u8)
             .sum();
         let local_count: u8 = info
             .used_variables
             .keys()
-            .map(|id| Self::size_of(&abt.variables.get(id).unwrap().ty) as u8)
+            .map(|id| abt.size_of(&abt.variables.get(id).unwrap().ty) as u8)
             .sum();
         let opcode = Opcode::function(info.name.clone(), param_count, local_count);
         binary::write_opcode(&mut self.cursor, &opcode)?;
@@ -218,7 +103,7 @@ impl Codegen {
         self.current_locals.clear();
         for (&id, _) in info.used_variables.iter() {
             let storage = Self::size_of_var_storage(id, abt) as u8;
-            let param_size = Self::size_of(&abt.variables.get(&id).unwrap().ty) as u8;
+            let param_size = abt.size_of(&abt.variables.get(&id).unwrap().ty) as u8;
             self.current_locals.insert(
                 id,
                 Loc {
@@ -240,7 +125,7 @@ impl Codegen {
         for arg_id in &info.arg_ids {
             let is_on_heap = abt.variables[arg_id].is_on_heap;
             if is_on_heap {
-                let size = Self::size_of(&abt.variables.get(arg_id).unwrap().ty) as u8;
+                let size = abt.size_of(&abt.variables.get(arg_id).unwrap().ty) as u8;
                 if size == 1 {
                     binary::write_opcode(
                         &mut self.cursor,
@@ -273,7 +158,7 @@ impl Codegen {
                 }
             }
             S::Expr(expr) => {
-                let size = Self::size_of(&Self::type_of(expr, abt)) as u8;
+                let size = abt.size_of(&abt.type_of(expr)) as u8;
                 self.gen_expression(expr, abt)?;
                 if size == 1 {
                     binary::write_opcode(&mut self.cursor, &Opcode::pop)?;
@@ -290,7 +175,7 @@ impl Codegen {
 
                 // if variable is heap-allocated, allocate the value on the heap, keep the address
                 if info.is_on_heap {
-                    let size = Self::size_of(&info.ty) as u8;
+                    let size = abt.size_of(&info.ty) as u8;
                     if size == 1 {
                         binary::write_opcode(&mut self.cursor, &Opcode::alloc)?;
                     } else {
@@ -422,21 +307,21 @@ impl Codegen {
                 Ok(())
             }
             E::TupleImmediateIndex(tuple, index) => {
-                let tuple_ty = Self::type_of(tuple, abt);
-                let total_size = Self::size_of(&tuple_ty) as u8;
+                let tuple_ty = abt.type_of(tuple);
+                let total_size = abt.size_of(&tuple_ty) as u8;
                 let Type::Tuple(head, tail) = tuple_ty else {
                     unreachable!()
                 };
                 self.gen_expression(tuple, abt)?;
 
                 if *index == 0 {
-                    let size = Self::size_of(&head) as u8;
+                    let size = abt.size_of(&head) as u8;
                     binary::write_opcode(&mut self.cursor, &Opcode::keep(0, size, total_size))?;
                 } else {
-                    let size = Self::size_of(&tail[index - 1]) as u8;
-                    let mut offset = Self::size_of(&head) as u8;
+                    let size = abt.size_of(&tail[index - 1]) as u8;
+                    let mut offset = abt.size_of(&head) as u8;
                     for ty in &tail[..(index - 1)] {
-                        offset += Self::size_of(ty) as u8;
+                        offset += abt.size_of(ty) as u8;
                     }
                     binary::write_opcode(
                         &mut self.cursor,
@@ -452,21 +337,21 @@ impl Codegen {
                 Ok(())
             }
             E::ArrayImmediateIndex(array, index) => {
-                let array_ty = Self::type_of(array, abt);
-                let total_size = Self::size_of(&array_ty) as u8;
+                let array_ty = abt.type_of(array);
+                let total_size = abt.size_of(&array_ty) as u8;
                 let Type::Array(inner_ty, _) = array_ty else {
                     unreachable!()
                 };
                 self.gen_expression(array, abt)?;
 
-                let size = Self::size_of(&inner_ty) as u8;
+                let size = abt.size_of(&inner_ty) as u8;
                 let offset = *index as u8 * size;
                 binary::write_opcode(&mut self.cursor, &Opcode::keep(offset, size, total_size))?;
                 Ok(())
             }
             E::ArrayIndex(array, index) => {
-                let array_ty = Self::type_of(array, abt);
-                let total_size = Self::size_of(&array_ty) as u8;
+                let array_ty = abt.type_of(array);
+                let total_size = abt.size_of(&array_ty) as u8;
                 let Type::Array(inner_ty, _) = array_ty else {
                     unreachable!()
                 };
@@ -474,7 +359,7 @@ impl Codegen {
                 self.gen_expression(array, abt)?;
                 self.gen_expression(index, abt)?;
 
-                let size = Self::size_of(&inner_ty) as u8;
+                let size = abt.size_of(&inner_ty) as u8;
                 binary::write_opcode(&mut self.cursor, &Opcode::ld_u64(size as u64))?;
                 binary::write_opcode(&mut self.cursor, &Opcode::mul(NativeType::u64))?;
                 binary::write_opcode(&mut self.cursor, &Opcode::keep_at(size, total_size))?;
@@ -493,7 +378,7 @@ impl Codegen {
                 }
 
                 if info.is_on_heap {
-                    let ty_size = Self::size_of(&info.ty) as u8;
+                    let ty_size = abt.size_of(&info.ty) as u8;
                     if ty_size == 1 {
                         binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?;
                     } else {
@@ -722,7 +607,7 @@ impl Codegen {
             }
             E::Ref(expr) => {
                 self.gen_expression(expr, abt)?;
-                let size = Self::size_of(&Self::type_of(expr, abt)) as u8;
+                let size = abt.size_of(&abt.type_of(expr)) as u8;
                 if size == 1 {
                     binary::write_opcode(&mut self.cursor, &Opcode::alloc)?;
                 } else {
@@ -737,11 +622,11 @@ impl Codegen {
             }
             E::Deref(expr) => {
                 self.gen_expression(expr, abt)?;
-                let Type::Ref(inner) = Self::type_of(expr, abt) else {
+                let Type::Ref(inner) = abt.type_of(expr) else {
                     unreachable!()
                 };
 
-                let size = Self::size_of(&inner) as u8;
+                let size = abt.size_of(&inner) as u8;
                 if size == 1 {
                     binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?;
                 } else {
@@ -756,7 +641,7 @@ impl Codegen {
                 let Type::Ref(inner) = &abt.variables.get(var_id).unwrap().ty else {
                     unreachable!()
                 };
-                let size = Self::size_of(inner) as u8;
+                let size = abt.size_of(inner) as u8;
                 if size == 1 {
                     binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?;
                 } else {
@@ -876,7 +761,7 @@ impl Codegen {
         abt: &Program,
     ) -> Result<(), io::Error> {
         // write right-hand side
-        let size = Self::size_of(&Self::type_of(expr, abt)) as u8;
+        let size = abt.size_of(&abt.type_of(expr)) as u8;
         self.gen_expression(expr, abt)?;
         if size == 1 {
             binary::write_opcode(&mut self.cursor, &Opcode::dup)?;
@@ -942,9 +827,9 @@ impl Codegen {
                 let offset = if *index == 0 {
                     0
                 } else {
-                    let mut offset = Self::size_of(head) as u8;
+                    let mut offset = abt.size_of(head) as u8;
                     for ty in &tail[..(index - 1)] {
-                        offset += Self::size_of(ty) as u8;
+                        offset += abt.size_of(ty) as u8;
                     }
                     offset
                 };
@@ -973,7 +858,7 @@ impl Codegen {
                 let Type::Array(inner, _) = ty else {
                     unreachable!()
                 };
-                let offset = Self::size_of(inner) * index;
+                let offset = abt.size_of(inner) * index;
                 match assignment {
                     Lhs::Local(loc) => Ok(Lhs::Local(loc + offset as u8)),
                     Lhs::UnknownLocal => {
@@ -1000,7 +885,7 @@ impl Codegen {
                 };
 
                 // gen index
-                let inner_size = Self::size_of(inner);
+                let inner_size = abt.size_of(inner);
                 self.gen_expression(index_expr, abt)?;
                 if inner_size > 1 {
                     binary::write_opcode(&mut self.cursor, &Opcode::ld_u64(inner_size as u64))?;

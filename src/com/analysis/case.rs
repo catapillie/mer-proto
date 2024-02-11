@@ -17,20 +17,23 @@ impl<'d> Analyser<'d> {
         let bound_expr = self.analyse_expression(expr);
         let bound_fallback = self.analyse_expression(fallback);
 
-        let guard_ty = self.type_of(&bound_guard);
+        let guard_ty = self.program.type_of(&bound_guard);
         if !guard_ty.is(&abt::Type::Bool) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::GuardNotBoolean)
                 .with_span(guard.span)
                 .with_severity(Severity::Error)
-                .annotate_primary(Note::MustBeOfType(abt::Type::Bool.repr()), guard.span)
+                .annotate_primary(
+                    Note::MustBeOfType(self.program.type_repr(&abt::Type::Bool)),
+                    guard.span,
+                )
                 .done();
             self.diagnostics.push(d);
             return abt::Expr::Unknown;
         }
 
-        let expr_ty = self.type_of(&bound_expr);
-        let fallback_ty = self.type_of(&bound_fallback);
+        let expr_ty = self.program.type_of(&bound_expr);
+        let fallback_ty = self.program.type_of(&bound_fallback);
 
         if !expr_ty.is_known() || !fallback_ty.is_known() {
             return abt::Expr::Unknown;
@@ -47,12 +50,12 @@ impl<'d> Analyser<'d> {
                 .with_severity(Severity::Error)
                 .annotate_primary(Note::Quiet, span)
                 .annotate_secondary(
-                    Note::Type(expr_ty.repr()),
+                    Note::Type(self.program.type_repr(&expr_ty)),
                     expr.span,
                     NoteSeverity::Annotation,
                 )
                 .annotate_secondary(
-                    Note::Type(fallback_ty.repr()),
+                    Note::Type(self.program.type_repr(&fallback_ty)),
                     fallback.span,
                     NoteSeverity::Annotation,
                 )
@@ -93,13 +96,16 @@ impl<'d> Analyser<'d> {
                 continue;
             };
 
-            let guard_ty = self.type_of(bound_guard);
+            let guard_ty = self.program.type_of(bound_guard);
             if !guard_ty.is(&abt::Type::Bool) {
                 let d = diagnostics::create_diagnostic()
                     .with_kind(DiagnosticKind::GuardNotBoolean)
                     .with_span(guard.span)
                     .with_severity(Severity::Error)
-                    .annotate_primary(Note::MustBeOfType(abt::Type::Bool.repr()), guard.span)
+                    .annotate_primary(
+                        Note::MustBeOfType(self.program.type_repr(&abt::Type::Bool)),
+                        guard.span,
+                    )
                     .done();
                 self.diagnostics.push(d);
                 return abt::Expr::Unknown;
@@ -144,7 +150,7 @@ impl<'d> Analyser<'d> {
         // ensure all paths give the same type
         let types = bound_paths
             .iter()
-            .map(|(_, expr)| self.type_of(expr))
+            .map(|(_, expr)| self.program.type_of(expr))
             .collect::<Vec<_>>();
         let ty = types
             .iter()
@@ -163,7 +169,7 @@ impl<'d> Analyser<'d> {
                 .annotate_primary(Note::Quiet, span);
             for ((_, bound_expr), (_, expr)) in bound_paths.iter().zip(paths.iter()) {
                 d = d.annotate_secondary(
-                    Note::Type(self.type_of(bound_expr).repr()),
+                    Note::Type(self.program.type_repr(&self.program.type_of(bound_expr))),
                     expr.span,
                     NoteSeverity::Annotation,
                 );

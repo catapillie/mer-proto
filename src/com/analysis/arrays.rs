@@ -36,7 +36,7 @@ impl<'d> Analyser<'d> {
 
         let tys = bound_exprs
             .iter()
-            .map(|expr| self.type_of(expr))
+            .map(|expr| self.program.type_of(expr))
             .collect::<Vec<_>>();
         let first_ty = tys
             .iter()
@@ -74,7 +74,10 @@ impl<'d> Analyser<'d> {
                 })
                 .with_span(span)
                 .with_severity(Severity::Error)
-                .annotate_primary(Note::OfType(self.type_of(&bound_expr).repr()), expr.span)
+                .annotate_primary(
+                    Note::OfType(self.program.type_repr(&self.program.type_of(&bound_expr))),
+                    expr.span,
+                )
                 .done();
             self.diagnostics.push(d);
             return abt::Expr::Unknown;

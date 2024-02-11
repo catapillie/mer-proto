@@ -26,6 +26,11 @@ impl<'d> Analyser<'d> {
             })
             .collect::<Vec<_>>();
 
+        let size = bound_fields
+            .iter()
+            .map(|(_, ty)| self.program.size_of(&ty.value))
+            .sum();
+
         let declared = self.make_unique_id();
         self.scope.bindings.insert(name.value.clone(), declared);
 
@@ -33,8 +38,9 @@ impl<'d> Analyser<'d> {
             name: name.clone(),
             id: declared,
             fields: bound_fields,
+            size,
         };
-        let previous = self.datas.insert(declared, info);
+        let previous = self.program.datas.insert(declared, info);
         assert!(previous.is_none(), "id must be unique");
 
         abt::StmtKind::Empty

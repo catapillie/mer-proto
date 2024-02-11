@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use self::scope::Scope;
-use super::abt::{DataInfo, FunctionInfo, VariableInfo};
+use super::abt::Program;
 use crate::diagnostics::DiagnosticList;
 
 mod scope;
@@ -34,9 +34,7 @@ pub struct Declaration {
 pub struct Analyser<'d> {
     diagnostics: &'d mut DiagnosticList,
     scope: Scope,
-    variables: HashMap<u64, VariableInfo>,
-    functions: HashMap<u64, FunctionInfo>,
-    datas: HashMap<u64, DataInfo>,
+    program: Program,
     uid: u64,
 }
 
@@ -45,9 +43,12 @@ impl<'d> Analyser<'d> {
         Self {
             diagnostics,
             scope: Scope::root(),
-            variables: HashMap::default(),
-            functions: HashMap::default(),
-            datas: HashMap::default(),
+            program: Program {
+                main_fn_id: 0,
+                variables: HashMap::default(),
+                functions: HashMap::default(),
+                datas: HashMap::default(),
+            },
             uid: 0,
         }
     }
