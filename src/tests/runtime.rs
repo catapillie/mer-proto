@@ -101,6 +101,12 @@ check_program_output!(array_nested_indexing => (bool, Type::Bool) true);
 check_program_output!(array_assign_index => (bool, Type::Bool) true);
 check_program_output!(array_assign_index_many => (bool, Type::Bool) true);
 check_program_output!(array_assign_index_nested => (bool, Type::Bool) true);
+check_program_output!(array_assign_at_index => (bool, Type::Bool) true);
+check_program_output!(array_assign_at_index_many => (bool, Type::Bool) true);
+check_program_output!(array_assign_at_index_nested => (bool, Type::Bool) true);
+check_program_output!(array_assign_heap_at_index => (bool, Type::Bool) true);
+check_program_output!(array_assign_heap_at_index_many => (bool, Type::Bool) true);
+check_program_output!(array_assign_heap_at_index_nested => (bool, Type::Bool) true);
 check_program_output!(array_assign_immediate_ref_one => (bool, Type::Bool) true);
 check_program_output!(array_assign_immediate_ref_two => (bool, Type::Bool) true);
 check_program_output!(array_assign_immediate_ref_three => (bool, Type::Bool) true);
@@ -110,6 +116,9 @@ check_program_output!(array_assign_ref_two => (bool, Type::Bool) true);
 check_program_output!(array_assign_ref_three => (bool, Type::Bool) true);
 check_program_output!(array_assign_value => (bool, Type::Bool) true);
 check_program_output!(array_func_arg_realloc => (bool, Type::Bool) true);
+
+check_program_output!(assign_complex_00 => (bool, Type::Bool) true);
+check_program_output!(assign_complex_01 => (bool, Type::Bool) true);
 
 macro_rules! check_program_output {
     ($name:ident => ($expected_ty:ty, $type_abt:expr) $expected:expr) => {
