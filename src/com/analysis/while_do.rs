@@ -1,7 +1,7 @@
 use crate::{
     com::{
         abt::{StmtAbtKind, TypeAbt},
-        syntax::{expr::ExprAst, stmt::StmtAst},
+        ast,
     },
     diagnostics::{self, DiagnosticKind, Note, Severity},
 };
@@ -9,7 +9,11 @@ use crate::{
 use super::Analyser;
 
 impl<'d> Analyser<'d> {
-    pub fn analyse_while_do_statement(&mut self, guard: &ExprAst, body: &StmtAst) -> StmtAbtKind {
+    pub fn analyse_while_do_statement(
+        &mut self,
+        guard: &ast::Expr,
+        body: &ast::Stmt,
+    ) -> StmtAbtKind {
         let bound_guard = self.analyse_expression(guard);
         self.open_scope();
         let bound_body = self.analyse_statement(body);
@@ -38,7 +42,11 @@ impl<'d> Analyser<'d> {
         StmtAbtKind::WhileDo(Box::new(bound_guard), Box::new(bound_body))
     }
 
-    pub fn analyse_do_while_statement(&mut self, body: &StmtAst, guard: &ExprAst) -> StmtAbtKind {
+    pub fn analyse_do_while_statement(
+        &mut self,
+        body: &ast::Stmt,
+        guard: &ast::Expr,
+    ) -> StmtAbtKind {
         let bound_guard = self.analyse_expression(guard);
 
         self.open_scope();
@@ -68,7 +76,7 @@ impl<'d> Analyser<'d> {
         StmtAbtKind::DoWhile(Box::new(bound_body), Box::new(bound_guard))
     }
 
-    pub fn analyse_do_statement(&mut self, body: &StmtAst) -> StmtAbtKind {
+    pub fn analyse_do_statement(&mut self, body: &ast::Stmt) -> StmtAbtKind {
         self.open_scope();
         self.analyse_statement(body);
         self.close_scope();

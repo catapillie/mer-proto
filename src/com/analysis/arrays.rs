@@ -1,5 +1,5 @@
 use crate::{
-    com::{abt::ExprAbt, syntax::expr::ExprAst, TypeAbt},
+    com::{abt::ExprAbt, ast, TypeAbt},
     diagnostics::{self, DiagnosticKind, Note, Severity},
     utils::Span,
 };
@@ -7,7 +7,7 @@ use crate::{
 use super::Analyser;
 
 impl<'d> Analyser<'d> {
-    pub fn analyse_array_expression(&mut self, exprs: &[ExprAst], span: Span) -> ExprAbt {
+    pub fn analyse_array_expression(&mut self, exprs: &[ast::Expr], span: Span) -> ExprAbt {
         if exprs.is_empty() {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::EmptyArray)
@@ -60,7 +60,7 @@ impl<'d> Analyser<'d> {
 
     pub fn analyse_array_immediate_index(
         &mut self,
-        expr: &ExprAst,
+        expr: &ast::Expr,
         bound_expr: ExprAbt,
         index: u64,
         size: usize,

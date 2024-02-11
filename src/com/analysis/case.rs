@@ -1,6 +1,6 @@
 use super::Analyser;
 use crate::{
-    com::{abt::ExprAbt, syntax::expr::ExprAst, TypeAbt},
+    com::{abt::ExprAbt, ast, TypeAbt},
     diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
     utils::Span,
 };
@@ -8,7 +8,7 @@ use crate::{
 impl<'d> Analyser<'d> {
     pub fn analyse_case_expression(
         &mut self,
-        paths: &[(Option<ExprAst>, ExprAst)],
+        paths: &[(Option<ast::Expr>, ast::Expr)],
         span: Span,
     ) -> ExprAbt {
         let mut bound_paths = paths

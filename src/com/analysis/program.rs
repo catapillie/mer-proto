@@ -2,7 +2,7 @@ use crate::{
     com::{
         abt::{ProgramAbt, TypeAbt},
         analysis::FunctionInfo,
-        syntax::stmt::{StmtAst, StmtAstKind},
+        ast,
     },
     diagnostics::{self, DiagnosticKind, Severity},
 };
@@ -10,7 +10,7 @@ use crate::{
 use super::Analyser;
 
 impl<'d> Analyser<'d> {
-    pub fn analyse_program(mut self, ast: &StmtAst, expected_type: TypeAbt) -> ProgramAbt {
+    pub fn analyse_program(mut self, ast: &ast::Stmt, expected_type: TypeAbt) -> ProgramAbt {
         let main_fn_id = 0;
         self.functions.insert(
             main_fn_id,
@@ -67,10 +67,10 @@ impl<'d> Analyser<'d> {
         }
     }
 
-    fn reach_top_level_declarations(&mut self, ast: &StmtAst) {
-        if let StmtAstKind::Block(stmts) = &ast.kind {
+    fn reach_top_level_declarations(&mut self, ast: &ast::Stmt) {
+        if let ast::StmtKind::Block(stmts) = &ast.kind {
             for stmt in stmts.iter() {
-                if let StmtAstKind::Func(Some((name, span)), args, _, ty) = &stmt.kind {
+                if let ast::StmtKind::Func(Some((name, span)), args, _, ty) = &stmt.kind {
                     let bound_args = args
                         .iter()
                         .map(|(name, ty, _)| (name.clone(), self.analyse_type(ty)))

@@ -1,5 +1,5 @@
 use crate::{
-    com::{abt::ExprAbt, syntax::expr::ExprAst, TypeAbt},
+    com::{abt::ExprAbt, ast, TypeAbt},
     diagnostics::{self, DiagnosticKind, Note, Severity},
     utils::Span,
 };
@@ -9,8 +9,8 @@ use super::Analyser;
 impl<'d> Analyser<'d> {
     pub fn analyse_index_expression(
         &mut self,
-        expr: &ExprAst,
-        index_expr: &ExprAst,
+        expr: &ast::Expr,
+        index_expr: &ast::Expr,
         span: Span,
     ) -> ExprAbt {
         let bound_expr = self.analyse_expression(expr);
@@ -70,7 +70,7 @@ impl<'d> Analyser<'d> {
         ExprAbt::ArrayIndex(Box::new(bound_expr), Box::new(bound_index))
     }
 
-    pub fn analyse_immediate_index(&mut self, expr: &ExprAst, index: u64, span: Span) -> ExprAbt {
+    pub fn analyse_immediate_index(&mut self, expr: &ast::Expr, index: u64, span: Span) -> ExprAbt {
         let bound_expr = self.analyse_expression(expr);
         let ty = self.type_of(&bound_expr);
 

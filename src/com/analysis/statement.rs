@@ -1,47 +1,47 @@
 use crate::com::{
     abt::{StmtAbt, StmtAbtKind},
-    syntax::stmt::{StmtAst, StmtAstKind},
+    ast,
 };
 
 use super::Analyser;
 
 impl<'d> Analyser<'d> {
     #[rustfmt::skip]
-    pub fn analyse_statement(&mut self, stmt: &StmtAst) -> StmtAbt {
+    pub fn analyse_statement(&mut self, stmt: &ast::Stmt) -> StmtAbt {
         match &stmt.kind {
-            StmtAstKind::Empty
+            ast::StmtKind::Empty
                 => StmtAbtKind::Empty,
-            StmtAstKind::VarDef(name, value)
+            ast::StmtKind::VarDef(name, value)
                 => self.analyse_variable_definition(name, value, stmt.span),
-            StmtAstKind::Expr(expr)
+            ast::StmtKind::Expr(expr)
                 => StmtAbtKind::Expr(Box::new(self.analyse_expression(expr))),
-            StmtAstKind::Block(stmts)
+            ast::StmtKind::Block(stmts)
                 => self.analyse_block_statement(stmts),
-            StmtAstKind::IfThen(guard, body)
+            ast::StmtKind::IfThen(guard, body)
                 => self.analyse_if_then_statement(guard, body),
-            StmtAstKind::Then(body)
+            ast::StmtKind::Then(body)
                 => self.analyse_then_statement(body),
-            StmtAstKind::IfThenElse(guard, body_then, body_else)
+            ast::StmtKind::IfThenElse(guard, body_then, body_else)
                 => self.analyse_if_then_else_statement(guard, body_then, body_else),
-            StmtAstKind::Else(body)
+            ast::StmtKind::Else(body)
                 => self.analyse_else_statement(body),
-            StmtAstKind::WhileDo(guard, body)
+            ast::StmtKind::WhileDo(guard, body)
                 => self.analyse_while_do_statement(guard, body),
-            StmtAstKind::DoWhile(body, guard)
+            ast::StmtKind::DoWhile(body, guard)
                 => self.analyse_do_while_statement(body, guard),
-            StmtAstKind::Do(body)
+            ast::StmtKind::Do(body)
                 => self.analyse_do_statement(body),
-            StmtAstKind::Func(name, args, body, ty)
+            ast::StmtKind::Func(name, args, body, ty)
                 => self.analyse_function_definition(name, args, body, ty),
-            StmtAstKind::Return
+            ast::StmtKind::Return
                 => self.analyse_return_statement(stmt.span),
-            StmtAstKind::ReturnWith(expr)
+            ast::StmtKind::ReturnWith(expr)
                 => self.analyse_return_with_statement(expr),
         }
         .wrap(stmt.span)
     }
 
-    fn analyse_block_statement(&mut self, stmts: &[StmtAst]) -> StmtAbtKind {
+    fn analyse_block_statement(&mut self, stmts: &[ast::Stmt]) -> StmtAbtKind {
         self.open_scope();
         let bound_stmts = stmts
             .iter()

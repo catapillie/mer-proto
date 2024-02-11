@@ -1,7 +1,7 @@
 use std::num::ParseIntError;
 
 use crate::com::{
-    syntax::{BinOpAst, UnOpAst},
+    ast,
     tokens::{Token, TokenKind},
     TypeAbt,
 };
@@ -51,11 +51,11 @@ pub enum DiagnosticKind {
     },
 
     InvalidUnaryOperation {
-        op: UnOpAst,
+        op: ast::UnOp,
         ty: TypeAbt,
     },
     InvalidBinaryOperation {
-        op: BinOpAst,
+        op: ast::BinOp,
         left: TypeAbt,
         right: TypeAbt,
     },

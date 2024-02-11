@@ -1,7 +1,7 @@
 use crate::{
     com::{
         abt::{ExprAbt, TypeAbt},
-        syntax::expr::{ExprAst, ExprAstKind},
+        ast,
     },
     diagnostics::{self, DiagnosticKind, Note, Severity},
 };
@@ -10,52 +10,53 @@ use super::Analyser;
 
 impl<'d> Analyser<'d> {
     #[rustfmt::skip]
-    pub fn analyse_expression(&mut self, expr: &ExprAst) -> ExprAbt {
+    pub fn analyse_expression(&mut self, expr: &ast::Expr) -> ExprAbt {
+        use ast::ExprKind as K;
         match &expr.kind {
-            ExprAstKind::Bad
+            K::Bad
                 => ExprAbt::Unknown,
-            ExprAstKind::Unit
+            K::Unit
                 => ExprAbt::Unit,
-            ExprAstKind::Integer(num)
+            K::Integer(num)
                 => ExprAbt::Integer(*num),
-            ExprAstKind::Decimal(num)
+            K::Decimal(num)
                 => ExprAbt::Decimal(*num),
-            ExprAstKind::Identifier(id)
+            K::Identifier(id)
                 => self.analyse_variable_expression(id, expr.span),
-            ExprAstKind::Boolean(b)
+            K::Boolean(b)
                 => ExprAbt::Boolean(*b),
-            ExprAstKind::Parenthesized(inner)
+            K::Parenthesized(inner)
                 => self.analyse_expression(inner),
-            ExprAstKind::Tuple(head, tail)
+            K::Tuple(head, tail)
                 => self.analyse_tuple_expression(head, tail),
-            ExprAstKind::Array(exprs)
+            K::Array(exprs)
                 => self.analyse_array_expression(exprs, expr.span),
-            ExprAstKind::ImmediateIndex(inner, index)
+            K::ImmediateIndex(inner, index)
                 => self.analyse_immediate_index(inner, *index, expr.span),
-            ExprAstKind::Index(inner, index_expr)
+            K::Index(inner, index_expr)
                 => self.analyse_index_expression(inner, index_expr, expr.span),
-            ExprAstKind::BinaryOp(op, left, right)
+            K::BinaryOp(op, left, right)
                 => self.analyse_binary_operation(*op, left, right, expr.span),
-            ExprAstKind::UnaryOp(op, operand)
+            K::UnaryOp(op, operand)
                 => self.analyse_unary_operation(*op, operand, expr.span),
-            ExprAstKind::Call(callee, args)
+            K::Call(callee, args)
                 => self.analyse_call_expression(callee, args, expr.span),
-            ExprAstKind::Debug(inner)
+            K::Debug(inner)
                 => self.analyse_debug_expression(inner),
-            ExprAstKind::Ref(expr)
+            K::Ref(expr)
                 => self.analyse_reference_expression(expr),
-            ExprAstKind::Deref(expr)
+            K::Deref(expr)
                 => self.analyse_dereference_expression(expr),
-            ExprAstKind::Todo
+            K::Todo
                 => ExprAbt::Todo,
-            ExprAstKind::Unreachable
+            K::Unreachable
                 => ExprAbt::Unreachable,
-            ExprAstKind::Case(paths, span)
+            K::Case(paths, span)
                 => self.analyse_case_expression(paths, *span),
         }
     }
 
-    fn analyse_debug_expression(&mut self, expr: &ExprAst) -> ExprAbt {
+    fn analyse_debug_expression(&mut self, expr: &ast::Expr) -> ExprAbt {
         let inner = self.analyse_expression(expr);
         let ty = self.type_of(&inner);
 

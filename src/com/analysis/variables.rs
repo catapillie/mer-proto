@@ -1,7 +1,7 @@
 use crate::{
     com::{
         abt::{ExprAbt, StmtAbtKind, TypeAbt},
-        syntax::expr::ExprAst,
+        ast,
     },
     diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
     utils::Span,
@@ -57,7 +57,7 @@ impl<'d> Analyser<'d> {
     pub fn analyse_variable_definition(
         &mut self,
         id: &Option<(String, Span)>,
-        expr: &ExprAst,
+        expr: &ast::Expr,
         span: Span,
     ) -> StmtAbtKind {
         let bound_expr = self.analyse_expression(expr);

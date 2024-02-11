@@ -1,7 +1,7 @@
 use crate::{
     com::{
         abt::{Assignee, BinOpAbt, BinOpAbtKind, ExprAbt, TypeAbt, UnOpAbt, UnOpAbtKind},
-        syntax::{bin_op::BinOpAst, expr::ExprAst, un_op::UnOpAst},
+        ast,
     },
     diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
     utils::Span,
@@ -12,12 +12,12 @@ use super::Analyser;
 impl<'d> Analyser<'d> {
     pub fn analyse_binary_operation(
         &mut self,
-        op: BinOpAst,
-        left: &ExprAst,
-        right: &ExprAst,
+        op: ast::BinOp,
+        left: &ast::Expr,
+        right: &ast::Expr,
         span: Span,
     ) -> ExprAbt {
-        if matches!(op, BinOpAst::Assign) {
+        if matches!(op, ast::BinOp::Assign) {
             return self.analyse_assignment(left, right);
         }
 
@@ -120,7 +120,7 @@ impl<'d> Analyser<'d> {
         }
     }
 
-    fn analyse_assignment(&mut self, left: &ExprAst, right: &ExprAst) -> ExprAbt {
+    fn analyse_assignment(&mut self, left: &ast::Expr, right: &ast::Expr) -> ExprAbt {
         let bound_left = self.analyse_expression(left);
         let bound_right = self.analyse_expression(right);
 
@@ -173,9 +173,9 @@ impl<'d> Analyser<'d> {
         }
     }
 
-    fn integer_binary_operation(op: BinOpAst, ty: TypeAbt) -> Option<BinOpAbt> {
+    fn integer_binary_operation(op: ast::BinOp, ty: TypeAbt) -> Option<BinOpAbt> {
+        use ast::BinOp as Ast;
         use BinOpAbtKind as Abt;
-        use BinOpAst as Ast;
         use TypeAbt as Ty;
         match op {
             Ast::Add => Some(Abt::Add.wrap(ty.clone(), ty)),
@@ -196,9 +196,9 @@ impl<'d> Analyser<'d> {
         }
     }
 
-    fn decimal_binary_operation(op: BinOpAst, ty: TypeAbt) -> Option<BinOpAbt> {
+    fn decimal_binary_operation(op: ast::BinOp, ty: TypeAbt) -> Option<BinOpAbt> {
+        use ast::BinOp as Ast;
         use BinOpAbtKind as Abt;
-        use BinOpAst as Ast;
         use TypeAbt as Ty;
         match op {
             Ast::Add => Some(Abt::Add.wrap(ty.clone(), ty)),
@@ -216,9 +216,9 @@ impl<'d> Analyser<'d> {
         }
     }
 
-    fn boolean_binary_operation(op: BinOpAst) -> Option<BinOpAbt> {
+    fn boolean_binary_operation(op: ast::BinOp) -> Option<BinOpAbt> {
+        use ast::BinOp as Ast;
         use BinOpAbtKind as Abt;
-        use BinOpAst as Ast;
         use TypeAbt as Ty;
         match op {
             Ast::Eq => Some(Abt::Eq.wrap(Ty::Bool, Ty::Bool)),
@@ -235,8 +235,8 @@ impl<'d> Analyser<'d> {
 
     pub fn analyse_unary_operation(
         &mut self,
-        op: UnOpAst,
-        operand: &ExprAst,
+        op: ast::UnOp,
+        operand: &ast::Expr,
         span: Span,
     ) -> ExprAbt {
         let bound_operand = self.analyse_expression(operand);
@@ -274,17 +274,17 @@ impl<'d> Analyser<'d> {
         ExprAbt::Unknown
     }
 
-    fn number_unary_operation(signed: bool, op: UnOpAst, ty: TypeAbt) -> Option<UnOpAbt> {
+    fn number_unary_operation(signed: bool, op: ast::UnOp, ty: TypeAbt) -> Option<UnOpAbt> {
         match op {
-            UnOpAst::Pos => Some(UnOpAbtKind::Pos.wrap(ty)),
-            UnOpAst::Neg if signed => Some(UnOpAbtKind::Neg.wrap(ty)),
+            ast::UnOp::Pos => Some(UnOpAbtKind::Pos.wrap(ty)),
+            ast::UnOp::Neg if signed => Some(UnOpAbtKind::Neg.wrap(ty)),
             _ => None,
         }
     }
 
-    fn boolean_unary_operation(op: UnOpAst) -> Option<UnOpAbt> {
+    fn boolean_unary_operation(op: ast::UnOp) -> Option<UnOpAbt> {
         match op {
-            UnOpAst::Not => Some(UnOpAbtKind::Not.wrap(TypeAbt::Bool)),
+            ast::UnOp::Not => Some(UnOpAbtKind::Not.wrap(TypeAbt::Bool)),
             _ => None,
         }
     }

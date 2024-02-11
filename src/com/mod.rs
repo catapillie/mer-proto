@@ -1,9 +1,9 @@
 mod abt;
 mod analysis;
+pub mod ast;
 mod codegen;
 mod compilation;
 mod parser;
-pub mod syntax;
 pub mod tokens;
 
 pub use abt::TypeAbt;

@@ -4,7 +4,7 @@ use crate::{
     com::{
         abt::{ExprAbt, StmtAbt, StmtAbtKind, TypeAbt},
         analysis::Declaration,
-        syntax::{expr::ExprAst, stmt::StmtAst, types::TypeAst},
+        ast,
     },
     diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
     utils::Span,
@@ -70,9 +70,9 @@ impl<'d> Analyser<'d> {
     pub fn analyse_function_definition(
         &mut self,
         name: &Option<(String, Span)>,
-        args: &[(String, TypeAst, Span)],
-        body: &StmtAst,
-        ty: &TypeAst,
+        args: &[(String, ast::Type, Span)],
+        body: &ast::Stmt,
+        ty: &ast::Type,
     ) -> StmtAbtKind {
         let Some((name, span)) = name else {
             return StmtAbtKind::Empty;
@@ -146,8 +146,8 @@ impl<'d> Analyser<'d> {
 
     pub fn analyse_call_expression(
         &mut self,
-        callee: &ExprAst,
-        args: &[ExprAst],
+        callee: &ast::Expr,
+        args: &[ast::Expr],
         span: Span,
     ) -> ExprAbt {
         let bound_callee = self.analyse_expression(callee);
@@ -185,7 +185,7 @@ impl<'d> Analyser<'d> {
 
     fn analyse_immediate_call(
         &mut self,
-        args: &[ExprAst],
+        args: &[ast::Expr],
         bound_args: Box<[ExprAbt]>,
         span: Span,
         id: u64,
@@ -273,7 +273,7 @@ impl<'d> Analyser<'d> {
 
     fn analyse_indirect_call(
         &mut self,
-        args: &[ExprAst],
+        args: &[ast::Expr],
         bound_args: Box<[ExprAbt]>,
         func_args: &[TypeAbt],
         func_return_ty: TypeAbt,
@@ -361,7 +361,7 @@ impl<'d> Analyser<'d> {
         StmtAbtKind::Return(Box::new(ExprAbt::Unit))
     }
 
-    pub fn analyse_return_with_statement(&mut self, expr: &ExprAst) -> StmtAbtKind {
+    pub fn analyse_return_with_statement(&mut self, expr: &ast::Expr) -> StmtAbtKind {
         let bound_expr = self.analyse_expression(expr);
         let ty_expr = self.type_of(&bound_expr);
         let return_ty = {

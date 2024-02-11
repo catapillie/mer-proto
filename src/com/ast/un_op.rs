@@ -1,18 +1,18 @@
 use std::fmt::Display;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum UnOpAst {
+pub enum UnOp {
     Pos,
     Neg,
     Not,
 }
 
-impl Display for UnOpAst {
+impl Display for UnOp {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            UnOpAst::Pos => write!(f, "+"),
-            UnOpAst::Neg => write!(f, "-"),
-            UnOpAst::Not => write!(f, "not"),
+            UnOp::Pos => write!(f, "+"),
+            UnOp::Neg => write!(f, "-"),
+            UnOp::Not => write!(f, "not"),
         }
     }
 }

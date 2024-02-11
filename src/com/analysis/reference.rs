@@ -1,7 +1,7 @@
 use crate::{
     com::{
         abt::{ExprAbt, TypeAbt},
-        syntax::expr::ExprAst,
+        ast,
     },
     diagnostics::{self, DiagnosticKind, Note, Severity},
 };
@@ -9,7 +9,7 @@ use crate::{
 use super::Analyser;
 
 impl<'d> Analyser<'d> {
-    pub fn analyse_reference_expression(&mut self, expr: &ExprAst) -> ExprAbt {
+    pub fn analyse_reference_expression(&mut self, expr: &ast::Expr) -> ExprAbt {
         let bound_expr = self.analyse_expression(expr);
 
         if let ExprAbt::Variable(var_id) = bound_expr {
@@ -23,7 +23,7 @@ impl<'d> Analyser<'d> {
         }
     }
 
-    pub fn analyse_dereference_expression(&mut self, expr: &ExprAst) -> ExprAbt {
+    pub fn analyse_dereference_expression(&mut self, expr: &ast::Expr) -> ExprAbt {
         let bound_expr = self.analyse_expression(expr);
         let ty = self.type_of(&bound_expr);
 

@@ -1,5 +1,5 @@
 use crate::{
-    com::{abt::ExprAbt, syntax::expr::ExprAst, TypeAbt},
+    com::{abt::ExprAbt, ast, TypeAbt},
     diagnostics::{self, DiagnosticKind, Note, Severity},
     utils::Span,
 };
@@ -7,7 +7,7 @@ use crate::{
 use super::Analyser;
 
 impl<'d> Analyser<'d> {
-    pub fn analyse_tuple_expression(&mut self, head: &ExprAst, tail: &[ExprAst]) -> ExprAbt {
+    pub fn analyse_tuple_expression(&mut self, head: &ast::Expr, tail: &[ast::Expr]) -> ExprAbt {
         ExprAbt::Tuple(
             Box::new(self.analyse_expression(head)),
             tail.iter().map(|e| self.analyse_expression(e)).collect(),
@@ -16,7 +16,7 @@ impl<'d> Analyser<'d> {
 
     pub fn analyse_tuple_immediate_index(
         &mut self,
-        expr: &ExprAst,
+        expr: &ast::Expr,
         bound_expr: ExprAbt,
         tail: &[TypeAbt],
         index: u64,

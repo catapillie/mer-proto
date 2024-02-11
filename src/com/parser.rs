@@ -1,19 +1,8 @@
+use super::{ast::*, tokens::*};
 use crate::{
-    com::syntax::types::TypeAstKind,
+    com::ast::types::TypeKind,
     diagnostics::{self, DiagnosticKind, DiagnosticList, Note, Severity},
     utils::{Cursor, Pos, Span},
-};
-
-use super::{
-    syntax::{
-        bin_op::BinOpAst,
-        expr::{ExprAst, ExprAstKind},
-        priority::{Associativity, Precedence},
-        stmt::{StmtAst, StmtAstKind},
-        types::TypeAst,
-        un_op::UnOpAst,
-    },
-    tokens::*,
 };
 
 pub struct Parser<'a> {
@@ -37,7 +26,7 @@ impl<'a> Parser<'a> {
         parser
     }
 
-    pub fn parse_program(mut self) -> StmtAst {
+    pub fn parse_program(mut self) -> Stmt {
         let (stmts, span) = take_span!(self => {
             let mut program = Vec::new();
 
@@ -67,7 +56,7 @@ impl<'a> Parser<'a> {
             program
         });
 
-        StmtAstKind::Block(stmts.into()).wrap(span)
+        StmtKind::Block(stmts.into()).wrap(span)
     }
 
     fn recover_to_next_statement(&mut self) {
@@ -99,18 +88,18 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn empty_statement_here(&self) -> StmtAst {
-        StmtAstKind::Empty.wrap(Span::at(self.last_boundary))
+    fn empty_statement_here(&self) -> Stmt {
+        StmtKind::Empty.wrap(Span::at(self.last_boundary))
     }
 
-    pub fn parse_statement(&mut self) -> Option<StmtAst> {
+    pub fn parse_statement(&mut self) -> Option<Stmt> {
         self.skip_newlines();
 
         try_return_some!(self.parse_variable_definition());
 
         if let Some(expr) = self.parse_expression() {
             let span = expr.span;
-            return Some(StmtAstKind::Expr(Box::new(expr)).wrap(span));
+            return Some(StmtKind::Expr(Box::new(expr)).wrap(span));
         }
 
         try_return_some!(self.parse_block_statement());
@@ -128,20 +117,20 @@ impl<'a> Parser<'a> {
         None
     }
 
-    fn parse_variable_definition(&mut self) -> Option<StmtAst> {
+    fn parse_variable_definition(&mut self) -> Option<Stmt> {
         let (stmt, span) = take_span!(self => {
             self.try_match_token::<VarKw>()?;
 
             let id = self.match_token::<Identifier>().map(|tok| (tok.0, self.last_span()));
             self.match_token::<Equal>();
             let expr = self.expect_expression();
-            Some(StmtAstKind::VarDef(id, Box::new(expr)))
+            Some(StmtKind::VarDef(id, Box::new(expr)))
         });
 
         stmt.map(|s| s.wrap(span))
     }
 
-    fn parse_if_then_statement(&mut self) -> Option<StmtAst> {
+    fn parse_if_then_statement(&mut self) -> Option<Stmt> {
         let (stmt, span) = take_span!(self => {
             self.try_match_token::<IfKw>()?;
 
@@ -157,7 +146,7 @@ impl<'a> Parser<'a> {
             if self.try_match_token::<ElseKw>().is_some() {
                 self.skip_newlines();
                 let stmt_else = self.parse_statement().unwrap_or(self.empty_statement_here());
-                return Some(StmtAstKind::IfThenElse(
+                return Some(StmtKind::IfThenElse(
                     Box::new(guard),
                     Box::new(stmt_then),
                     Box::new(stmt_else),
@@ -170,44 +159,44 @@ impl<'a> Parser<'a> {
             if self.try_match_token::<ElseKw>().is_some() {
                 self.skip_newlines();
                 let stmt_else = self.parse_statement().unwrap_or(self.empty_statement_here());
-                return Some(StmtAstKind::IfThenElse(
+                return Some(StmtKind::IfThenElse(
                     Box::new(guard),
                     Box::new(stmt_then),
                     Box::new(stmt_else),
                 ));
             }
 
-            Some(StmtAstKind::IfThen(Box::new(guard), Box::new(stmt_then)))
+            Some(StmtKind::IfThen(Box::new(guard), Box::new(stmt_then)))
         });
 
         stmt.map(|s| s.wrap(span))
     }
 
-    fn parse_then_statement(&mut self) -> Option<StmtAst> {
+    fn parse_then_statement(&mut self) -> Option<Stmt> {
         let (stmt, span) = take_span!(self => {
             self.try_match_token::<ThenKw>()?;
 
             self.skip_newlines();
             let stmt = self.parse_statement().unwrap_or(self.empty_statement_here());
-            Some(StmtAstKind::Then(Box::new(stmt)))
+            Some(StmtKind::Then(Box::new(stmt)))
         });
 
         stmt.map(|s| s.wrap(span))
     }
 
-    fn parse_else_statement(&mut self) -> Option<StmtAst> {
+    fn parse_else_statement(&mut self) -> Option<Stmt> {
         let (stmt, span) = take_span!(self => {
             self.try_match_token::<ElseKw>()?;
 
             self.skip_newlines();
             let stmt = self.parse_statement().unwrap_or(self.empty_statement_here());
-            Some(StmtAstKind::Else(Box::new(stmt)))
+            Some(StmtKind::Else(Box::new(stmt)))
         });
 
         stmt.map(|s| s.wrap(span))
     }
 
-    fn parse_while_do_statement(&mut self) -> Option<StmtAst> {
+    fn parse_while_do_statement(&mut self) -> Option<Stmt> {
         let (stmt, span) = take_span!(self => {
             self.try_match_token::<WhileKw>()?;
 
@@ -218,13 +207,13 @@ impl<'a> Parser<'a> {
             self.match_token::<DoKw>();
             self.skip_newlines();
             let stmt_do = self.parse_statement().unwrap_or(self.empty_statement_here());
-            return Some(StmtAstKind::WhileDo(Box::new(expr), Box::new(stmt_do)));
+            return Some(StmtKind::WhileDo(Box::new(expr), Box::new(stmt_do)));
         });
 
         stmt.map(|s| s.wrap(span))
     }
 
-    fn parse_do_while_statement(&mut self) -> Option<StmtAst> {
+    fn parse_do_while_statement(&mut self) -> Option<Stmt> {
         let (stmt, span) = take_span!(self => {
             self.try_match_token::<DoKw>()?;
 
@@ -234,7 +223,7 @@ impl<'a> Parser<'a> {
             if self.try_match_token::<WhileKw>().is_some() {
                 self.skip_newlines();
                 let expr = self.expect_expression();
-                return Some(StmtAstKind::DoWhile(Box::new(stmt_do), Box::new(expr)));
+                return Some(StmtKind::DoWhile(Box::new(stmt_do), Box::new(expr)));
             }
 
             let stmt_do = self.parse_statement().unwrap_or(self.empty_statement_here());
@@ -243,16 +232,16 @@ impl<'a> Parser<'a> {
             if self.try_match_token::<WhileKw>().is_some() {
                 self.skip_newlines();
                 let expr = self.expect_expression();
-                return Some(StmtAstKind::DoWhile(Box::new(stmt_do), Box::new(expr)));
+                return Some(StmtKind::DoWhile(Box::new(stmt_do), Box::new(expr)));
             }
 
-            Some(StmtAstKind::Do(Box::new(stmt_do)))
+            Some(StmtKind::Do(Box::new(stmt_do)))
         });
 
         stmt.map(|s| s.wrap(span))
     }
 
-    fn parse_function_statement(&mut self) -> Option<StmtAst> {
+    fn parse_function_statement(&mut self) -> Option<Stmt> {
         let (stmt, span) = take_span!(self => {
             self.try_match_token::<FuncKw>()?;
 
@@ -286,9 +275,9 @@ impl<'a> Parser<'a> {
             if self.try_match_token::<Equal>().is_some() {
                 let expr = self.expect_expression();
                 let span = expr.span;
-                let body = StmtAstKind::ReturnWith(Box::new(expr)).wrap(span);
+                let body = StmtKind::ReturnWith(Box::new(expr)).wrap(span);
 
-                return Some(StmtAstKind::Func(name, params.into(), Box::new(body), Box::new(ty)));
+                return Some(StmtKind::Func(name, params.into(), Box::new(body), Box::new(ty)));
             }
 
             let stmt = match self.parse_block_statement() {
@@ -305,27 +294,27 @@ impl<'a> Parser<'a> {
                 }
             };
 
-            Some(StmtAstKind::Func(name, params.into(), Box::new(stmt), Box::new(ty)))
+            Some(StmtKind::Func(name, params.into(), Box::new(stmt), Box::new(ty)))
         });
 
         stmt.map(|s| s.wrap(span))
     }
 
-    fn parse_return_statement(&mut self) -> Option<StmtAst> {
+    fn parse_return_statement(&mut self) -> Option<Stmt> {
         let (stmt, span) = take_span!(self => {
             self.try_match_token::<ReturnKw>()?;
 
             if let Some(expr) = self.parse_expression() {
-                Some(StmtAstKind::ReturnWith(Box::new(expr)))
+                Some(StmtKind::ReturnWith(Box::new(expr)))
             } else {
-                Some(StmtAstKind::Return)
+                Some(StmtKind::Return)
             }
         });
 
         stmt.map(|s| s.wrap(span))
     }
 
-    fn parse_block_statement(&mut self) -> Option<StmtAst> {
+    fn parse_block_statement(&mut self) -> Option<Stmt> {
         let (stmts, span) = take_span!(self => {
             self.try_match_token::<LeftBrace>()?;
             self.skip_newlines();
@@ -375,7 +364,7 @@ impl<'a> Parser<'a> {
             Some(stmts)
         });
 
-        stmts.map(|s| StmtAstKind::Block(s.into()).wrap(span))
+        stmts.map(|s| StmtKind::Block(s.into()).wrap(span))
     }
 
     pub fn is_start_of_expression(&self) -> bool {
@@ -392,40 +381,40 @@ impl<'a> Parser<'a> {
     }
 
     #[rustfmt::skip]
-    fn is_binary_operator(&mut self) -> Option<(BinOpAst, Precedence, Associativity)> {
+    fn is_binary_operator(&mut self) -> Option<(BinOp, Precedence, Associativity)> {
         match self.look_ahead {
-            Token::Star(_, _) => Some((BinOpAst::Mul, 90, Associativity::Left)),
-            Token::Slash(_, _) => Some((BinOpAst::Div, 90, Associativity::Left)),
-            Token::Percent(_, _) => Some((BinOpAst::Rem, 90, Associativity::Left)),
-            Token::Plus(_, _) => Some((BinOpAst::Add, 80, Associativity::Left)),
-            Token::Minus(_, _) => Some((BinOpAst::Sub, 80, Associativity::Left)),
-            Token::Ampersand(_, _) => Some((BinOpAst::BitAnd, 70, Associativity::Left)),
-            Token::Caret(_, _) => Some((BinOpAst::BitXor, 60, Associativity::Left)),
-            Token::Bar(_, _) => Some((BinOpAst::BitOr, 50, Associativity::Left)),
-            Token::EqualEqual(_, _) => Some((BinOpAst::Eq, 40, Associativity::Left)),
-            Token::NotEqual(_, _) => Some((BinOpAst::Ne, 40, Associativity::Left)),
-            Token::LessEqual(_, _) => Some((BinOpAst::Le, 40, Associativity::Left)),
-            Token::LessThan(_, _) => Some((BinOpAst::Lt, 40, Associativity::Left)),
-            Token::GreaterEqual(_, _) => Some((BinOpAst::Ge, 40, Associativity::Left)),
-            Token::GreaterThan(_, _) => Some((BinOpAst::Gt, 40, Associativity::Left)),
-            Token::AndKw(_, _) => Some((BinOpAst::And, 30, Associativity::Left)),
-            Token::XorKw(_, _) => Some((BinOpAst::Xor, 25, Associativity::Left)),
-            Token::OrKw(_, _) => Some((BinOpAst::Or, 20, Associativity::Left)),
-            Token::Equal(_, _) => Some((BinOpAst::Assign, 10, Associativity::Right)),
+            Token::Star(_, _) => Some((BinOp::Mul, 90, Associativity::Left)),
+            Token::Slash(_, _) => Some((BinOp::Div, 90, Associativity::Left)),
+            Token::Percent(_, _) => Some((BinOp::Rem, 90, Associativity::Left)),
+            Token::Plus(_, _) => Some((BinOp::Add, 80, Associativity::Left)),
+            Token::Minus(_, _) => Some((BinOp::Sub, 80, Associativity::Left)),
+            Token::Ampersand(_, _) => Some((BinOp::BitAnd, 70, Associativity::Left)),
+            Token::Caret(_, _) => Some((BinOp::BitXor, 60, Associativity::Left)),
+            Token::Bar(_, _) => Some((BinOp::BitOr, 50, Associativity::Left)),
+            Token::EqualEqual(_, _) => Some((BinOp::Eq, 40, Associativity::Left)),
+            Token::NotEqual(_, _) => Some((BinOp::Ne, 40, Associativity::Left)),
+            Token::LessEqual(_, _) => Some((BinOp::Le, 40, Associativity::Left)),
+            Token::LessThan(_, _) => Some((BinOp::Lt, 40, Associativity::Left)),
+            Token::GreaterEqual(_, _) => Some((BinOp::Ge, 40, Associativity::Left)),
+            Token::GreaterThan(_, _) => Some((BinOp::Gt, 40, Associativity::Left)),
+            Token::AndKw(_, _) => Some((BinOp::And, 30, Associativity::Left)),
+            Token::XorKw(_, _) => Some((BinOp::Xor, 25, Associativity::Left)),
+            Token::OrKw(_, _) => Some((BinOp::Or, 20, Associativity::Left)),
+            Token::Equal(_, _) => Some((BinOp::Assign, 10, Associativity::Right)),
             _ => None,
         }
     }
 
-    fn is_unary_operator(&mut self) -> Option<UnOpAst> {
+    fn is_unary_operator(&mut self) -> Option<UnOp> {
         match self.look_ahead {
-            Token::Plus(_, _) => Some(UnOpAst::Pos),
-            Token::Minus(_, _) => Some(UnOpAst::Neg),
-            Token::NotKw(_, _) => Some(UnOpAst::Not),
+            Token::Plus(_, _) => Some(UnOp::Pos),
+            Token::Minus(_, _) => Some(UnOp::Neg),
+            Token::NotKw(_, _) => Some(UnOp::Not),
             _ => None,
         }
     }
 
-    fn expect_expression(&mut self) -> ExprAst {
+    fn expect_expression(&mut self) -> Expr {
         match self.parse_expression() {
             Some(expr) => expr,
             None => {
@@ -436,23 +425,23 @@ impl<'a> Parser<'a> {
                     .annotate_primary(Note::Here, Span::at(self.last_boundary))
                     .done();
                 self.diagnostics.push(d);
-                ExprAstKind::Bad.wrap(Span::at(self.last_boundary))
+                ExprKind::Bad.wrap(Span::at(self.last_boundary))
             }
         }
     }
 
-    pub fn parse_expression(&mut self) -> Option<ExprAst> {
+    pub fn parse_expression(&mut self) -> Option<Expr> {
         if self.try_match_token::<DebugKw>().is_some() {
             let span = self.last_span();
             let inner = self.expect_expression();
             let span = span.join(inner.span);
-            return Some(ExprAstKind::Debug(Box::new(inner)).wrap(span));
+            return Some(ExprKind::Debug(Box::new(inner)).wrap(span));
         }
 
         self.parse_operation_expression(Precedence::MIN)
     }
 
-    pub fn parse_operation_expression(&mut self, prec: Precedence) -> Option<ExprAst> {
+    pub fn parse_operation_expression(&mut self, prec: Precedence) -> Option<Expr> {
         let mut expr = if let Some(op) = self.is_unary_operator() {
             let (inner, span) = take_span!(self => {
                 self.consume_token();
@@ -466,11 +455,11 @@ impl<'a> Parser<'a> {
                             .annotate_primary(Note::Here, Span::at(self.last_boundary))
                             .done();
                         self.diagnostics.push(d);
-                        ExprAstKind::Bad.wrap(Span::at(self.last_boundary))
+                        ExprKind::Bad.wrap(Span::at(self.last_boundary))
                     }
                 }
             });
-            ExprAstKind::UnaryOp(op, Box::new(inner)).wrap(span)
+            ExprKind::UnaryOp(op, Box::new(inner)).wrap(span)
         } else {
             self.parse_primary_expression()?
         };
@@ -497,18 +486,18 @@ impl<'a> Parser<'a> {
                         .annotate_primary(Note::Here, Span::at(self.last_boundary))
                         .done();
                     self.diagnostics.push(d);
-                    ExprAstKind::Bad.wrap(Span::at(self.last_boundary))
+                    ExprKind::Bad.wrap(Span::at(self.last_boundary))
                 }
             };
 
             let span = expr.span.join(expr_right.span);
-            expr = ExprAstKind::BinaryOp(op, Box::new(expr), Box::new(expr_right)).wrap(span);
+            expr = ExprKind::BinaryOp(op, Box::new(expr), Box::new(expr_right)).wrap(span);
         }
 
         Some(expr)
     }
 
-    fn parse_primary_expression(&mut self) -> Option<ExprAst> {
+    fn parse_primary_expression(&mut self) -> Option<Expr> {
         let (expr, mut span) = take_span!(self => {
             if self.try_match_token::<Ampersand>().is_some() {
                 let expr = match self.parse_primary_expression() {
@@ -521,11 +510,11 @@ impl<'a> Parser<'a> {
                             .annotate_primary(Note::Here, Span::at(self.last_boundary))
                             .done();
                         self.diagnostics.push(d);
-                        ExprAstKind::Bad.wrap(Span::at(self.last_boundary))
+                        ExprKind::Bad.wrap(Span::at(self.last_boundary))
                     },
                 };
 
-                return Some(ExprAstKind::Ref(Box::new(expr)));
+                return Some(ExprKind::Ref(Box::new(expr)));
             }
 
             if self.try_match_token::<At>().is_some() {
@@ -539,11 +528,11 @@ impl<'a> Parser<'a> {
                             .annotate_primary(Note::Here, Span::at(self.last_boundary))
                             .done();
                         self.diagnostics.push(d);
-                        ExprAstKind::Bad.wrap(Span::at(self.last_boundary))
+                        ExprKind::Bad.wrap(Span::at(self.last_boundary))
                     },
                 };
 
-                return Some(ExprAstKind::Deref(Box::new(expr)));
+                return Some(ExprKind::Deref(Box::new(expr)));
             }
 
             // not sure about this, but instead of lexing floating-point numbers
@@ -552,36 +541,36 @@ impl<'a> Parser<'a> {
             // insert parentheses everywhere, for instance "x.0.2.1"
             if let Some(left) = self.try_match_token::<Integer>() {
                 if self.try_match_token::<Dot>().is_none() {
-                    return Some(ExprAstKind::Integer(left.0));
+                    return Some(ExprKind::Integer(left.0));
                 }
                 let num_left = left.0;
                 let num_right = self.try_match_token::<Integer>().unwrap_or_default().0;
                 let decimal = format!("{num_left}.{num_right}").parse::<f64>().unwrap();
-                return Some(ExprAstKind::Decimal(decimal));
+                return Some(ExprKind::Decimal(decimal));
             }
 
             if self.try_match_token::<TodoKw>().is_some() {
-                return Some(ExprAstKind::Todo);
+                return Some(ExprKind::Todo);
             }
 
             if self.try_match_token::<UnreachableKw>().is_some() {
-                return Some(ExprAstKind::Unreachable);
+                return Some(ExprKind::Unreachable);
             }
 
             if self.try_match_token::<MalformedNumeral>().is_some() {
-                return Some(ExprAstKind::Bad);
+                return Some(ExprKind::Bad);
             }
 
             if let Some(id) = self.try_match_token::<Identifier>() {
-                return Some(ExprAstKind::Identifier(id.0));
+                return Some(ExprKind::Identifier(id.0));
             }
 
             if self.try_match_token::<TrueKw>().is_some() {
-                return Some(ExprAstKind::Boolean(true));
+                return Some(ExprKind::Boolean(true));
             }
 
             if self.try_match_token::<FalseKw>().is_some() {
-                return Some(ExprAstKind::Boolean(false));
+                return Some(ExprKind::Boolean(false));
             }
 
             if let Some(expr) = self.parse_case_expression() {
@@ -591,20 +580,20 @@ impl<'a> Parser<'a> {
             let delimited = self.parse_delimited_sequence::<LeftParen, RightParen, Comma, _, _>(Self::parse_expression);
             if let Some(mut exprs) = delimited {
                 if exprs.is_empty() {
-                    return Some(ExprAstKind::Unit);
+                    return Some(ExprKind::Unit);
                 }
 
                 let head = exprs.remove(0);
                 return if exprs.is_empty() {
-                    Some(ExprAstKind::Parenthesized(Box::new(head)))
+                    Some(ExprKind::Parenthesized(Box::new(head)))
                 } else {
-                    Some(ExprAstKind::Tuple(Box::new(head), exprs.into()))
+                    Some(ExprKind::Tuple(Box::new(head), exprs.into()))
                 };
             }
 
             let delimited = self.parse_delimited_sequence::<LeftBracket, RightBracket, Comma, _, _>(Self::parse_expression);
             if let Some(exprs) = delimited {
-                return Some(ExprAstKind::Array(exprs.into_boxed_slice()));
+                return Some(ExprKind::Array(exprs.into_boxed_slice()));
             }
 
             None
@@ -617,7 +606,7 @@ impl<'a> Parser<'a> {
                 let index_expr = self.expect_expression();
                 self.match_token::<RightBracket>();
                 span = span.join(self.last_span());
-                expr = ExprAstKind::Index(Box::new(expr), Box::new(index_expr)).wrap(span);
+                expr = ExprKind::Index(Box::new(expr), Box::new(index_expr)).wrap(span);
                 continue;
             }
 
@@ -637,7 +626,7 @@ impl<'a> Parser<'a> {
                 self.match_token::<RightParen>();
 
                 span = span.join(self.last_span());
-                expr = ExprAstKind::Call(Box::new(expr), params.into()).wrap(span);
+                expr = ExprKind::Call(Box::new(expr), params.into()).wrap(span);
                 continue;
             }
 
@@ -647,7 +636,7 @@ impl<'a> Parser<'a> {
                     .map(|n| n.0 as u64)
                     .unwrap_or(0);
                 span = span.join(self.last_span());
-                expr = ExprAstKind::ImmediateIndex(Box::new(expr), index).wrap(span);
+                expr = ExprKind::ImmediateIndex(Box::new(expr), index).wrap(span);
                 continue;
             }
 
@@ -657,7 +646,7 @@ impl<'a> Parser<'a> {
         Some(expr)
     }
 
-    fn parse_case_expression(&mut self) -> Option<ExprAstKind> {
+    fn parse_case_expression(&mut self) -> Option<ExprKind> {
         self.try_match_token::<CaseKw>()?;
         let case_kw_span = self.last_span();
 
@@ -690,10 +679,10 @@ impl<'a> Parser<'a> {
         self.match_token::<RightBrace>();
         self.skip_newlines();
 
-        Some(ExprAstKind::Case(paths.into_boxed_slice(), case_kw_span))
+        Some(ExprKind::Case(paths.into_boxed_slice(), case_kw_span))
     }
 
-    fn expect_type_expression(&mut self) -> TypeAst {
+    fn expect_type_expression(&mut self) -> Type {
         match self.parse_type_expression() {
             Some(ty) => ty,
             None => {
@@ -704,12 +693,12 @@ impl<'a> Parser<'a> {
                     .annotate_primary(Note::Here, Span::at(self.last_boundary))
                     .done();
                 self.diagnostics.push(d);
-                TypeAstKind::Bad.wrap(Span::at(self.last_span().from))
+                TypeKind::Bad.wrap(Span::at(self.last_span().from))
             }
         }
     }
 
-    fn parse_type_expression(&mut self) -> Option<TypeAst> {
+    fn parse_type_expression(&mut self) -> Option<Type> {
         let (ty, span) = take_span!(self => {
             let mut types = Vec::new();
             while let Some(ty) = self.parse_primary_type_expression() {
@@ -725,13 +714,13 @@ impl<'a> Parser<'a> {
 
             if self.try_match_token::<RightArrow>().is_some() {
                 let ret_ty = self.expect_type_expression();
-                return Some(TypeAstKind::Func(types.into(), Box::new(ret_ty)));
+                return Some(TypeKind::Func(types.into(), Box::new(ret_ty)));
             }
 
             if types.len() > 1 {
                 self.match_token::<RightArrow>();
                 let ret_ty = self.expect_type_expression();
-                Some(TypeAstKind::Func(types.into(), Box::new(ret_ty)))
+                Some(TypeKind::Func(types.into(), Box::new(ret_ty)))
             } else {
                 Some(types.swap_remove(0).kind)
             }
@@ -740,13 +729,13 @@ impl<'a> Parser<'a> {
         Some(ty?.wrap(span))
     }
 
-    fn parse_primary_type_expression(&mut self) -> Option<TypeAst> {
+    fn parse_primary_type_expression(&mut self) -> Option<Type> {
         let delimited = take_span!(
             self => self.parse_delimited_sequence::<LeftParen, RightParen, Comma, _, _>(Self::parse_type_expression)
         );
         if let (Some(mut tys), span) = delimited {
             if tys.is_empty() {
-                return Some(TypeAstKind::Unit.wrap(span));
+                return Some(TypeKind::Unit.wrap(span));
             }
 
             let head = tys.remove(0);
@@ -760,7 +749,7 @@ impl<'a> Parser<'a> {
                 self.diagnostics.push(d);
                 Some(head)
             } else {
-                Some(TypeAstKind::Tuple(Box::new(head), tys.into()).wrap(span))
+                Some(TypeKind::Tuple(Box::new(head), tys.into()).wrap(span))
             };
         }
 
@@ -768,18 +757,18 @@ impl<'a> Parser<'a> {
             let span = self.last_span();
             let ty = self.expect_type_expression();
             let span = span.join(ty.span);
-            return Some(TypeAstKind::Ref(Box::new(ty)).wrap(span));
+            return Some(TypeKind::Ref(Box::new(ty)).wrap(span));
         }
 
         if let Some(id) = self.try_match_token::<Identifier>() {
-            return Some(TypeAstKind::Declared(id.0).wrap(self.last_span()));
+            return Some(TypeKind::Declared(id.0).wrap(self.last_span()));
         }
 
         if self.try_match_token::<RightArrow>().is_some() {
             let span = self.last_span();
             let ty = self.expect_type_expression();
             let span = span.join(ty.span);
-            return Some(TypeAstKind::Func(Box::new([]), Box::new(ty)).wrap(span));
+            return Some(TypeKind::Func(Box::new([]), Box::new(ty)).wrap(span));
         }
 
         if self.try_match_token::<LeftBracket>().is_some() {
@@ -788,7 +777,7 @@ impl<'a> Parser<'a> {
             self.match_token::<RightBracket>();
             let ty = self.expect_type_expression();
             let span = span.join(self.last_span());
-            return Some(TypeAstKind::Array(Box::new(ty), size as usize).wrap(span));
+            return Some(TypeKind::Array(Box::new(ty), size as usize).wrap(span));
         }
 
         None

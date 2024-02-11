@@ -1,7 +1,7 @@
 use crate::{
     com::{
         abt::{ExprAbt, TypeAbt},
-        syntax::types::{TypeAst, TypeAstKind},
+        ast,
     },
     diagnostics::{self, DiagnosticKind, Note, Severity},
 };
@@ -9,19 +9,19 @@ use crate::{
 use super::Analyser;
 
 impl<'d> Analyser<'d> {
-    pub fn analyse_type(&mut self, ty: &TypeAst) -> TypeAbt {
+    pub fn analyse_type(&mut self, ty: &ast::Type) -> TypeAbt {
         match &ty.kind {
-            TypeAstKind::Bad => TypeAbt::Unknown,
-            TypeAstKind::Unit => TypeAbt::Unit,
-            TypeAstKind::Tuple(head, tail) => TypeAbt::Tuple(
+            ast::TypeKind::Bad => TypeAbt::Unknown,
+            ast::TypeKind::Unit => TypeAbt::Unit,
+            ast::TypeKind::Tuple(head, tail) => TypeAbt::Tuple(
                 Box::new(self.analyse_type(head)),
                 tail.iter().map(|ty| self.analyse_type(ty)).collect(),
             ),
-            TypeAstKind::Array(inner, size) => {
+            ast::TypeKind::Array(inner, size) => {
                 TypeAbt::Array(Box::new(self.analyse_type(inner)), *size)
             }
-            TypeAstKind::Ref(ty) => TypeAbt::Ref(Box::new(self.analyse_type(ty))),
-            TypeAstKind::Declared(id) => {
+            ast::TypeKind::Ref(ty) => TypeAbt::Ref(Box::new(self.analyse_type(ty))),
+            ast::TypeKind::Declared(id) => {
                 match id.as_str() {
                     "u8" => return TypeAbt::U8,
                     "u16" => return TypeAbt::U16,
@@ -47,7 +47,7 @@ impl<'d> Analyser<'d> {
 
                 TypeAbt::Unknown
             }
-            TypeAstKind::Func(arg_tys, ret_ty) => {
+            ast::TypeKind::Func(arg_tys, ret_ty) => {
                 let bound_arg_tys = arg_tys.iter().map(|ty| self.analyse_type(ty)).collect();
                 let bound_ret_ty = self.analyse_type(ret_ty);
                 TypeAbt::Func(bound_arg_tys, Box::new(bound_ret_ty))

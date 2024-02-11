@@ -1,7 +1,7 @@
 use crate::{
     com::{
         abt::{StmtAbtKind, TypeAbt},
-        syntax::{expr::ExprAst, stmt::StmtAst},
+        ast,
     },
     diagnostics::{self, DiagnosticKind, Note, Severity},
 };
@@ -9,7 +9,11 @@ use crate::{
 use super::Analyser;
 
 impl<'d> Analyser<'d> {
-    pub fn analyse_if_then_statement(&mut self, guard: &ExprAst, body: &StmtAst) -> StmtAbtKind {
+    pub fn analyse_if_then_statement(
+        &mut self,
+        guard: &ast::Expr,
+        body: &ast::Stmt,
+    ) -> StmtAbtKind {
         let bound_guard = self.analyse_expression(guard);
 
         self.open_scope();
@@ -41,9 +45,9 @@ impl<'d> Analyser<'d> {
 
     pub fn analyse_if_then_else_statement(
         &mut self,
-        guard: &ExprAst,
-        body_then: &StmtAst,
-        body_else: &StmtAst,
+        guard: &ast::Expr,
+        body_then: &ast::Stmt,
+        body_else: &ast::Stmt,
     ) -> StmtAbtKind {
         let bound_guard = self.analyse_expression(guard);
 
@@ -92,7 +96,7 @@ impl<'d> Analyser<'d> {
         )
     }
 
-    pub fn analyse_then_statement(&mut self, body: &StmtAst) -> StmtAbtKind {
+    pub fn analyse_then_statement(&mut self, body: &ast::Stmt) -> StmtAbtKind {
         self.open_scope();
         self.analyse_statement(body);
         self.close_scope();
@@ -108,7 +112,7 @@ impl<'d> Analyser<'d> {
         StmtAbtKind::Empty
     }
 
-    pub fn analyse_else_statement(&mut self, body: &StmtAst) -> StmtAbtKind {
+    pub fn analyse_else_statement(&mut self, body: &ast::Stmt) -> StmtAbtKind {
         self.open_scope();
         self.analyse_statement(body);
         self.close_scope();
