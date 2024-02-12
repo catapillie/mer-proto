@@ -34,6 +34,10 @@ impl<'d> Analyser<'d> {
                     _ => {}
                 };
 
+                if let Some(info) = self.get_data_structure(id) {
+                    return abt::Type::Data(info.id);
+                }
+
                 let d = diagnostics::create_diagnostic()
                     .with_kind(DiagnosticKind::UnknownType(id.clone()))
                     .with_severity(Severity::Error)
