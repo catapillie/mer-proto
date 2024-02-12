@@ -32,4 +32,5 @@ pub enum Expr {
     Unreachable,
     Case(Box<[(Expr, Expr)]>, Box<Expr>, Type),
     CaseTernary(Box<Expr>, Box<Expr>, Box<Expr>, Type),
+    Data(u64, Box<[Expr]>),
 }

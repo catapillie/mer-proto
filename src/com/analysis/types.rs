@@ -45,7 +45,6 @@ impl<'d> Analyser<'d> {
                     .annotate_primary(Note::Unknown, ty.span)
                     .done();
                 self.diagnostics.push(d);
-
                 abt::Type::Unknown
             }
             ast::TypeKind::Func(arg_tys, ret_ty) => {

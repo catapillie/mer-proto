@@ -1,5 +1,7 @@
 use std::collections::BTreeMap;
 
+use itertools::Itertools;
+
 use super::Analyser;
 use crate::{
     com::{
@@ -88,14 +90,15 @@ impl<'d> Analyser<'d> {
             return abt::Expr::Unknown;
         };
 
-        // hashmap: name -> (span, type, is_set)
+        // hashmap: name -> (span, type, id, set_span)
         let mut required_fields = info
             .fields
             .iter()
-            .map(|(field_name, field_type)| {
+            .enumerate()
+            .map(|(i, (field_name, field_type))| {
                 (
                     field_name.value.clone(),
-                    (field_name.span, field_type, None),
+                    (field_name.span, field_type, i, None),
                 )
             })
             .collect::<BTreeMap<_, _>>();
@@ -116,8 +119,8 @@ impl<'d> Analyser<'d> {
                 continue;
             };
 
-            match req.2 {
-                None => req.2 = Some(id.span),
+            match req.3 {
+                None => req.3 = Some(id.span),
                 Some(prev_span) => {
                     let d = diagnostics::create_diagnostic()
                         .with_kind(DiagnosticKind::FieldSetMoreThanOnce(id.value.clone()))
@@ -175,8 +178,8 @@ impl<'d> Analyser<'d> {
 
         let mut missing_fields = required_fields
             .iter()
-            .filter(|(_, (_, _, s))| s.is_none())
-            .map(|(name, (_, _, _))| name.clone())
+            .filter(|(_, (_, _, _, s))| s.is_none())
+            .map(|(name, (_, _, _, _))| name.clone())
             .collect::<Vec<_>>();
         if !missing_fields.is_empty() {
             let last_field = missing_fields.pop().unwrap();
@@ -201,6 +204,12 @@ impl<'d> Analyser<'d> {
             return abt::Expr::Unknown;
         }
 
-        abt::Expr::Unknown
+        let bound_data_struct = bound_fields
+            .into_iter()
+            .sorted_by_cached_key(|(name, _)| required_fields.get(&name.value).unwrap().2)
+            .map(|(_, e)| e)
+            .collect();
+
+        abt::Expr::Data(info.id, bound_data_struct)
     }
 }

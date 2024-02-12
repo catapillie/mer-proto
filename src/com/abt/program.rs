@@ -97,6 +97,8 @@ impl Program {
 
             E::Case(_, _, ty) => ty.clone(),
             E::CaseTernary(_, _, _, ty) => ty.clone(),
+
+            E::Data(id, _) => Ty::Data(*id),
         }
     }
 

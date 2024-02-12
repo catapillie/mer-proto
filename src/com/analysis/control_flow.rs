@@ -100,6 +100,7 @@ impl<'d> Analyser<'d> {
             E::CaseTernary(guard, expr, fallback, _) => {
                 Self::is_never(guard) || Self::is_never(expr) || Self::is_never(fallback)
             }
+            E::Data(_, fields) => fields.iter().any(Self::is_never),
         }
     }
 }

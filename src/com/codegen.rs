@@ -711,6 +711,12 @@ impl Codegen {
 
                 Ok(())
             }
+            E::Data(_, fields) => {
+                for field in fields.iter() {
+                    self.gen_expression(field, abt)?;
+                }
+                Ok(())
+            }
         }
     }
 
