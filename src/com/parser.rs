@@ -7,9 +7,8 @@ use crate::{
 
 pub struct Parser<'a> {
     cursor: Cursor<'a>,
-    last_boundary: Pos,
-    look_ahead: Token,
-    last_token: Token,
+    tokens: Vec<Token>,
+    token_index: usize,
     diagnostics: &'a mut DiagnosticList,
 }
 
@@ -17,12 +16,14 @@ impl<'a> Parser<'a> {
     pub fn new(source: &'a str, diagnostics: &'a mut DiagnosticList) -> Self {
         let mut parser = Self {
             cursor: Cursor::new(source),
-            last_boundary: Pos::MIN,
-            look_ahead: Token::Eof(Eof, Span::at(Pos::MIN)),
-            last_token: Token::Eof(Eof, Span::at(Pos::MIN)),
+            tokens: Vec::new(),
+            token_index: 0,
             diagnostics,
         };
-        parser.look_ahead = parser.lex();
+
+        let first_token = parser.lex();
+        parser.tokens.push(first_token);
+
         parser
     }
 
@@ -44,8 +45,8 @@ impl<'a> Parser<'a> {
                         let d = diagnostics::create_diagnostic()
                             .with_kind(DiagnosticKind::ExpectedStatement)
                             .with_severity(Severity::Error)
-                            .with_pos(self.last_boundary)
-                            .annotate_primary(Note::Here, Span::at(self.last_boundary))
+                            .with_pos(self.last_boundary())
+                            .annotate_primary(Note::Here, Span::at(self.last_boundary()))
                             .done();
                         self.diagnostics.push(d);
                         self.recover_to_next_statement();
@@ -73,7 +74,7 @@ impl<'a> Parser<'a> {
     }
 
     fn is_start_of_statement(&self) -> bool {
-        match self.look_ahead {
+        match self.look_ahead() {
             Token::ReturnKw(_, _)
             | Token::LeftBrace(_, _)
             | Token::IfKw(_, _)
@@ -89,7 +90,7 @@ impl<'a> Parser<'a> {
     }
 
     fn empty_statement_here(&self) -> Stmt {
-        StmtKind::Empty.wrap(Span::at(self.last_boundary))
+        StmtKind::Empty.wrap(Span::at(self.last_boundary()))
     }
 
     pub fn parse_statement(&mut self) -> Option<Stmt> {
@@ -321,8 +322,8 @@ impl<'a> Parser<'a> {
                     let d = diagnostics::create_diagnostic()
                         .with_kind(DiagnosticKind::ExpectedStatement)
                         .with_severity(Severity::Error)
-                        .with_pos(self.last_boundary)
-                        .annotate_primary(Note::Here, Span::at(self.last_boundary))
+                        .with_pos(self.last_boundary())
+                        .annotate_primary(Note::Here, Span::at(self.last_boundary()))
                         .done();
                     self.diagnostics.push(d);
                     self.empty_statement_here()
@@ -372,8 +373,8 @@ impl<'a> Parser<'a> {
                         let d = diagnostics::create_diagnostic()
                             .with_kind(DiagnosticKind::ExpectedStatement)
                             .with_severity(Severity::Error)
-                            .with_pos(self.last_boundary)
-                            .annotate_primary(Note::Here, Span::at(self.last_boundary))
+                            .with_pos(self.last_boundary())
+                            .annotate_primary(Note::Here, Span::at(self.last_boundary()))
                             .done();
                         self.diagnostics.push(d);
                         self.recover_to_next_statement();
@@ -381,10 +382,10 @@ impl<'a> Parser<'a> {
                 }
 
                 if self.try_match_token::<Eof>().is_some() {
-                    let span = self.last_token.span();
+                    let span = self.last_token().span();
                     let d = diagnostics::create_diagnostic()
                         .with_kind(DiagnosticKind::ExpectedToken {
-                            found: self.last_token.clone(),
+                            found: self.last_token().clone(),
                             expected: TokenKind::RightBrace,
                         })
                         .with_severity(Severity::Error)
@@ -404,7 +405,7 @@ impl<'a> Parser<'a> {
 
     pub fn is_start_of_expression(&self) -> bool {
         matches!(
-            self.look_ahead,
+            self.look_ahead(),
             Token::Integer(_, _)
                 | Token::MalformedNumeral(_, _)
                 | Token::Identifier(_, _)
@@ -417,7 +418,7 @@ impl<'a> Parser<'a> {
 
     #[rustfmt::skip]
     fn is_binary_operator(&mut self) -> Option<(BinOp, Precedence, Associativity)> {
-        match self.look_ahead {
+        match self.look_ahead() {
             Token::Star(_, _) => Some((BinOp::Mul, 90, Associativity::Left)),
             Token::Slash(_, _) => Some((BinOp::Div, 90, Associativity::Left)),
             Token::Percent(_, _) => Some((BinOp::Rem, 90, Associativity::Left)),
@@ -441,7 +442,7 @@ impl<'a> Parser<'a> {
     }
 
     fn is_unary_operator(&mut self) -> Option<UnOp> {
-        match self.look_ahead {
+        match self.look_ahead() {
             Token::Plus(_, _) => Some(UnOp::Pos),
             Token::Minus(_, _) => Some(UnOp::Neg),
             Token::NotKw(_, _) => Some(UnOp::Not),
@@ -456,11 +457,11 @@ impl<'a> Parser<'a> {
                 let d = diagnostics::create_diagnostic()
                     .with_kind(DiagnosticKind::ExpectedExpression)
                     .with_severity(Severity::Error)
-                    .with_pos(self.last_boundary)
-                    .annotate_primary(Note::Here, Span::at(self.last_boundary))
+                    .with_pos(self.last_boundary())
+                    .annotate_primary(Note::Here, Span::at(self.last_boundary()))
                     .done();
                 self.diagnostics.push(d);
-                ExprKind::Bad.wrap(Span::at(self.last_boundary))
+                ExprKind::Bad.wrap(Span::at(self.last_boundary()))
             }
         }
     }
@@ -486,11 +487,11 @@ impl<'a> Parser<'a> {
                         let d = diagnostics::create_diagnostic()
                             .with_kind(DiagnosticKind::ExpectedExpression)
                             .with_severity(Severity::Error)
-                            .with_pos(self.last_boundary)
-                            .annotate_primary(Note::Here, Span::at(self.last_boundary))
+                            .with_pos(self.last_boundary())
+                            .annotate_primary(Note::Here, Span::at(self.last_boundary()))
                             .done();
                         self.diagnostics.push(d);
-                        ExprKind::Bad.wrap(Span::at(self.last_boundary))
+                        ExprKind::Bad.wrap(Span::at(self.last_boundary()))
                     }
                 }
             });
@@ -517,11 +518,11 @@ impl<'a> Parser<'a> {
                     let d = diagnostics::create_diagnostic()
                         .with_kind(DiagnosticKind::ExpectedExpression)
                         .with_severity(Severity::Error)
-                        .with_pos(self.last_boundary)
-                        .annotate_primary(Note::Here, Span::at(self.last_boundary))
+                        .with_pos(self.last_boundary())
+                        .annotate_primary(Note::Here, Span::at(self.last_boundary()))
                         .done();
                     self.diagnostics.push(d);
-                    ExprKind::Bad.wrap(Span::at(self.last_boundary))
+                    ExprKind::Bad.wrap(Span::at(self.last_boundary()))
                 }
             };
 
@@ -541,11 +542,11 @@ impl<'a> Parser<'a> {
                         let d = diagnostics::create_diagnostic()
                             .with_kind(DiagnosticKind::ExpectedExpression)
                             .with_severity(Severity::Error)
-                            .with_pos(self.last_boundary)
-                            .annotate_primary(Note::Here, Span::at(self.last_boundary))
+                            .with_pos(self.last_boundary())
+                            .annotate_primary(Note::Here, Span::at(self.last_boundary()))
                             .done();
                         self.diagnostics.push(d);
-                        ExprKind::Bad.wrap(Span::at(self.last_boundary))
+                        ExprKind::Bad.wrap(Span::at(self.last_boundary()))
                     },
                 };
 
@@ -559,11 +560,11 @@ impl<'a> Parser<'a> {
                         let d = diagnostics::create_diagnostic()
                             .with_kind(DiagnosticKind::ExpectedExpression)
                             .with_severity(Severity::Error)
-                            .with_pos(self.last_boundary)
-                            .annotate_primary(Note::Here, Span::at(self.last_boundary))
+                            .with_pos(self.last_boundary())
+                            .annotate_primary(Note::Here, Span::at(self.last_boundary()))
                             .done();
                         self.diagnostics.push(d);
-                        ExprKind::Bad.wrap(Span::at(self.last_boundary))
+                        ExprKind::Bad.wrap(Span::at(self.last_boundary()))
                     },
                 };
 
@@ -651,7 +652,7 @@ impl<'a> Parser<'a> {
                     let field_value = self.expect_expression();
                     fields.push((field_name, field_value));
 
-                    if matches!(self.look_ahead, Token::RightBrace(_, _)) {
+                    if matches!(self.look_ahead(), Token::RightBrace(_, _)) {
                         break;
                     }
 
@@ -776,8 +777,8 @@ impl<'a> Parser<'a> {
                 let d = diagnostics::create_diagnostic()
                     .with_kind(DiagnosticKind::ExpectedType)
                     .with_severity(Severity::Error)
-                    .with_pos(self.last_boundary)
-                    .annotate_primary(Note::Here, Span::at(self.last_boundary))
+                    .with_pos(self.last_boundary())
+                    .annotate_primary(Note::Here, Span::at(self.last_boundary()))
                     .done();
                 self.diagnostics.push(d);
                 TypeKind::Bad.wrap(Span::at(self.last_span().from))
@@ -790,7 +791,7 @@ impl<'a> Parser<'a> {
             let mut types = Vec::new();
             while let Some(ty) = self.parse_primary_type_expression() {
                 types.push(ty);
-                if matches!(self.look_ahead, Token::RightArrow(_, _)) {
+                if matches!(self.look_ahead(), Token::RightArrow(_, _)) {
                     break;
                 }
             }
@@ -890,7 +891,7 @@ impl<'a> Parser<'a> {
     }
 
     fn expect_newlines_or_eof(&mut self) -> bool {
-        matches!(self.last_token, Token::Newline(_, _))
+        matches!(self.last_token(), Token::Newline(_, _))
             || self.match_token_or_eof::<Newline>().is_some()
     }
 
@@ -899,32 +900,57 @@ impl<'a> Parser<'a> {
     }
 
     fn last_span(&self) -> Span {
-        self.last_token.span()
+        self.last_token().span()
     }
 
-    fn consume_token(&mut self) {
-        let next = self.lex();
-        self.last_token = std::mem::replace(&mut self.look_ahead, next);
-        match self.last_token {
-            Token::Eof(_, _) | Token::Newline(_, _) => (),
-            _ => {
-                self.last_boundary = self.last_token.span().to;
+    fn look_ahead(&self) -> &Token {
+        &self.tokens[self.token_index]
+    }
+
+    fn last_token(&self) -> &Token {
+        let fallback = &Token::Eof(Eof, Span::EOF);
+        if self.token_index == 0 {
+            self.tokens.first().unwrap()
+        } else {
+            match self.tokens.get(self.token_index - 1) {
+                Some(tok) => tok,
+                None => fallback,
             }
         }
     }
 
+    fn last_boundary(&self) -> Pos {
+        self.tokens
+            .iter()
+            .take(self.token_index + 1)
+            .rev()
+            .find(|tok| !matches!(tok, Token::Eof(_, _) | Token::Newline(_, _)))
+            .map(|tok| tok.span().to)
+            .unwrap_or(Pos::MIN)
+    }
+
+    fn consume_token(&mut self) {
+        self.token_index += 1;
+        if self.token_index != self.tokens.len() {
+            return;
+        }
+
+        let next = self.lex();
+        self.tokens.push(next);
+    }
+
     fn peek_token<T: TokenValue>(&mut self) -> bool {
-        T::is_inside(&self.look_ahead)
+        T::is_inside(self.look_ahead())
     }
 
     fn match_token<T: TokenValue>(&mut self) -> Option<T> {
-        match T::extract_from(&self.look_ahead) {
+        match T::extract_from(self.look_ahead()) {
             Some((value, _)) => {
                 self.consume_token();
                 Some(value)
             }
             None => {
-                let tok = self.look_ahead.clone();
+                let tok = self.look_ahead().clone();
                 let span = tok.span();
                 let d = diagnostics::create_diagnostic()
                     .with_kind(DiagnosticKind::ExpectedToken {
@@ -942,7 +968,7 @@ impl<'a> Parser<'a> {
     }
 
     fn match_token_or_eof<T: TokenValue>(&mut self) -> Option<T> {
-        match T::extract_from(&self.look_ahead) {
+        match T::extract_from(self.look_ahead()) {
             Some((value, _)) => {
                 self.consume_token();
                 Some(value)
@@ -950,7 +976,7 @@ impl<'a> Parser<'a> {
             None => match self.try_match_token::<Eof>() {
                 Some(_) => Some(T::default()),
                 None => {
-                    let tok = self.look_ahead.clone();
+                    let tok = self.look_ahead().clone();
                     let span = tok.span();
                     let d = diagnostics::create_diagnostic()
                         .with_kind(DiagnosticKind::ExpectedToken {
@@ -969,7 +995,7 @@ impl<'a> Parser<'a> {
     }
 
     fn try_match_token<T: TokenValue>(&mut self) -> Option<T> {
-        match T::extract_from(&self.look_ahead) {
+        match T::extract_from(self.look_ahead()) {
             Some((value, _)) => {
                 self.consume_token();
                 Some(value)
@@ -979,7 +1005,7 @@ impl<'a> Parser<'a> {
     }
 
     fn found_eof(&self) -> bool {
-        matches!(self.look_ahead, Token::Eof(_, _))
+        matches!(self.look_ahead(), Token::Eof(_, _))
     }
 
     fn try_consume_string(&mut self, string: &str) -> Option<Span> {
@@ -1092,7 +1118,7 @@ impl<'a> Parser<'a> {
         loop {
             loop {
                 let Some(c) = self.cursor.peek() else {
-                    return Eof.wrap(Span::at(self.last_boundary));
+                    return Eof.wrap(Span::at(self.last_boundary()));
                 };
 
                 if c.is_whitespace() && !Self::is_newline_character(c) {
@@ -1104,7 +1130,7 @@ impl<'a> Parser<'a> {
             }
 
             if self.cursor.peek().is_none() {
-                return Eof.wrap(Span::at(self.last_boundary));
+                return Eof.wrap(Span::at(self.last_boundary()));
             }
 
             let start_pos = self.cursor.pos();
@@ -1189,7 +1215,7 @@ impl<'a> Parser<'a> {
                     self.diagnostics.push(d);
                     continue;
                 }
-                None => return Eof.wrap(Span::at(self.last_boundary)),
+                None => return Eof.wrap(Span::at(self.last_boundary())),
             }
         }
     }
@@ -1197,10 +1223,10 @@ impl<'a> Parser<'a> {
 
 macro_rules! take_span {
     ($self:ident => $e:expr) => {{
-        let from = $self.look_ahead.span().from;
+        let from = $self.look_ahead().span().from;
         #[allow(clippy::redundant_closure_call)]
         let res = (|| $e)();
-        let to = $self.last_boundary;
+        let to = $self.last_boundary();
         (res, Span::new(from, to))
     }};
 }
