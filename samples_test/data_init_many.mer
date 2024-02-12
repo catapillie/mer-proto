@@ -1,0 +1,14 @@
+data Xyz {
+    x: f64
+    y: (f64, f64)
+    z: [4]bool
+}
+
+var xyz = Xyz
+{
+    x = 42.0
+    y = (0.8, 0.2)
+    z = [true, false, false, true]
+}
+
+return xyz.x == 42.0 and xyz.y.0 == 0.8 and xyz.y.1 == 0.2 and xyz.z.0 == true and xyz.z.1 == false and xyz.z.2 == false and xyz.z.3 == true

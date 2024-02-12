@@ -128,6 +128,13 @@ check_program_output!(case_order => (bool, Type::Bool) true);
 check_program_output!(case_nested => (bool, Type::Bool) true);
 check_program_output!(case_simple_syntax_eq => (bool, Type::Bool) true);
 
+check_program_output!(data_init => (bool, Type::Bool) true);
+check_program_output!(data_init_many => (bool, Type::Bool) true);
+check_program_output!(data_init_ref => (bool, Type::Bool) true);
+check_program_output!(data_init_ref_many => (bool, Type::Bool) true);
+check_program_output!(data_init_heap_allocated => (bool, Type::Bool) true);
+check_program_output!(data_init_heap_allocated_many => (bool, Type::Bool) true);
+
 macro_rules! check_program_output {
     ($name:ident => ($expected_ty:ty, $type_abt:expr) $expected:expr) => {
         #[test]

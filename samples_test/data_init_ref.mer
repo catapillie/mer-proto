@@ -1,0 +1,14 @@
+data Abc {
+    a: i64
+    b: f64
+    c: bool
+}
+
+var abc = &Abc
+{
+    a = 42
+    b = 3.14
+    c = true
+}
+
+return (@abc).a == 42 and (@abc).b == 3.14 and (@abc).c == true
