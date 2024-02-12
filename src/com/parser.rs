@@ -75,15 +75,16 @@ impl<'a> Parser<'a> {
 
     fn is_start_of_statement(&self) -> bool {
         match self.look_ahead() {
-            Token::ReturnKw(_, _)
+            Token::DataKw(_, _)
+            | Token::VarKw(_, _)
             | Token::LeftBrace(_, _)
             | Token::IfKw(_, _)
             | Token::ThenKw(_, _)
             | Token::ElseKw(_, _)
             | Token::WhileKw(_, _)
             | Token::DoKw(_, _)
-            | Token::VarKw(_, _)
-            | Token::FuncKw(_, _) => true,
+            | Token::FuncKw(_, _)
+            | Token::ReturnKw(_, _) => true,
             _ if self.is_start_of_expression() => true,
             _ => false,
         }
@@ -404,20 +405,28 @@ impl<'a> Parser<'a> {
     }
 
     pub fn is_start_of_expression(&self) -> bool {
-        matches!(
-            self.look_ahead(),
-            Token::Integer(_, _)
-                | Token::MalformedNumeral(_, _)
-                | Token::Identifier(_, _)
-                | Token::TrueKw(_, _)
-                | Token::FalseKw(_, _)
-                | Token::LeftParen(_, _)
-                | Token::DebugKw(_, _)
-        )
+        self.is_binary_operator().is_some()
+            || self.is_unary_operator().is_some()
+            || matches!(
+                self.look_ahead(),
+                Token::Integer(_, _)
+                    | Token::MalformedNumeral(_, _)
+                    | Token::Identifier(_, _)
+                    | Token::TrueKw(_, _)
+                    | Token::FalseKw(_, _)
+                    | Token::LeftParen(_, _)
+                    | Token::LeftBracket(_, _)
+                    | Token::DebugKw(_, _)
+                    | Token::Ampersand(_, _)
+                    | Token::At(_, _)
+                    | Token::TodoKw(_, _)
+                    | Token::UnreachableKw(_, _)
+                    | Token::CaseKw(_, _)
+            )
     }
 
     #[rustfmt::skip]
-    fn is_binary_operator(&mut self) -> Option<(BinOp, Precedence, Associativity)> {
+    fn is_binary_operator(&self) -> Option<(BinOp, Precedence, Associativity)> {
         match self.look_ahead() {
             Token::Star(_, _) => Some((BinOp::Mul, 90, Associativity::Left)),
             Token::Slash(_, _) => Some((BinOp::Div, 90, Associativity::Left)),
@@ -441,7 +450,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn is_unary_operator(&mut self) -> Option<UnOp> {
+    fn is_unary_operator(&self) -> Option<UnOp> {
         match self.look_ahead() {
             Token::Plus(_, _) => Some(UnOp::Pos),
             Token::Minus(_, _) => Some(UnOp::Neg),
