@@ -34,6 +34,10 @@ pub enum Note {
     TupleValueCount(usize),
     KnownIndexTooLarge,
     CanBeImmediateIndex(usize),
+    FieldSet(String),
+    FieldSetAgain(String),
+    FieldType(String, TypeRepr),
+    MissingFields(Box<[String]>, String),
 }
 
 #[rustfmt::skip]

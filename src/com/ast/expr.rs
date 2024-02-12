@@ -26,6 +26,7 @@ pub enum ExprKind {
     Unreachable,
     TernaryCase(Box<Expr>, Box<Expr>, Box<Expr>, Span),
     Case(Box<[(Option<Expr>, Expr)]>, Span),
+    DataInit(Box<Expr>, Box<[(Spanned<String>, Spanned<ExprKind>)]>)
 }
 
 impl ExprKind {

@@ -52,6 +52,8 @@ impl<'d> Analyser<'d> {
                 => self.analyse_ternary_case_expression(guard, expr, fallback, *span),
             K::Case(paths, span)
                 => self.analyse_case_expression(paths, *span),
+            K::DataInit(ty_expr, fields)
+                => self.analyse_data_init_expression(ty_expr, fields),
         }
     }
 

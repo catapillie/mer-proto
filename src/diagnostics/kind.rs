@@ -104,4 +104,13 @@ pub enum DiagnosticKind {
     CasePathsTypeMismatch,
     CaseOtherwiseCanBeSimplified,
     CaseThenOtherwiseCanBeSimplified,
+
+    InvalidDataStructureExpression,
+    UnknownDataStructure(String),
+    UnknownFieldInDataStructure {
+        field_name: String,
+        data_name: String,
+    },
+    FieldSetMoreThanOnce(String),
+    FieldsNeverSet(String, Box<[String]>, String),
 }

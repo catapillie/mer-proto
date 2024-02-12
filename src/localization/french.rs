@@ -5,6 +5,7 @@ use crate::{
 };
 
 use colored::Colorize;
+use itertools::Itertools;
 
 pub struct French;
 
@@ -308,6 +309,38 @@ impl Lang for French {
                 => "l'expression case-otherwise ne contient qu'un unique chemin, et peut être simplifiée".to_string(),
             K::CaseThenOtherwiseCanBeSimplified
                 => "il existe une syntaxe plus simple pour les expressions case-then-otherwise".to_string(),
+            K::InvalidDataStructureExpression
+                => "expression de structure de données invalide".to_string(),
+            K::UnknownDataStructure(name)
+                => format!("structure de données '{}' inconnue",
+                    name.to_string().bold(),
+                ),
+            K::UnknownFieldInDataStructure { field_name, data_name }
+                => format!("le champ '{}' n'existe pas dans la structure de données '{}'",
+                    field_name.bold(),
+                    data_name.bold(),
+                ),
+            K::FieldSetMoreThanOnce(field_name)
+                => format!("le champ '{}' est spécifié plus d'une fois",
+                    field_name.bold(),
+                ),
+            K::FieldsNeverSet(name, fields, last_field) => {
+                if fields.is_empty() {
+                    format!("le champ '{}' de la structure de données '{}' n'est jamais spécifié",
+                        last_field.bold(),
+                        name.bold(),
+                    )
+                } else {
+                    let first_fields = fields
+                        .iter()
+                        .map(|f| format!("'{}'", f.bold()))
+                        .join(", ");
+                    format!("les champs {first_fields} et '{}' de la structure de données '{}' ne sont jamais spécifiés",
+                        last_field.bold(),
+                        name.bold(),
+                    )
+                }
+            }
         }
     }
 
@@ -423,6 +456,30 @@ impl Lang for French {
                 => format!("peut être réécrit en indice immédiat: {}",
                     format!(".{index}").bold(),
                 ),
+            N::FieldSet(field_name)
+                => format!("le champ '{}' est d'abord spécifié ici",
+                    field_name.bold(),
+                ),
+            N::FieldSetAgain(field_name)
+                => format!("'{}' est spécifié à nouveau ici",
+                    field_name.bold(),
+                ),
+            N::FieldType(name, ty)
+                => format!("le champ '{}' est de type {}",
+                    name.bold(),
+                    ty.to_string().bold(),
+                ),
+            N::MissingFields(fields, last_field) => {
+                if fields.is_empty() {
+                    format!("champ manquant '{}'", last_field.bold())
+                } else {
+                    let first_fields = fields
+                        .iter()
+                        .map(|f| format!("'{}'", f.bold()))
+                        .join(", ");
+                    format!("champs manquants {first_fields} et '{}'", last_field.bold())
+                }
+            }
         }
     }
 }

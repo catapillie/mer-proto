@@ -5,6 +5,7 @@ use crate::{
 };
 
 use colored::Colorize;
+use itertools::Itertools;
 
 pub struct English;
 
@@ -305,6 +306,38 @@ impl Lang for English {
                 => "case-otherwise expression has a unique path and can be simplified".to_string(),
             K::CaseThenOtherwiseCanBeSimplified
                 => "there exists a simpler syntax for case-then-otherwise expressions".to_string(),
+            K::InvalidDataStructureExpression
+                => "invalid data structure expression".to_string(),
+            K::UnknownDataStructure(name)
+                => format!("unknown data structure '{}'",
+                    name.to_string().bold(),
+                ),
+            K::UnknownFieldInDataStructure { field_name, data_name }
+                => format!("field '{}' does not exist in data structure '{}'",
+                    field_name.bold(),
+                    data_name.bold(),
+                ),
+            K::FieldSetMoreThanOnce(field_name)
+                => format!("field '{}' is being set more than once",
+                    field_name.bold(),
+                ),
+            K::FieldsNeverSet(name, fields, last_field) => {
+                if fields.is_empty() {
+                    format!("field '{}' in data structure '{}' is never set",
+                        last_field.bold(),
+                        name.bold(),
+                    )
+                } else {
+                    let first_fields = fields
+                        .iter()
+                        .map(|f| format!("'{}'", f.bold()))
+                        .join(", ");
+                    format!("fields {first_fields} and '{}' in data structure '{}' are never set",
+                        last_field.bold(),
+                        name.bold(),
+                    )
+                }
+            }
         }
     }
 
@@ -415,6 +448,30 @@ impl Lang for English {
                 => format!("can be rewritten as immediate index: {}",
                     format!(".{index}").bold(),
                 ),
+            N::FieldSet(field_name)
+                => format!("field '{}' is first set here",
+                    field_name.bold(),
+                ),
+            N::FieldSetAgain(field_name)
+                => format!("'{}' is set again here",
+                    field_name.bold(),
+                ),
+            N::FieldType(name, ty)
+                => format!("field '{}' is of type {}",
+                    name.bold(),
+                    ty.to_string().bold(),
+                ),
+            N::MissingFields(fields, last_field) => {
+                if fields.is_empty() {
+                    format!("missing field '{}'", last_field.bold())
+                } else {
+                    let first_fields = fields
+                        .iter()
+                        .map(|f| format!("'{}'", f.bold()))
+                        .join(", ");
+                    format!("missing fields {first_fields} and '{}'", last_field.bold())
+                }
+            }
         }
     }
 }

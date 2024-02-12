@@ -637,6 +637,33 @@ impl<'a> Parser<'a> {
         let mut expr = expr?.wrap(span);
 
         loop {
+            if self.try_match_token::<LeftBrace>().is_some() {
+                self.skip_newlines();
+
+                let mut fields = Vec::new();
+                while let Some(id) = self.try_match_token::<Identifier>() {
+                    let field_name = Spanned {
+                        value: id.0,
+                        span: self.last_span(),
+                    };
+
+                    self.match_token::<Equal>();
+                    let field_value = self.expect_expression();
+                    fields.push((field_name, field_value));
+
+                    self.expect_newlines_or_eof();
+                }
+
+                self.skip_newlines();
+                self.match_token::<RightBrace>();
+                self.skip_newlines();
+
+                span = span.join(self.last_span());
+                expr = ExprKind::DataInit(Box::new(expr), fields.into()).wrap(span);
+
+                continue;
+            }
+
             if self.try_match_token::<LeftBracket>().is_some() {
                 let index_expr = self.expect_expression();
                 self.match_token::<RightBracket>();
