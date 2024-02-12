@@ -943,7 +943,7 @@ impl<'a> Parser<'a> {
     fn last_boundary(&self) -> Pos {
         self.tokens
             .iter()
-            .take(self.token_index + 1)
+            .take(self.token_index)
             .rev()
             .find(|tok| !matches!(tok, Token::Eof(_, _) | Token::Newline(_, _)))
             .map(|tok| tok.span().to)
