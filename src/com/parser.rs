@@ -651,7 +651,15 @@ impl<'a> Parser<'a> {
                     let field_value = self.expect_expression();
                     fields.push((field_name, field_value));
 
-                    self.expect_newlines_or_eof();
+                    if matches!(self.look_ahead, Token::RightBrace(_, _)) {
+                        break;
+                    }
+
+                    if self.try_match_token::<Comma>().is_some() {
+                        self.skip_newlines()
+                    } else {
+                        self.expect_newlines_or_eof();
+                    }
                 }
 
                 self.skip_newlines();
