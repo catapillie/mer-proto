@@ -4,6 +4,7 @@ use crate::{
         ast,
     },
     diagnostics::{self, DiagnosticKind, Severity},
+    utils::Spanned,
 };
 
 use super::Analyser;
@@ -63,9 +64,13 @@ impl<'d> Analyser<'d> {
     }
 
     fn reach_top_level_declarations(&mut self, ast: &ast::Stmt) {
-        if let ast::StmtKind::Block(stmts) = &ast.value {
-            for stmt in stmts.iter() {
-                if let ast::StmtKind::Func(Some((name, span)), args, _, ty) = &stmt.value {
+        let ast::StmtKind::Block(stmts) = &ast.value else {
+            return;
+        };
+
+        for stmt in stmts.iter() {
+            match &stmt.value {
+                ast::StmtKind::Func(Some((name, span)), args, _, ty) => {
                     let bound_args = args
                         .iter()
                         .map(|(name, ty, _)| (name.clone(), self.analyse_type(ty)))
@@ -79,6 +84,22 @@ impl<'d> Analyser<'d> {
                         Some(ty.span),
                     );
                 }
+                ast::StmtKind::DataDef(name, fields) => {
+                    let bound_fields = fields
+                        .iter()
+                        .map(|(name, ty)| {
+                            (
+                                name.clone(),
+                                Spanned {
+                                    value: self.analyse_type(ty),
+                                    span: ty.span,
+                                },
+                            )
+                        })
+                        .collect::<Vec<_>>();
+                    self.declare_data_structure_here(name, bound_fields);
+                }
+                _ => continue,
             }
         }
     }

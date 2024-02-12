@@ -1,8 +1,7 @@
+use itertools::Itertools;
 use std::collections::BTreeMap;
 
-use itertools::Itertools;
-
-use super::Analyser;
+use super::{Analyser, Declaration};
 use crate::{
     com::{
         abt::{self, DataInfo},
@@ -13,11 +12,41 @@ use crate::{
 };
 
 impl<'d> Analyser<'d> {
+    pub fn declare_data_structure_here(
+        &mut self,
+        name: &Spanned<String>,
+        fields: Vec<(Spanned<String>, Spanned<abt::Type>)>,
+    ) -> Declaration {
+        let declared = self.make_unique_id();
+        let shadowed = self.scope.bindings.insert(name.value.clone(), declared);
+
+        let size = fields
+            .iter()
+            .map(|(_, ty)| self.program.size_of(&ty.value))
+            .sum();
+
+        let info = DataInfo {
+            name: name.clone(),
+            id: declared,
+            fields,
+            size,
+        };
+        let prev = self.program.datas.insert(declared, info);
+        assert!(prev.is_none(), "id must be unique");
+
+        Declaration { declared, shadowed }
+    }
+
     pub fn analyse_data_structure_definition(
         &mut self,
         name: &Spanned<String>,
         fields: &[(Spanned<String>, ast::Type)],
     ) -> abt::StmtKind {
+        if self.get_data_structure(&name.value).is_some() {
+            return abt::StmtKind::Empty;
+        }
+
+        // data structure has already not been declared yet, let's do it now
         let bound_fields = fields
             .iter()
             .map(|(name, ty)| {
@@ -31,23 +60,7 @@ impl<'d> Analyser<'d> {
             })
             .collect::<Vec<_>>();
 
-        let size = bound_fields
-            .iter()
-            .map(|(_, ty)| self.program.size_of(&ty.value))
-            .sum();
-
-        let declared = self.make_unique_id();
-        self.scope.bindings.insert(name.value.clone(), declared);
-
-        let info = DataInfo {
-            name: name.clone(),
-            id: declared,
-            fields: bound_fields,
-            size,
-        };
-        let previous = self.program.datas.insert(declared, info);
-        assert!(previous.is_none(), "id must be unique");
-
+        self.declare_data_structure_here(name, bound_fields);
         abt::StmtKind::Empty
     }
 
@@ -198,7 +211,7 @@ impl<'d> Analyser<'d> {
             .sorted_by_cached_key(|(name, _)| required_fields.get(&name.value).unwrap().2)
             .map(|(_, e)| e)
             .collect();
-        
+
         abt::Expr::Data(info.id, bound_data_struct)
     }
 }
