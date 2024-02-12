@@ -60,31 +60,20 @@ impl<'d> Analyser<'d> {
 
     pub fn analyse_data_init_expression(
         &mut self,
-        ty_expr: &ast::Expr,
+        name: &Spanned<String>,
         fields: &[(Spanned<String>, ast::Expr)],
     ) -> abt::Expr {
-        let ast::ExprKind::Identifier(id) = &ty_expr.value else {
-            let d = diagnostics::create_diagnostic()
-                .with_kind(DiagnosticKind::InvalidDataStructureExpression)
-                .with_severity(Severity::Error)
-                .with_span(ty_expr.span)
-                .annotate_primary(Note::Unknown, ty_expr.span)
-                .done();
-            self.diagnostics.push(d);
-            return abt::Expr::Unknown;
-        };
-
         let bound_fields = fields
             .iter()
             .map(|(name, expr)| (name, self.analyse_expression(expr)))
             .collect::<Vec<_>>();
 
-        let Some(info) = self.get_data_structure(id) else {
+        let Some(info) = self.get_data_structure(&name.value) else {
             let d = diagnostics::create_diagnostic()
-                .with_kind(DiagnosticKind::UnknownDataStructure(id.clone()))
+                .with_kind(DiagnosticKind::UnknownDataStructure(name.value.clone()))
                 .with_severity(Severity::Error)
-                .with_span(ty_expr.span)
-                .annotate_primary(Note::Unknown, ty_expr.span)
+                .with_span(name.span)
+                .annotate_primary(Note::Unknown, name.span)
                 .done();
             self.diagnostics.push(d);
             return abt::Expr::Unknown;
@@ -190,10 +179,10 @@ impl<'d> Analyser<'d> {
                     last_field.clone(),
                 ))
                 .with_severity(Severity::Error)
-                .with_span(ty_expr.span)
+                .with_span(name.span)
                 .annotate_primary(
                     Note::MissingFields(missing_fields.into(), last_field),
-                    ty_expr.span,
+                    name.span,
                 )
                 .done();
             diagnostics.push(d);
@@ -209,7 +198,7 @@ impl<'d> Analyser<'d> {
             .sorted_by_cached_key(|(name, _)| required_fields.get(&name.value).unwrap().2)
             .map(|(_, e)| e)
             .collect();
-
+        
         abt::Expr::Data(info.id, bound_data_struct)
     }
 }

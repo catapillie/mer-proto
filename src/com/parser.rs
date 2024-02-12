@@ -580,6 +580,10 @@ impl<'a> Parser<'a> {
                 return Some(ExprKind::Deref(Box::new(expr)));
             }
 
+            if let Some(expr) = self.try_parse_data_struct_init() {
+                return Some(expr);
+            }
+
             // not sure about this, but instead of lexing floating-point numbers
             // we can parse them like so, and concatenate the digits to parse a float instead
             // this allows other syntax "x.0.2.1" to work instead of having to
@@ -647,41 +651,6 @@ impl<'a> Parser<'a> {
         let mut expr = expr?.wrap(span);
 
         loop {
-            if self.try_match_token::<LeftBrace>().is_some() {
-                self.skip_newlines();
-
-                let mut fields = Vec::new();
-                while let Some(id) = self.try_match_token::<Identifier>() {
-                    let field_name = Spanned {
-                        value: id.0,
-                        span: self.last_span(),
-                    };
-
-                    self.match_token::<Equal>();
-                    let field_value = self.expect_expression();
-                    fields.push((field_name, field_value));
-
-                    if matches!(self.look_ahead(), Token::RightBrace(_, _)) {
-                        break;
-                    }
-
-                    if self.try_match_token::<Comma>().is_some() {
-                        self.skip_newlines()
-                    } else {
-                        self.expect_newlines_or_eof();
-                    }
-                }
-
-                self.skip_newlines();
-                self.match_token::<RightBrace>();
-                self.skip_newlines();
-
-                span = span.join(self.last_span());
-                expr = ExprKind::DataInit(Box::new(expr), fields.into()).wrap(span);
-
-                continue;
-            }
-
             if self.try_match_token::<LeftBracket>().is_some() {
                 let index_expr = self.expect_expression();
                 self.match_token::<RightBracket>();
@@ -777,6 +746,49 @@ impl<'a> Parser<'a> {
         self.skip_newlines();
 
         Some(ExprKind::Case(paths.into_boxed_slice(), case_kw_span))
+    }
+
+    fn try_parse_data_struct_init(&mut self) -> Option<ExprKind> {
+        let backup = self.save_backup();
+        let id = Spanned {
+            value: self.try_match_token::<Identifier>()?.0,
+            span: self.last_span(),
+        };
+
+        self.skip_newlines();
+        let Some(_) = self.try_match_token::<LeftBrace>() else {
+            self.rewind_backup(backup);
+            return None;
+        };
+        self.skip_newlines();
+
+        let mut fields = Vec::new();
+        while let Some(id) = self.try_match_token::<Identifier>() {
+            let field_name = Spanned {
+                value: id.0,
+                span: self.last_span(),
+            };
+
+            self.match_token::<Equal>();
+            let field_value = self.expect_expression();
+            fields.push((field_name, field_value));
+
+            if matches!(self.look_ahead(), Token::RightBrace(_, _)) {
+                break;
+            }
+
+            if self.try_match_token::<Comma>().is_some() {
+                self.skip_newlines()
+            } else {
+                self.expect_newlines_or_eof();
+            }
+        }
+
+        self.skip_newlines();
+        self.match_token::<RightBrace>();
+        self.skip_newlines();
+
+        Some(ExprKind::DataInit(id, fields.into()))
     }
 
     fn expect_type_expression(&mut self) -> Type {
@@ -936,6 +948,14 @@ impl<'a> Parser<'a> {
             .find(|tok| !matches!(tok, Token::Eof(_, _) | Token::Newline(_, _)))
             .map(|tok| tok.span().to)
             .unwrap_or(Pos::MIN)
+    }
+
+    fn save_backup(&self) -> usize {
+        self.token_index
+    }
+
+    fn rewind_backup(&mut self, backup: usize) {
+        self.token_index = backup;
     }
 
     fn consume_token(&mut self) {
