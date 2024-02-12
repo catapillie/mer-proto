@@ -680,12 +680,32 @@ impl<'a> Parser<'a> {
             }
 
             if self.try_match_token::<Dot>().is_some() {
-                let index = self
-                    .match_token::<Integer>()
-                    .map(|n| n.0 as u64)
-                    .unwrap_or(0);
-                span = span.join(self.last_span());
-                expr = ExprKind::ImmediateIndex(Box::new(expr), index).wrap(span);
+                if let Some(num) = self.try_match_token::<Integer>() {
+                    let index = num.0 as u64;
+                    span = span.join(self.last_span());
+                    expr = ExprKind::ImmediateIndex(Box::new(expr), index).wrap(span);
+                    continue;
+                }
+
+                if let Some(id) = self.try_match_token::<Identifier>() {
+                    let name = Spanned {
+                        value: id.0,
+                        span: self.last_span(),
+                    };
+                    span = span.join(self.last_span());
+                    expr = ExprKind::FieldAccess(Box::new(expr), name).wrap(span);
+                    continue;
+                }
+
+                let d = diagnostics::create_diagnostic()
+                    .with_kind(DiagnosticKind::ExpectedAccess)
+                    .with_pos(self.last_boundary())
+                    .with_severity(Severity::Error)
+                    .annotate_primary(Note::Here, Span::at(self.last_boundary()))
+                    .done();
+                self.diagnostics.push(d);
+
+                expr = ExprKind::Bad.wrap(span);
                 continue;
             }
 

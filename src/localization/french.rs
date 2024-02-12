@@ -163,6 +163,8 @@ impl Lang for French {
                 => "type attendu".to_string(),
             K::SingletonTypeSyntax
                 => "les tuples singletons sont interprétés comme le type intérieur, donc les parenthèses ne sont pas nécéssaires".to_string(),
+            K::ExpectedAccess
+                => "accès à un champ attendu (indice immédiat ou identificateur)".to_string(),
             K::GuardNotBoolean
                 => "condition non-booléenne".to_string(),
             K::EmptyThenStatement
@@ -341,6 +343,10 @@ impl Lang for French {
                     )
                 }
             }
+            K::InvalidFieldAccess(name)
+                => format!("impossible d'accéder au champ '{}' d'une valeur qui n'est pas une structure de données",
+                    name.bold(),
+                ),
         }
     }
 
@@ -480,6 +486,10 @@ impl Lang for French {
                     format!("champs manquants {first_fields} et '{}'", last_field.bold())
                 }
             }
+            N::NotDataStructure(ty)
+                => format!("ceci n'est pas une structure de données, et est de type '{}'",
+                    ty.to_string().bold(),
+                ),
         }
     }
 }

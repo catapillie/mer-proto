@@ -101,6 +101,11 @@ impl<'d> Analyser<'d> {
                 Self::is_never(guard) || Self::is_never(expr) || Self::is_never(fallback)
             }
             E::Data(_, fields) => fields.iter().any(Self::is_never),
+            E::FieldAccess {
+                expr,
+                data_id: _,
+                field_id: _,
+            } => Self::is_never(expr),
         }
     }
 }

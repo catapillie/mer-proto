@@ -20,6 +20,7 @@ pub enum DiagnosticKind {
     ExpectedStatement,
     ExpectedType,
     SingletonTypeSyntax,
+    ExpectedAccess,
 
     GuardNotBoolean,
 
@@ -113,4 +114,5 @@ pub enum DiagnosticKind {
     },
     FieldSetMoreThanOnce(String),
     FieldsNeverSet(String, Box<[String]>, String),
+    InvalidFieldAccess(String),
 }

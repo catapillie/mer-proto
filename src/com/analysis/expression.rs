@@ -54,6 +54,8 @@ impl<'d> Analyser<'d> {
                 => self.analyse_case_expression(paths, *span),
             K::DataInit(name, fields)
                 => self.analyse_data_init_expression(name, fields),
+            K::FieldAccess(expr, name)
+                => self.analyse_data_field_access(expr, name),
         }
     }
 

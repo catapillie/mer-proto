@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 
-use crate::diagnostics::TypeRepr;
-
 use super::{DataInfo, Expr, FunctionInfo, Type, VariableInfo};
+use crate::diagnostics::TypeRepr;
 
 pub struct Program {
     pub main_fn_id: u64,
@@ -99,6 +98,20 @@ impl Program {
             E::CaseTernary(_, _, _, ty) => ty.clone(),
 
             E::Data(id, _) => Ty::Data(*id),
+            E::FieldAccess {
+                expr: _,
+                data_id,
+                field_id,
+            } => self
+                .datas
+                .get(data_id)
+                .unwrap()
+                .fields
+                .get(*field_id)
+                .unwrap()
+                .1
+                .value
+                .clone(),
         }
     }
 

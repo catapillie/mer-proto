@@ -214,4 +214,53 @@ impl<'d> Analyser<'d> {
 
         abt::Expr::Data(info.id, bound_data_struct)
     }
+
+    pub fn analyse_data_field_access(
+        &mut self,
+        expr: &ast::Expr,
+        name: &Spanned<String>,
+    ) -> abt::Expr {
+        let bound_expr = self.analyse_expression(expr);
+        let expr_ty = self.program.type_of(&bound_expr);
+
+        let abt::Type::Data(data_id) = expr_ty else {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::InvalidFieldAccess(name.value.clone()))
+                .with_severity(Severity::Error)
+                .with_span(expr.span)
+                .annotate_primary(
+                    Note::NotDataStructure(self.program.type_repr(&expr_ty)),
+                    expr.span,
+                )
+                .done();
+            self.diagnostics.push(d);
+            return abt::Expr::Unknown;
+        };
+
+        let info = self.program.datas.get(&data_id).unwrap();
+        let Some((field_id, _)) = info
+            .fields
+            .iter()
+            .enumerate()
+            .find(|(_, (field_name, _))| field_name.value == name.value)
+        else {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::UnknownFieldInDataStructure {
+                    field_name: name.value.clone(),
+                    data_name: info.name.value.clone(),
+                })
+                .with_severity(Severity::Error)
+                .with_span(name.span)
+                .annotate_primary(Note::Unknown, name.span)
+                .done();
+            self.diagnostics.push(d);
+            return abt::Expr::Unknown;
+        };
+
+        abt::Expr::FieldAccess {
+            expr: Box::new(bound_expr),
+            data_id,
+            field_id,
+        }
+    }
 }

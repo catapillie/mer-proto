@@ -717,6 +717,28 @@ impl Codegen {
                 }
                 Ok(())
             }
+            E::FieldAccess {
+                expr,
+                data_id,
+                field_id,
+            } => {
+                let info = abt.datas.get(data_id).unwrap();
+                let data_size = abt.size_of(&abt.type_of(expr));
+                let field_size = abt.size_of(&info.fields[*field_id].1.value);
+                let field_offset = info
+                    .fields
+                    .iter()
+                    .take(*field_id)
+                    .map(|(_, ty)| abt.size_of(&ty.value))
+                    .sum::<usize>();
+
+                self.gen_expression(expr, abt)?;
+                binary::write_opcode(
+                    &mut self.cursor,
+                    &Opcode::keep(field_offset as u8, field_size as u8, data_size as u8),
+                )?;
+                Ok(())
+            }
         }
     }
 

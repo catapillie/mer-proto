@@ -38,6 +38,7 @@ pub enum Note {
     FieldSetAgain(String),
     FieldType(String, TypeRepr),
     MissingFields(Box<[String]>, String),
+    NotDataStructure(TypeRepr),
 }
 
 #[rustfmt::skip]

@@ -154,6 +154,8 @@ impl Lang for English {
                 => "expected a type expression".to_string(),
             K::SingletonTypeSyntax
                 => "singleton tuple are read as their inner type, so parentheses are unnecessary".to_string(),
+            K::ExpectedAccess
+                => "expected a field access (immediate index or identifier)".to_string(),
             K::GuardNotBoolean
                 => "guard is not a boolean".to_string(),
             K::EmptyThenStatement
@@ -338,6 +340,10 @@ impl Lang for English {
                     )
                 }
             }
+            K::InvalidFieldAccess(name)
+                => format!("cannot access field '{}' of a value which is not a data structure",
+                    name.bold(),
+                ),
         }
     }
 
@@ -472,6 +478,10 @@ impl Lang for English {
                     format!("missing fields {first_fields} and '{}'", last_field.bold())
                 }
             }
+            N::NotDataStructure(ty)
+                => format!("this is not a data structure, and is of type '{}'",
+                    ty.to_string().bold(),
+                ),
         }
     }
 }
