@@ -9,6 +9,7 @@ pub enum TypeKind {
     Declared(String),
     Tuple(Box<Type>, Box<[Type]>), // non-empty
     Array(Box<Type>, usize),
+    Pointer(Box<Type>),
     Ref(Box<Type>),
     Func(Box<[Type]>, Box<Type>),
 }

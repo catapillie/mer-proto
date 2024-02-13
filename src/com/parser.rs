@@ -893,34 +893,50 @@ impl<'a> Parser<'a> {
             };
         }
 
-        if self.try_match_token::<Ampersand>().is_some() {
-            let span = self.last_span();
-            let ty = self.expect_type_expression();
-            let span = span.join(ty.span);
-            return Some(TypeKind::Ref(Box::new(ty)).wrap(span));
-        }
+        let (ty, span) = take_span!(self => {
+            if self.try_match_token::<Ampersand>().is_some() {
+                let ty = self.expect_type_expression();
+                return Some(TypeKind::Ref(Box::new(ty)));
+            }
 
-        if let Some(id) = self.try_match_token::<Identifier>() {
-            return Some(TypeKind::Declared(id.0).wrap(self.last_span()));
-        }
+            if let Some(id) = self.try_match_token::<Identifier>() {
+                return Some(TypeKind::Declared(id.0));
+            }
 
-        if self.try_match_token::<RightArrow>().is_some() {
-            let span = self.last_span();
-            let ty = self.expect_type_expression();
-            let span = span.join(ty.span);
-            return Some(TypeKind::Func(Box::new([]), Box::new(ty)).wrap(span));
-        }
+            if self.try_match_token::<RightArrow>().is_some() {
+                let ty = self.expect_type_expression();
+                return Some(TypeKind::Func(Box::new([]), Box::new(ty)));
+            }
 
-        if self.try_match_token::<LeftBracket>().is_some() {
-            let span = self.last_span();
-            let size = self.match_token::<Integer>().map(|n| n.0).unwrap_or(0);
-            self.match_token::<RightBracket>();
-            let ty = self.expect_type_expression();
-            let span = span.join(self.last_span());
-            return Some(TypeKind::Array(Box::new(ty), size as usize).wrap(span));
-        }
+            if self.try_match_token::<LeftBracket>().is_some() {
+                let size = if let Some(size) = self.try_match_token::<Integer>() {
+                    Some(size.0 as usize)
+                } else if self.try_match_token::<Ampersand>().is_some() {
+                    None
+                } else {
+                    let d = diagnostics::create_diagnostic()
+                        .with_kind(DiagnosticKind::ExpectedArraySizeOrAmpersand)
+                        .with_severity(Severity::Error)
+                        .with_pos(self.last_boundary())
+                        .annotate_primary(Note::Here, Span::at(self.last_boundary()))
+                        .done();
+                    self.diagnostics.push(d);
+                    return None;
+                };
 
-        None
+                self.match_token::<RightBracket>();
+                let ty = self.expect_type_expression();
+
+                return match size {
+                    Some(size) => Some(TypeKind::Array(Box::new(ty), size)),
+                    None => Some(TypeKind::Pointer(Box::new(ty))),
+                };
+            }
+
+            None
+        });
+
+        Some(ty?.wrap(span))
     }
 
     fn parse_delimited_sequence<Left, Right, Sep, T, F>(&mut self, parser: F) -> Option<Vec<T>>

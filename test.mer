@@ -1,2 +1,0 @@
-var map = alloc<Player>(16.2)
-return

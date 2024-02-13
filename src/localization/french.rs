@@ -165,6 +165,8 @@ impl Lang for French {
                 => "type attendu".to_string(),
             K::SingletonTypeSyntax
                 => "les tuples singletons sont interprétés comme le type intérieur, donc les parenthèses ne sont pas nécéssaires".to_string(),
+            K::ExpectedArraySizeOrAmpersand
+                => "taille de tableau attendue (entier, ou esperluette pour une taille non-spécifiée)".to_string(),
             K::ExpectedAccess
                 => "accès à un champ attendu (indice immédiat ou identificateur)".to_string(),
             K::GuardNotBoolean

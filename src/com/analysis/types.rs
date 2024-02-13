@@ -17,6 +17,7 @@ impl<'d> Analyser<'d> {
             ast::TypeKind::Array(inner, size) => {
                 abt::Type::Array(Box::new(self.analyse_type(inner)), *size)
             }
+            ast::TypeKind::Pointer(inner) => abt::Type::Pointer(Box::new(self.analyse_type(inner))),
             ast::TypeKind::Ref(ty) => abt::Type::Ref(Box::new(self.analyse_type(ty))),
             ast::TypeKind::Declared(id) => {
                 match id.as_str() {

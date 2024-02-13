@@ -156,6 +156,8 @@ impl Lang for English {
                 => "expected a type expression".to_string(),
             K::SingletonTypeSyntax
                 => "singleton tuple are read as their inner type, so parentheses are unnecessary".to_string(),
+            K::ExpectedArraySizeOrAmpersand
+                => "expected an array size (integer, or ampersand for unspecified size)".to_string(),
             K::ExpectedAccess
                 => "expected a field access (immediate index or identifier)".to_string(),
             K::GuardNotBoolean
