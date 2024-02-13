@@ -33,6 +33,7 @@ opcodes! {
     0xe5 st_heap_n(u8)
     0xe6 realloc_loc(u8)
     0xe7 realloc_loc_n(u8, u8)
+    0xe8 mem_alloc
 
     0xf0 entry_point(u32)
     0xf1 function(String, u8, u8)

@@ -61,7 +61,7 @@ impl Codegen {
                 data_id,
                 field_id,
             } => self.gen_field_access_expression(expr, *data_id, *field_id, abt),
-            E::Alloc(_, _) => todo!(),
+            E::Alloc(ty, size) => self.gen_alloc_expression(ty, size, abt),
         }
     }
 
@@ -369,6 +369,24 @@ impl Codegen {
         self.patch_u32_placeholder(cursor_body_else_end, cursor_body_then_end)?;
         self.patch_u32_placeholder(cursor_guard_end, cursor_body_then_start)?;
 
+        Ok(())
+    }
+
+    pub fn gen_alloc_expression(
+        &mut self,
+        ty: &Type,
+        size_expr: &Expr,
+        abt: &Program,
+    ) -> io::Result<()> {
+        self.gen_expression(size_expr, abt)?;
+
+        let size = abt.size_of(ty);
+        if size != 1 {
+            binary::write_opcode(&mut self.cursor, &Opcode::ld_u64(size as u64))?;
+            binary::write_opcode(&mut self.cursor, &Opcode::mul(NativeType::u64))?;
+        }
+
+        binary::write_opcode(&mut self.cursor, &Opcode::mem_alloc)?;
         Ok(())
     }
 }
