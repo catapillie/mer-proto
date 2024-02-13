@@ -1,0 +1,23 @@
+data Xyz {
+    x: f64
+    y: (f64, f64)
+    z: [4]bool
+}
+
+var xyz = Xyz
+{
+    x = 42.0
+    y = (0.8, 0.2)
+    z = [true, false, false, true]
+}
+var p = &xyz
+
+(@p).x = 64.0
+(@p).y.0 = 0.4
+(@p).y.1 = 0.6
+(@p).z.0 = false
+(@p).z.1 = true
+(@p).z.2 = false
+(@p).z.3 = true
+
+return (@p).x == 64.0 and (@p).y.0 == 0.4 and (@p).y.1 == 0.6 and (@p).z.0 == false and (@p).z.1 == true and (@p).z.2 == false and (@p).z.3 == true
