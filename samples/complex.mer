@@ -1,0 +1,94 @@
+data Complex {
+    re: f64
+    im: f64
+}
+
+
+func create_complex(re: f64, im: f64) -> Complex
+    = Complex
+    {
+        re = re
+        im = im
+    }
+
+func mod_sqr(z: Complex) -> f64
+    = z.re * z.re + z.im * z.im
+
+func add(a: Complex, b: Complex) -> Complex
+    = Complex
+    {
+        re = a.re + b.re
+        im = a.im + b.im
+    }
+    
+func sub(a: Complex, b: Complex) -> Complex
+    = Complex
+    {
+        re = a.re - b.re
+        im = a.im - b.im
+    }
+
+func mul(a: Complex, b: Complex) -> Complex
+    = Complex
+    {
+        re = a.re * b.re - a.im * b.im
+        im = a.re * b.im + a.im * b.re
+    }
+
+func scale(s: f64, z: Complex) -> Complex
+    = Complex {
+        re = s * z.re
+        im = s * z.im
+    }
+
+func div(a: Complex, b: Complex) -> Complex
+{
+    var d = mod_sqr(b)
+    return Complex
+    {
+        re = (a.re * b.re + a.im * b.im) / d
+        im = (a.im * b.re - a.re * b.im) / d
+    }
+}
+
+func neg(z: Complex) -> Complex
+    = Complex
+    {
+        re = -z.re
+        im = -z.im
+    }
+
+func eq(a: Complex, b: Complex) -> bool
+    = a.re == b.re and a.im == b.im
+
+
+func f(z: Complex) -> Complex {
+    var zz = mul(z, z)
+    var zzz = mul(zz, z)
+    return add(zzz, add(scale(10.0, zz), scale(169.0, z)))
+}
+
+func g(z: Complex) -> Complex {
+    var ra = create_complex(-1.2, +2.7)
+    var rb = create_complex(+7.5, +0.4)
+    var rc = create_complex(+0.9, -1.8)
+    return mul(sub(z, ra), mul(sub(z, rb), sub(z, rc)))
+}
+
+
+var zero = create_complex(0.0, 0.0)
+var i = create_complex(0.0, 1.0)
+var u = create_complex(1.0, 0.0)
+
+debug eq(u, mul(i, mul(i, mul(i, i))))
+
+var sa = create_complex(-5.0, +12.0)
+var sb = create_complex(-5.0, -12.0)
+debug eq(f(sa), zero) and eq(f(sb), zero)
+
+var ra = create_complex(-1.2, +2.7)
+var rb = create_complex(+7.5, +0.4)
+var rc = create_complex(+0.9, -1.8)
+debug eq(g(ra), zero) and eq(g(rb), zero) and eq(g(rc), zero)
+
+return
