@@ -7,6 +7,7 @@ use crate::{
     runtime::{NativeType, Opcode},
 };
 
+#[derive(Debug)]
 enum Lhs {
     Local(u8),
     UnknownLocal,
@@ -170,6 +171,31 @@ impl Codegen {
                         binary::write_opcode(&mut self.cursor, &Opcode::add(NativeType::u64))?;
                         Ok(Lhs::Address)
                     }
+                }
+            }
+            Assignee::FieldAccess(a, data_id, field_id) => {
+                let assignment = self.gen_assignment_lhs(a, var_id, abt)?;
+
+                let info = abt.datas.get(data_id).unwrap();
+                let field_offset = info
+                    .fields
+                    .iter()
+                    .take(*field_id)
+                    .map(|(_, ty)| abt.size_of(&ty.value))
+                    .sum::<usize>();
+
+                match assignment {
+                    Lhs::Local(loc) => Ok(Lhs::Local(loc + field_offset as u8)),
+                    Lhs::UnknownLocal => {
+                        binary::write_opcode(&mut self.cursor, &Opcode::ld_u8(field_offset as u8))?;
+                        binary::write_opcode(&mut self.cursor, &Opcode::add(NativeType::u64))?;
+                        Ok(Lhs::UnknownLocal)
+                    }
+                    Lhs::Address => {
+                        binary::write_opcode(&mut self.cursor, &Opcode::ld_u8(8 * field_offset as u8))?;
+                        binary::write_opcode(&mut self.cursor, &Opcode::add(NativeType::u64))?;
+                        Ok(Lhs::Address)
+                    },
                 }
             }
         }

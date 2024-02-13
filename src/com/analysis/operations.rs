@@ -127,6 +127,21 @@ impl<'d> Analyser<'d> {
                     *inner_ty,
                 ))
             }
+            abt::Expr::FieldAccess {
+                expr,
+                data_id,
+                field_id,
+            } => {
+                let (assignee, var_id, _) = self.to_assignee(expr)?;
+                let info = self.program.datas.get(data_id).unwrap();
+                let field_ty = info.fields[*field_id].1.value.clone();
+
+                Some((
+                    Assignee::FieldAccess(Box::new(assignee), *data_id, *field_id),
+                    var_id,
+                    field_ty,
+                ))
+            }
             _ => None,
         }
     }
