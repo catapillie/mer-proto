@@ -580,6 +580,16 @@ impl<'a> Parser<'a> {
                 return Some(ExprKind::Deref(Box::new(expr)));
             }
 
+            if self.try_match_token::<AllocKw>().is_some() {
+                self.match_token::<LessThan>();
+                let ty = self.expect_type_expression();
+                self.match_token::<GreaterThan>();
+                self.match_token::<LeftParen>();
+                let size = self.expect_expression();
+                self.match_token::<RightParen>();
+                return Some(ExprKind::Alloc(Box::new(ty), Box::new(size)))
+            }
+
             if let Some(expr) = self.try_parse_data_struct_init() {
                 return Some(expr);
             }
@@ -587,7 +597,7 @@ impl<'a> Parser<'a> {
             // not sure about this, but instead of lexing floating-point numbers
             // we can parse them like so, and concatenate the digits to parse a float instead
             // this allows other syntax "x.0.2.1" to work instead of having to
-            // insert parentheses everywhere, for instance "x.0.2.1"
+            // insert parentheses everywhere, for instance "((x.0).2).1"
             if let Some(left) = self.try_match_token::<Integer>() {
                 if self.try_match_token::<Dot>().is_none() {
                     return Some(ExprKind::Integer(left.0));
@@ -1247,6 +1257,7 @@ impl<'a> Parser<'a> {
                     "case" => CaseKw.wrap(span),
                     "data" => DataKw.wrap(span),
                     "otherwise" => OtherwiseKw.wrap(span),
+                    "alloc" => AllocKw.wrap(span),
                     "todo" => TodoKw.wrap(span),
                     "unreachable" => UnreachableKw.wrap(span),
                     _ => Identifier(id).wrap(span),

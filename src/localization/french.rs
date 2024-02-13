@@ -56,6 +56,7 @@ impl Lang for French {
             K::CaseKw => "mot-clé 'case'",
             K::DataKw => "mot-clé 'data'",
             K::OtherwiseKw => "mot-clé 'otherwise'",
+            K::AllocKw => "mot-clé 'alloc'",
             K::TrueKw => "constante 'true'",
             K::FalseKw => "constante 'false'",
             K::TodoKw => "mot-clé 'todo'",
@@ -113,6 +114,7 @@ impl Lang for French {
             T::CaseKw(_, _) => "mot-clé 'case'".to_string(),
             T::DataKw(_, _) => "mot-clé 'data'".to_string(),
             T::OtherwiseKw(_, _) => "mot-clé 'otherwise'".to_string(),
+            T::AllocKw(_, _) => "mot-clé 'alloc'".to_string(),
             T::TrueKw(_, _) => "'true' literal".to_string(),
             T::FalseKw(_, _) => "'false' literal".to_string(),
             T::TodoKw(_, _) => "mot-clé 'todo'".to_string(),
@@ -347,6 +349,8 @@ impl Lang for French {
                 => format!("impossible d'accéder au champ '{}' d'une valeur qui n'est pas une structure de données",
                     name.bold(),
                 ),
+            K::NonIntegerSize
+                => "taille non-entière".to_string(),
         }
     }
 

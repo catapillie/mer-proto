@@ -56,6 +56,8 @@ impl<'d> Analyser<'d> {
                 => self.analyse_data_init_expression(name, fields),
             K::FieldAccess(expr, name)
                 => self.analyse_data_field_access(expr, name),
+            K::Alloc(ty, size)
+                => self.analyse_alloc_expression(ty, size),
         }
     }
 

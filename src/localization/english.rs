@@ -56,6 +56,7 @@ impl Lang for English {
             K::CaseKw => "'case' keyword",
             K::DataKw => "'data' keyword",
             K::OtherwiseKw => "'otherwise' keyword",
+            K::AllocKw => "'alloc' keyword",
             K::TrueKw => "'true' literal",
             K::FalseKw => "'false' literal",
             K::TodoKw => "'todo' keyword",
@@ -113,6 +114,7 @@ impl Lang for English {
             T::CaseKw(_, _) => "'case' keyword".to_string(),
             T::DataKw(_, _) => "'data' keyword".to_string(),
             T::OtherwiseKw(_, _) => "'otherwise' keyword".to_string(),
+            T::AllocKw(_, _) => "'alloc' keyword".to_string(),
             T::TrueKw(_, _) => "'true' literal".to_string(),
             T::FalseKw(_, _) => "'false' literal".to_string(),
             T::TodoKw(_, _) => "'todo' keyword".to_string(),
@@ -344,6 +346,8 @@ impl Lang for English {
                 => format!("cannot access field '{}' of a value which is not a data structure",
                     name.bold(),
                 ),
+            K::NonIntegerSize
+                => "non-integer size".to_string(),
         }
     }
 

@@ -1,4 +1,4 @@
-use super::{BinOp, UnOp};
+use super::{BinOp, Type, UnOp};
 use crate::utils::{Span, Spanned};
 
 pub type Expr = Spanned<ExprKind>;
@@ -28,6 +28,7 @@ pub enum ExprKind {
     Case(Box<[(Option<Expr>, Expr)]>, Span),
     DataInit(Spanned<String>, Box<[(Spanned<String>, Expr)]>),
     FieldAccess(Box<Expr>, Spanned<String>),
+    Alloc(Box<Type>, Box<Expr>),
 }
 
 impl ExprKind {
