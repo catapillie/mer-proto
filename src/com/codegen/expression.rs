@@ -43,6 +43,9 @@ impl Codegen {
                 self.gen_array_immediate_index_expression(array, index, abt)
             }
             E::ArrayIndex(array, index) => self.gen_array_index_expression(array, index, abt),
+            E::PointerIndex(pointer, index) => {
+                self.gen_pointer_index_expression(pointer, index, abt)
+            }
             E::Call(id, params, _) => self.gen_call_expression(*id, params, abt),
             E::IndirectCall(callee, args, _) => {
                 self.gen_indirect_call_expression(callee, args, abt)
@@ -169,6 +172,31 @@ impl Codegen {
         binary::write_opcode(&mut self.cursor, &Opcode::ld_u64(size as u64))?;
         binary::write_opcode(&mut self.cursor, &Opcode::mul(NativeType::u64))?;
         binary::write_opcode(&mut self.cursor, &Opcode::keep_at(size, total_size))?;
+        Ok(())
+    }
+
+    fn gen_pointer_index_expression(
+        &mut self,
+        array: &Expr,
+        index: &Expr,
+        abt: &Program,
+    ) -> io::Result<()> {
+        let pointer_ty = abt.type_of(array);
+        let Type::Pointer(inner_ty) = pointer_ty else {
+            unreachable!()
+        };
+
+        self.gen_expression(array, abt)?;
+        self.gen_expression(index, abt)?;
+
+        let size = abt.size_of(&inner_ty) as u8;
+        binary::write_opcode(&mut self.cursor, &Opcode::ld_u64(8 * size as u64))?;
+        binary::write_opcode(&mut self.cursor, &Opcode::mul(NativeType::u64))?;
+        binary::write_opcode(&mut self.cursor, &Opcode::add(NativeType::u64))?;
+        match size {
+            1 => binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?,
+            _ => binary::write_opcode(&mut self.cursor, &Opcode::ld_heap_n(size))?,
+        }
         Ok(())
     }
 

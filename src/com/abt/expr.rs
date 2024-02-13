@@ -14,6 +14,7 @@ pub enum Expr {
     Array(Box<[Expr]>),
     ArrayImmediateIndex(Box<Expr>, usize),
     ArrayIndex(Box<Expr>, Box<Expr>),
+    PointerIndex(Box<Expr>, Box<Expr>),
     Assignment {
         assignee: Assignee,
         var_id: u64,

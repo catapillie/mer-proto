@@ -56,6 +56,14 @@ impl Program {
                 *inner_ty
             }
 
+            E::PointerIndex(pointer, _) => {
+                let ty = self.type_of(pointer);
+                let Ty::Pointer(inner_ty) = ty else {
+                    unreachable!()
+                };
+                *inner_ty
+            }
+
             E::Variable(var_id) => self.variables.get(var_id).unwrap().ty.clone(),
             E::Function(func_id) => {
                 let info = self.functions.get(func_id).unwrap();

@@ -37,40 +37,49 @@ impl<'d> Analyser<'d> {
             return abt::Expr::Unknown;
         }
 
-        let abt::Type::Array(_, size) = expr_ty else {
-            let d = diagnostics::create_diagnostic()
-                .with_kind(DiagnosticKind::InvalidIndex)
-                .with_span(span)
-                .with_severity(Severity::Error)
-                .annotate_primary(Note::OfType(self.program.type_repr(&expr_ty)), expr.span)
-                .done();
-            self.diagnostics.push(d);
-            return abt::Expr::Unknown;
-        };
+        match expr_ty {
+            abt::Type::Array(_, size) => {
+                if let abt::Expr::Integer(index) = bound_index {
+                    let d = if index as usize >= size {
+                        diagnostics::create_diagnostic()
+                            .with_kind(DiagnosticKind::OutOfRangeConstantIndex {
+                                len: size,
+                                index: index as usize,
+                            })
+                            .with_span(index_expr.span)
+                            .with_severity(Severity::Error)
+                            .annotate_primary(Note::KnownIndexTooLarge, index_expr.span)
+                            .done()
+                    } else {
+                        diagnostics::create_diagnostic()
+                            .with_kind(DiagnosticKind::CanBeImmediateIndex)
+                            .with_span(index_expr.span)
+                            .with_severity(Severity::Warning)
+                            .annotate_primary(
+                                Note::CanBeImmediateIndex(index as usize),
+                                index_expr.span,
+                            )
+                            .done()
+                    };
+                    self.diagnostics.push(d);
+                }
 
-        if let abt::Expr::Integer(index) = bound_index {
-            let d = if index as usize >= size {
-                diagnostics::create_diagnostic()
-                    .with_kind(DiagnosticKind::OutOfRangeConstantIndex {
-                        len: size,
-                        index: index as usize,
-                    })
-                    .with_span(index_expr.span)
+                abt::Expr::ArrayIndex(Box::new(bound_expr), Box::new(bound_index))
+            }
+            abt::Type::Pointer(_) => {
+                abt::Expr::PointerIndex(Box::new(bound_expr), Box::new(bound_index))
+            }
+            _ => {
+                let d = diagnostics::create_diagnostic()
+                    .with_kind(DiagnosticKind::InvalidIndex)
+                    .with_span(span)
                     .with_severity(Severity::Error)
-                    .annotate_primary(Note::KnownIndexTooLarge, index_expr.span)
-                    .done()
-            } else {
-                diagnostics::create_diagnostic()
-                    .with_kind(DiagnosticKind::CanBeImmediateIndex)
-                    .with_span(index_expr.span)
-                    .with_severity(Severity::Warning)
-                    .annotate_primary(Note::CanBeImmediateIndex(index as usize), index_expr.span)
-                    .done()
-            };
-            self.diagnostics.push(d);
+                    .annotate_primary(Note::OfType(self.program.type_repr(&expr_ty)), expr.span)
+                    .done();
+                self.diagnostics.push(d);
+                abt::Expr::Unknown
+            }
         }
-
-        abt::Expr::ArrayIndex(Box::new(bound_expr), Box::new(bound_index))
     }
 
     pub fn analyse_immediate_index(

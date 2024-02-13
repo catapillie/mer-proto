@@ -73,6 +73,7 @@ impl<'d> Analyser<'d> {
             E::Array(exprs) => exprs.iter().any(Self::is_never),
             E::ArrayImmediateIndex(array, _) => Self::is_never(array),
             E::ArrayIndex(array, index) => Self::is_never(array) || Self::is_never(index),
+            E::PointerIndex(pointer, index) => Self::is_never(pointer) || Self::is_never(index),
             E::Assignment {
                 assignee: _,
                 var_id: _,
