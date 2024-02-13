@@ -80,6 +80,7 @@ fn write_then_read_match() {
         Opcode::realloc_loc_n(1, 2),
         Opcode::realloc_loc_n(2, 5),
         Opcode::realloc_loc_n(3, 8),
+        Opcode::mem_alloc,
         Opcode::entry_point(5),
         Opcode::entry_point(4581),
         Opcode::function("hello_world".to_string(), 2, 2),

@@ -68,7 +68,7 @@ impl Codegen {
 
         // write value (only one value space is taken if the variable is heap-allocated)
         match loc.size {
-            1 if info.is_on_heap => binary::write_opcode(&mut self.cursor, &Opcode::st_loc(loc.offset))?,
+            1 => binary::write_opcode(&mut self.cursor, &Opcode::st_loc(loc.offset))?,
             _ => binary::write_opcode(&mut self.cursor, &Opcode::st_loc_n(loc.offset, loc.size))?,
         }
 
