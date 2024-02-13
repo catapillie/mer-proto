@@ -649,8 +649,9 @@ impl<'a> Parser<'a> {
         });
 
         let mut expr = expr?.wrap(span);
-
         loop {
+            let is_newline = self.did_skip_newlines();
+
             if self.try_match_token::<LeftBracket>().is_some() {
                 let index_expr = self.expect_expression();
                 self.match_token::<RightBracket>();
@@ -659,7 +660,7 @@ impl<'a> Parser<'a> {
                 continue;
             }
 
-            if self.try_match_token::<LeftParen>().is_some() {
+            if !is_newline && self.try_match_token::<LeftParen>().is_some() {
                 let mut params = Vec::new();
                 loop {
                     let Some(expr) = self.parse_expression() else {
@@ -929,6 +930,10 @@ impl<'a> Parser<'a> {
         }
         self.match_token::<Right>();
         Some(elements)
+    }
+
+    fn did_skip_newlines(&mut self) -> bool {
+        matches!(self.last_token(), Token::Newline(_, _))
     }
 
     fn expect_newlines_or_eof(&mut self) -> bool {
