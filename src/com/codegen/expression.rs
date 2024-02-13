@@ -174,18 +174,16 @@ impl Codegen {
     fn gen_variable_expression(&mut self, var_id: u64, abt: &Program) -> io::Result<()> {
         let info = abt.variables.get(&var_id).unwrap();
         let loc = self.current_locals.get(&var_id).unwrap();
-        if loc.size == 1 {
-            binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(loc.offset))?;
-        } else {
-            binary::write_opcode(&mut self.cursor, &Opcode::ld_loc_n(loc.offset, loc.size))?;
+        match loc.size {
+            1 => binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(loc.offset))?,
+            _ => binary::write_opcode(&mut self.cursor, &Opcode::ld_loc_n(loc.offset, loc.size))?,
         }
 
         if info.is_on_heap {
             let ty_size = abt.size_of(&info.ty) as u8;
-            if ty_size == 1 {
-                binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?;
-            } else {
-                binary::write_opcode(&mut self.cursor, &Opcode::ld_heap_n(ty_size))?;
+            match ty_size {
+                1 => binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?,
+                _ => binary::write_opcode(&mut self.cursor, &Opcode::ld_heap_n(ty_size))?,
             }
         }
 
@@ -210,10 +208,9 @@ impl Codegen {
     fn gen_ref_expression(&mut self, expr: &Expr, abt: &Program) -> io::Result<()> {
         self.gen_expression(expr, abt)?;
         let size = abt.size_of(&abt.type_of(expr)) as u8;
-        if size == 1 {
-            binary::write_opcode(&mut self.cursor, &Opcode::alloc)?;
-        } else {
-            binary::write_opcode(&mut self.cursor, &Opcode::alloc_n(size))?;
+        match size {
+            1 => binary::write_opcode(&mut self.cursor, &Opcode::alloc)?,
+            _ => binary::write_opcode(&mut self.cursor, &Opcode::alloc_n(size))?,
         }
         Ok(())
     }
@@ -231,10 +228,9 @@ impl Codegen {
         };
 
         let size = abt.size_of(&inner) as u8;
-        if size == 1 {
-            binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?;
-        } else {
-            binary::write_opcode(&mut self.cursor, &Opcode::ld_heap_n(size))?;
+        match size {
+            1 => binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?,
+            _ => binary::write_opcode(&mut self.cursor, &Opcode::ld_heap_n(size))?,
         }
         Ok(())
     }
@@ -247,10 +243,9 @@ impl Codegen {
             unreachable!()
         };
         let size = abt.size_of(inner) as u8;
-        if size == 1 {
-            binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?;
-        } else {
-            binary::write_opcode(&mut self.cursor, &Opcode::ld_heap_n(size))?;
+        match size {
+            1 => binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?,
+            _ => binary::write_opcode(&mut self.cursor, &Opcode::ld_heap_n(size))?,
         }
         Ok(())
     }

@@ -24,10 +24,9 @@ impl Codegen {
         // write right-hand side
         let size = abt.size_of(&abt.type_of(expr)) as u8;
         self.gen_expression(expr, abt)?;
-        if size == 1 {
-            binary::write_opcode(&mut self.cursor, &Opcode::dup)?;
-        } else {
-            binary::write_opcode(&mut self.cursor, &Opcode::dup_n(size))?;
+        match size {
+            1 => binary::write_opcode(&mut self.cursor, &Opcode::dup)?,
+            _ => binary::write_opcode(&mut self.cursor, &Opcode::dup_n(size))?,
         }
 
         // write left-hand side

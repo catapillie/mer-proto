@@ -43,10 +43,9 @@ impl Codegen {
     fn gen_expression_statement(&mut self, expr: &Expr, abt: &Program) -> io::Result<()> {
         let size = abt.size_of(&abt.type_of(expr)) as u8;
         self.gen_expression(expr, abt)?;
-        if size == 1 {
-            binary::write_opcode(&mut self.cursor, &Opcode::pop)?;
-        } else {
-            binary::write_opcode(&mut self.cursor, &Opcode::pop_n(size))?;
+        match size {
+            1 => binary::write_opcode(&mut self.cursor, &Opcode::pop)?,
+            _ => binary::write_opcode(&mut self.cursor, &Opcode::pop_n(size))?,
         }
         Ok(())
     }
@@ -61,18 +60,16 @@ impl Codegen {
         // if variable is heap-allocated, allocate the value on the heap, keep the address
         if info.is_on_heap {
             let size = abt.size_of(&info.ty) as u8;
-            if size == 1 {
-                binary::write_opcode(&mut self.cursor, &Opcode::alloc)?;
-            } else {
-                binary::write_opcode(&mut self.cursor, &Opcode::alloc_n(size))?;
+            match size {
+                1 => binary::write_opcode(&mut self.cursor, &Opcode::alloc)?,
+                _ => binary::write_opcode(&mut self.cursor, &Opcode::alloc_n(size))?,
             }
         }
 
         // write value (only one value space is taken if the variable is heap-allocated)
-        if loc.size == 1 || info.is_on_heap {
-            binary::write_opcode(&mut self.cursor, &Opcode::st_loc(loc.offset))?;
-        } else {
-            binary::write_opcode(&mut self.cursor, &Opcode::st_loc_n(loc.offset, loc.size))?;
+        match loc.size {
+            1 if info.is_on_heap => binary::write_opcode(&mut self.cursor, &Opcode::st_loc(loc.offset))?,
+            _ => binary::write_opcode(&mut self.cursor, &Opcode::st_loc_n(loc.offset, loc.size))?,
         }
 
         Ok(())
