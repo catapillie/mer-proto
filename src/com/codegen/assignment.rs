@@ -146,8 +146,8 @@ impl Codegen {
                 };
 
                 // gen index
-                let inner_size = abt.size_of(inner);
                 self.gen_expression(index_expr, abt)?;
+                let inner_size = abt.size_of(inner);
                 if inner_size > 1 {
                     binary::write_opcode(&mut self.cursor, &Opcode::ld_u64(inner_size as u64))?;
                     binary::write_opcode(&mut self.cursor, &Opcode::mul(NativeType::u64))?;
@@ -173,6 +173,29 @@ impl Codegen {
                     }
                 }
             }
+            Assignee::PointerIndex(a, ty, index_expr) => {
+                let assignment = self.gen_assignment_lhs(a, var_id, abt)?;
+                let Type::Pointer(inner) = ty else {
+                    unreachable!()
+                };
+
+                match assignment {
+                    Lhs::Local(loc) => {
+                        binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(loc))?
+                    }
+                    Lhs::UnknownLocal => binary::write_opcode(&mut self.cursor, &Opcode::ld_sloc)?,
+                    Lhs::Address => binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?,
+                }
+
+                // gen index
+                let inner_size = abt.size_of(inner);
+                self.gen_expression(index_expr, abt)?;
+                binary::write_opcode(&mut self.cursor, &Opcode::ld_u64(8 * inner_size as u64))?;
+                binary::write_opcode(&mut self.cursor, &Opcode::mul(NativeType::u64))?;
+                binary::write_opcode(&mut self.cursor, &Opcode::add(NativeType::u64))?;
+
+                Ok(Lhs::Address)
+            }
             Assignee::FieldAccess(a, data_id, field_id) => {
                 let assignment = self.gen_assignment_lhs(a, var_id, abt)?;
 
@@ -192,10 +215,13 @@ impl Codegen {
                         Ok(Lhs::UnknownLocal)
                     }
                     Lhs::Address => {
-                        binary::write_opcode(&mut self.cursor, &Opcode::ld_u8(8 * field_offset as u8))?;
+                        binary::write_opcode(
+                            &mut self.cursor,
+                            &Opcode::ld_u8(8 * field_offset as u8),
+                        )?;
                         binary::write_opcode(&mut self.cursor, &Opcode::add(NativeType::u64))?;
                         Ok(Lhs::Address)
-                    },
+                    }
                 }
             }
         }

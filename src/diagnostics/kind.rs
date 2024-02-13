@@ -116,6 +116,6 @@ pub enum DiagnosticKind {
     FieldSetMoreThanOnce(String),
     FieldsNeverSet(String, Box<[String]>, String),
     InvalidFieldAccess(String),
-    
+
     NonIntegerSize,
 }

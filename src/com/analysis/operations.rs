@@ -127,6 +127,17 @@ impl<'d> Analyser<'d> {
                     *inner_ty,
                 ))
             }
+            abt::Expr::PointerIndex(pointer, index) => {
+                let (assignee, var_id, pointer_ty) = self.to_assignee(pointer)?;
+                let abt::Type::Pointer(inner_ty) = pointer_ty.clone() else {
+                    unreachable!()
+                };
+                Some((
+                    Assignee::PointerIndex(Box::new(assignee), pointer_ty, index.clone()),
+                    var_id,
+                    *inner_ty,
+                ))
+            }
             abt::Expr::FieldAccess {
                 expr,
                 data_id,
