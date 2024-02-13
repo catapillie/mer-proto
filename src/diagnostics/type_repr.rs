@@ -13,6 +13,7 @@ pub enum TypeRepr {
     Data(String),
     Tuple(Box<TypeRepr>, Box<[TypeRepr]>),
     Array(Box<TypeRepr>, usize),
+    Pointer(Box<TypeRepr>),
     Ref(Box<TypeRepr>),
     Func(Box<[TypeRepr]>, Box<TypeRepr>),
 }
@@ -52,6 +53,11 @@ impl Display for TypeRepr {
                 }
                 Ty::Array(ty, size) => {
                     write!(f, "[{size}]")?;
+                    fmt_paren(ty, f, true)?;
+                    Ok(())
+                }
+                Ty::Pointer(ty) => {
+                    write!(f, "[&]")?;
                     fmt_paren(ty, f, true)?;
                     Ok(())
                 }

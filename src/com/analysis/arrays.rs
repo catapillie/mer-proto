@@ -104,6 +104,6 @@ impl<'d> Analyser<'d> {
             return abt::Expr::Unknown;
         }
 
-        abt::Expr::Unknown
+        abt::Expr::Alloc(Box::new(bound_ty), Box::new(bound_size))
     }
 }

@@ -11,6 +11,7 @@ pub enum Type {
     Data(u64),
     Tuple(Box<Type>, Box<[Type]>), // non-empty
     Array(Box<Type>, usize),
+    Pointer(Box<Type>),
     Ref(Box<Type>),
     Func(Box<[Type]>, Box<Type>),
 }

@@ -61,6 +61,7 @@ impl Codegen {
                 data_id,
                 field_id,
             } => self.gen_field_access_expression(expr, *data_id, *field_id, abt),
+            E::Alloc(_, _) => todo!(),
         }
     }
 

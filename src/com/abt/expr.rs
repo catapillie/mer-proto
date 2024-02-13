@@ -38,4 +38,5 @@ pub enum Expr {
         data_id: u64,
         field_id: usize,
     },
+    Alloc(Box<Type>, Box<Expr>),
 }

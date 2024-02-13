@@ -112,6 +112,8 @@ impl Program {
                 .1
                 .value
                 .clone(),
+
+            E::Alloc(ty, _) => Ty::Pointer(ty.clone()),
         }
     }
 
@@ -135,12 +137,13 @@ impl Program {
             Ty::Bool => 1,
             Ty::Ref(_) => 1,
             Ty::Func(_, _) => 1,
-            Ty::Data(id)
-                => self.datas.get(id).unwrap().size,
+            Ty::Pointer(_) => 1,
             Ty::Tuple(head, tail)
                 => self.size_of(head) + tail.iter().map(|ty| self.size_of(ty)).sum::<usize>(),
             Ty::Array(ty, size)
                 => self.size_of(ty) * size,
+            Ty::Data(id)
+                => self.datas.get(id).unwrap().size,
         }
     }
 
@@ -172,6 +175,7 @@ impl Program {
                 ),
             Ty::Array(ty, size)
                 => Re::Array(Box::new(self.type_repr(ty)), *size),
+            Ty::Pointer(inner) => Re::Pointer(Box::new(self.type_repr(inner))),
             Ty::Ref(inner)
                 => Re::Ref(Box::new(self.type_repr(inner))),
             Ty::Func(args, ty)

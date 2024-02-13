@@ -106,6 +106,7 @@ impl<'d> Analyser<'d> {
                 data_id: _,
                 field_id: _,
             } => Self::is_never(expr),
+            E::Alloc(_, size) => Self::is_never(size),
         }
     }
 }
