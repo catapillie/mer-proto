@@ -3,7 +3,6 @@ data Complex {
     im: f64
 }
 
-
 func create_complex(re: f64, im: f64) -> Complex
     = Complex
     {
@@ -62,13 +61,15 @@ func eq(a: Complex, b: Complex) -> bool
     = a.re == b.re and a.im == b.im
 
 
-func f(z: Complex) -> Complex {
+func f(z: Complex) -> Complex
+{
     var zz = mul(z, z)
     var zzz = mul(zz, z)
     return add(zzz, add(scale(10.0, zz), scale(169.0, z)))
 }
 
-func g(z: Complex) -> Complex {
+func g(z: Complex) -> Complex
+{
     var ra = create_complex(-1.2, +2.7)
     var rb = create_complex(+7.5, +0.4)
     var rc = create_complex(+0.9, -1.8)

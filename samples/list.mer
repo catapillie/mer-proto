@@ -1,0 +1,68 @@
+data List
+{
+    ptr: [&]i64
+    len: i64
+    cap: i64
+}
+
+func list_create() -> List
+    = List
+    {
+        ptr = alloc<i64>(1)
+        len = 0, cap = 1
+    }
+
+func list_push(l: &List, x: i64) -> ()
+{
+    var len = (@l).len
+    var cap = (@l).cap
+
+    if len >= cap then
+    {
+        var ptr = (@l).ptr
+        (@l).cap = cap * 2
+        (@l).ptr = alloc<i64>(cap * 2)
+
+        var i = 0
+        while i < cap do
+        {
+            (@l).ptr[i] = ptr[i]
+            i = i + 1
+        }
+    }
+
+    (@l).ptr[len] = x
+    (@l).len = len + 1
+    return
+}
+
+func list_pop(l: &List) -> i64
+{
+    (@l).len = (@l).len - 1
+    if (@l).len < 0 then unreachable
+    else return (@l).ptr[(@l).len]
+}
+
+func list_get(l: &List, index: i64) -> i64
+    = case index < 0 or index >= (@l).len then unreachable
+      otherwise (@l).ptr[index]
+
+
+var n = 1000
+var numbers = list_create()
+
+var i = 0
+while i < n do
+{
+    list_push(&numbers, i * i)
+    i = i + 1
+}
+
+var i = 0
+while i < n do
+{
+    debug list_pop(&numbers)
+    i = i + 1
+}
+
+return
