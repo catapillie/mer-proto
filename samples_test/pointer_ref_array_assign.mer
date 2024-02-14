@@ -1,0 +1,35 @@
+var n = 100
+var arr = &alloc<[3]f64>(n)
+
+var b = true
+
+var i = 0
+var f = 0.0
+while i < n do
+{
+    (@arr)[i].0 = f
+    (@arr)[i].1 = f * f
+    (@arr)[i].2 = f * f * f
+
+    b = b & ((@arr)[i].0 == f)
+    b = b & ((@arr)[i].1 == f * f)
+    b = b & ((@arr)[i].2 == f * f * f)
+
+    i = i + 1
+    f = f + 0.25
+}
+
+var i = 0
+var f = 0.0
+while i < n do
+{
+    (@arr)[i] = [f, f * f, f * f * f]
+    b = b & ((@arr)[i].0 == f)
+    b = b & ((@arr)[i].1 == f * f)
+    b = b & ((@arr)[i].2 == f * f * f)
+
+    i = i + 1
+    f = f + 0.25
+}
+
+return b

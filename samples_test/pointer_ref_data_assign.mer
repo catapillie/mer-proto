@@ -1,0 +1,57 @@
+data Abc
+{
+    a: bool
+    b: (f64, f64)
+    c: [3]i64
+}
+
+
+var n = 100
+var arr = &alloc<Abc>(n)
+
+var b = true
+
+var i = 0
+var f = 0.0
+while i < n do
+{
+    (@arr)[i].a = (i % 3 == 0)
+    (@arr)[i].b.0 = f
+    (@arr)[i].b.1 = -f
+    (@arr)[i].c.0 = i
+    (@arr)[i].c.1 = i * i
+    (@arr)[i].c.2 = i * i * i
+
+    b = b & ((@arr)[i].a == (i % 3 == 0))
+    b = b & ((@arr)[i].b.0 == f)
+    b = b & ((@arr)[i].b.1 == -f)
+    b = b & ((@arr)[i].c.0 == i)
+    b = b & ((@arr)[i].c.1 == i * i)
+    b = b & ((@arr)[i].c.2 == i * i * i)
+
+    i = i + 1
+    f = f + 0.25
+}
+
+var i = 0
+var f = 0.0
+while i < n do
+{
+    (@arr)[i] = Abc {
+        a = (i % 3 == 0)
+        b = (f, -f)
+        c = [i, i * i, i * i * i]
+    }
+
+    b = b & ((@arr)[i].a == (i % 3 == 0))
+    b = b & ((@arr)[i].b.0 == f)
+    b = b & ((@arr)[i].b.1 == -f)
+    b = b & ((@arr)[i].c.0 == i)
+    b = b & ((@arr)[i].c.1 == i * i)
+    b = b & ((@arr)[i].c.2 == i * i * i)
+
+    i = i + 1
+    f = f + 0.25
+}
+
+return b

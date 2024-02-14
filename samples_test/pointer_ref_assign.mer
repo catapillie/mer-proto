@@ -1,0 +1,14 @@
+var n = 100
+var arr = &alloc<i64>(n)
+
+var b = true
+var i = 0
+while i < n do
+{
+    (@arr)[i] = 2 * i + 1
+    b = b & ((@arr)[i] == 2 * i + 1)
+
+    i = i + 1
+}
+
+return b

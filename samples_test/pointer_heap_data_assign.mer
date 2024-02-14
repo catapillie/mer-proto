@@ -1,0 +1,58 @@
+data Abc
+{
+    a: bool
+    b: (f64, f64)
+    c: [3]i64
+}
+
+
+var n = 100
+var arr = alloc<Abc>(n)
+var p = &arr
+
+var b = true
+
+var i = 0
+var f = 0.0
+while i < n do
+{
+    (@p)[i].a = (i % 3 == 0)
+    (@p)[i].b.0 = f
+    (@p)[i].b.1 = -f
+    (@p)[i].c.0 = i
+    (@p)[i].c.1 = i * i
+    (@p)[i].c.2 = i * i * i
+
+    b = b & ((@p)[i].a == (i % 3 == 0))
+    b = b & ((@p)[i].b.0 == f)
+    b = b & ((@p)[i].b.1 == -f)
+    b = b & ((@p)[i].c.0 == i)
+    b = b & ((@p)[i].c.1 == i * i)
+    b = b & ((@p)[i].c.2 == i * i * i)
+
+    i = i + 1
+    f = f + 0.25
+}
+
+var i = 0
+var f = 0.0
+while i < n do
+{
+    (@p)[i] = Abc {
+        a = (i % 3 == 0)
+        b = (f, -f)
+        c = [i, i * i, i * i * i]
+    }
+
+    b = b & ((@p)[i].a == (i % 3 == 0))
+    b = b & ((@p)[i].b.0 == f)
+    b = b & ((@p)[i].b.1 == -f)
+    b = b & ((@p)[i].c.0 == i)
+    b = b & ((@p)[i].c.1 == i * i)
+    b = b & ((@p)[i].c.2 == i * i * i)
+
+    i = i + 1
+    f = f + 0.25
+}
+
+return b
