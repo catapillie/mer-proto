@@ -64,6 +64,7 @@ impl Lang for French {
             K::Identifier => "identificateur",
             K::Integer => "entier",
             K::MalformedNumeral => "entier mal formé",
+            K::StringLit => "chaîne de caractères",
             K::DebugKw => "mot-clé temporaire 'debug'",
         }
     }
@@ -122,6 +123,7 @@ impl Lang for French {
             T::Identifier(s, _) => format!("identificateur '{}'", s.0),
             T::Integer(s, _) => format!("{}", s.0),
             T::MalformedNumeral(_, _) => "entier mal formé".to_string(),
+            T::StringLit(_, _) => "chaîne de caractères".to_string(),
             T::DebugKw(_, _) => "mot-clé temporaire 'debug'".to_string(),
         }
     }
@@ -143,6 +145,8 @@ impl Lang for French {
                 ),
             K::InvalidInteger(e)
                 => format!("nombre entier invalide ({e})"),
+            K::MissingQuote
+                => "chaîne de caractères sans délimitation finale (guillemets)".to_string(),
             K::ExpectedToken { found, expected } => {
                 let exp = match is_token_kind_feminine(expected) {
                     true => "attendue",
@@ -501,9 +505,15 @@ impl Lang for French {
 }
 
 fn is_token_kind_feminine(kind: &TokenKind) -> bool {
-    matches!(kind, TokenKind::Eof | TokenKind::Newline)
+    matches!(
+        kind,
+        TokenKind::Eof | TokenKind::Newline | TokenKind::StringLit
+    )
 }
 
 fn is_token_feminine(kind: &Token) -> bool {
-    matches!(kind, Token::Eof(_, _) | Token::Newline(_, _))
+    matches!(
+        kind,
+        Token::Eof(_, _) | Token::Newline(_, _) | Token::StringLit(_, _)
+    )
 }

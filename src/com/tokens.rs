@@ -66,6 +66,7 @@ gen_tokens! {
     Identifier(String)
     Integer(i64)
     MalformedNumeral
+    StringLit(String)
 }
 
 macro_rules! gen_tokens {

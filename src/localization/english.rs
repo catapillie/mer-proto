@@ -64,6 +64,7 @@ impl Lang for English {
             K::Identifier => "identifier",
             K::Integer => "integer",
             K::MalformedNumeral => "malformed number",
+            K::StringLit => "string literal",
             K::DebugKw => "temporary 'debug' keyword",
         }
     }
@@ -122,6 +123,7 @@ impl Lang for English {
             T::Identifier(s, _) => format!("identifier '{}'", s.0),
             T::Integer(s, _) => format!("{}", s.0),
             T::MalformedNumeral(_, _) => "malformed nulmber".to_string(),
+            T::StringLit(_, _) => "string literal".to_string(),
             T::DebugKw(_, _) => "temporary 'debug' keyword".to_string(),
         }
     }
@@ -143,6 +145,8 @@ impl Lang for English {
                 ),
             K::InvalidInteger(e)
                 => format!("invalid integer literal ({e})"),
+            K::MissingQuote
+                => "string literal is missing a closing delimiter (quotation mark)".to_string(),
             K::ExpectedToken { found, expected }
                 => format!("expected {}, but found {}",
                     self.token_kind_str(expected).bold(),

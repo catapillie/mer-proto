@@ -9,8 +9,8 @@ use crate::com::{
 #[derive(Debug, Clone)]
 pub enum DiagnosticKind {
     IllegalCharacter(char),
-
     InvalidInteger(ParseIntError),
+    MissingQuote,
 
     ExpectedToken {
         found: Token,

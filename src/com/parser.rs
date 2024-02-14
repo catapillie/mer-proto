@@ -1175,6 +1175,47 @@ impl<'a> Parser<'a> {
         }
     }
 
+    fn try_consume_string_literal(&mut self) -> Option<(String, Span)> {
+        let start_pos = self.cursor.pos();
+        let Some('"') = self.cursor.peek() else {
+            return None;
+        };
+
+        self.cursor.next();
+        let mut end_pos = self.cursor.pos();
+        let mut boundary = self.cursor.pos();
+        let mut chars = String::new();
+        let mut closed = false;
+        while let Some(c) = self.cursor.peek() {
+            self.cursor.next();
+            end_pos = self.cursor.pos();
+            if !c.is_whitespace() {
+                boundary = end_pos;
+            }
+
+            if c == '"' {
+                closed = true;
+                break;
+            }
+
+            chars.push(c);
+        }
+
+        if !closed {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::MissingQuote)
+                .with_severity(Severity::Error)
+                .with_pos(boundary)
+                .annotate_primary(Note::Here, Span::at(boundary))
+                .done();
+            self.diagnostics.push(d);
+            end_pos = boundary
+        }
+
+        let span = Span::new(start_pos, end_pos);
+        Some((chars, span))
+    }
+
     fn try_consume_newlines(&mut self) -> bool {
         if let Some(c) = self.cursor.peek() {
             if !Self::is_newline_character(c) {
@@ -1245,6 +1286,10 @@ impl<'a> Parser<'a> {
             match_by_string!(self, "|" => Bar);
             match_by_string!(self, "^" => Caret);
             match_by_string!(self, "@" => At);
+
+            if let Some((string, span)) = self.try_consume_string_literal() {
+                return StringLit(string).wrap(span);
+            }
 
             if let Some((result, span)) = self.try_consume_number() {
                 return match result {
