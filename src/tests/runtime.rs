@@ -142,6 +142,11 @@ check_program_output!(data_assign_ref_many => (bool, Type::Bool) true);
 check_program_output!(data_assign_heap_allocated => (bool, Type::Bool) true);
 check_program_output!(data_assign_heap_allocated_many => (bool, Type::Bool) true);
 
+check_program_output!(pointer_assign => (bool, Type::Bool) true);
+check_program_output!(pointer_tuple_assign => (bool, Type::Bool) true);
+check_program_output!(pointer_array_assign => (bool, Type::Bool) true);
+check_program_output!(pointer_data_assign => (bool, Type::Bool) true);
+
 macro_rules! check_program_output {
     ($name:ident => ($expected_ty:ty, $type_abt:expr) $expected:expr) => {
         #[test]
