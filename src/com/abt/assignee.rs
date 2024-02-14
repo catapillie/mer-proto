@@ -1,13 +1,13 @@
 use super::{Expr, Type};
 
 #[derive(Debug, Clone)]
-pub enum Assignee {
+pub enum LValue {
     Variable,
     VarDeref,
-    Deref(Box<Assignee>),
-    TupleImmediateIndex(Box<Assignee>, Type, usize),
-    ArrayImmediateIndex(Box<Assignee>, Type, usize),
-    ArrayIndex(Box<Assignee>, Type, Box<Expr>),
-    PointerIndex(Box<Assignee>, Type, Box<Expr>),
-    FieldAccess(Box<Assignee>, u64, usize),
+    Deref(Box<LValue>),
+    TupleImmediateIndex(Box<LValue>, Type, usize),
+    ArrayImmediateIndex(Box<LValue>, Type, usize),
+    ArrayIndex(Box<LValue>, Type, Box<Expr>),
+    PointerIndex(Box<LValue>, Type, Box<Expr>),
+    FieldAccess(Box<LValue>, u64, usize),
 }

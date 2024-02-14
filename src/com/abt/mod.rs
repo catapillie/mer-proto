@@ -11,7 +11,7 @@ pub mod variable;
 
 pub use program::Program;
 
-pub use assignee::Assignee;
+pub use assignee::LValue;
 pub use expr::Expr;
 pub use stmt::{Stmt, StmtKind};
 pub use types::Type;

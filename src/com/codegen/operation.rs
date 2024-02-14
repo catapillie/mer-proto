@@ -4,7 +4,10 @@ use std::io;
 use super::Codegen;
 use crate::{
     binary,
-    com::abt::{BinOp, BinOpKind, Expr, Program, Type, UnOp, UnOpKind},
+    com::{
+        abt::{BinOp, BinOpKind, Expr, Program, Type, UnOp, UnOpKind},
+        codegen::expression::Value,
+    },
     runtime::{opcode, NativeType, Opcode},
 };
 
@@ -15,7 +18,7 @@ impl Codegen {
         left: &Expr,
         right: &Expr,
         abt: &Program,
-    ) -> io::Result<()> {
+    ) -> io::Result<Value> {
         use BinOpKind as K;
         use NativeType as Nt;
         use Opcode as O;
@@ -176,7 +179,7 @@ impl Codegen {
         };
 
         binary::write_opcode(&mut self.cursor, &opcode)?;
-        Ok(())
+        Ok(Value::Done)
     }
 
     fn gen_short_circuit_and(
@@ -184,7 +187,7 @@ impl Codegen {
         left: &Expr,
         right: &Expr,
         abt: &Program,
-    ) -> io::Result<()> {
+    ) -> io::Result<Value> {
         self.gen_expression(left, abt)?;
         self.cursor.write_u8(opcode::dup)?;
         binary::write_opcode(&mut self.cursor, &Opcode::neg(NativeType::bool))?;
@@ -196,7 +199,7 @@ impl Codegen {
         let cursor_b = self.position();
 
         self.patch_u32_placeholder(cursor_a, cursor_b)?;
-        Ok(())
+        Ok(Value::Done)
     }
 
     fn gen_short_circuit_or(
@@ -204,7 +207,7 @@ impl Codegen {
         left: &Expr,
         right: &Expr,
         abt: &Program,
-    ) -> Result<(), io::Error> {
+    ) -> io::Result<Value> {
         self.gen_expression(left, abt)?;
         self.cursor.write_u8(opcode::dup)?;
         self.cursor.write_u8(opcode::jmp_if)?;
@@ -215,7 +218,7 @@ impl Codegen {
         let cursor_b = self.position();
 
         self.patch_u32_placeholder(cursor_a, cursor_b)?;
-        Ok(())
+        Ok(Value::Done)
     }
 
     pub fn gen_unary_operation_expression(
@@ -223,7 +226,7 @@ impl Codegen {
         op: &UnOp,
         expr: &Expr,
         abt: &Program,
-    ) -> io::Result<()> {
+    ) -> io::Result<Value> {
         self.gen_expression(expr, abt)?;
 
         use Type as Ty;
@@ -238,7 +241,7 @@ impl Codegen {
             | (Ty::I32, K::Pos)
             | (Ty::I64, K::Pos)
             | (Ty::F32, K::Pos)
-            | (Ty::F64, K::Pos) => return Ok(()), // this operation does nothing
+            | (Ty::F64, K::Pos) => return Ok(Value::Done), // this operation does nothing
             (Ty::I8, K::Neg) => Opcode::neg(NativeType::i8),
             (Ty::I16, K::Neg) => Opcode::neg(NativeType::i16),
             (Ty::I32, K::Neg) => Opcode::neg(NativeType::i32),
@@ -250,6 +253,6 @@ impl Codegen {
         };
 
         binary::write_opcode(&mut self.cursor, &opcode)?;
-        Ok(())
+        Ok(Value::Done)
     }
 }

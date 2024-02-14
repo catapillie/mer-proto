@@ -1,6 +1,6 @@
 use crate::{
     com::{
-        abt::{self, Assignee},
+        abt::{self, LValue},
         ast,
     },
     diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
@@ -68,29 +68,29 @@ impl<'d> Analyser<'d> {
         abt::Expr::Unknown
     }
 
-    fn to_assignee(&self, expr: &abt::Expr) -> Option<(Assignee, u64, abt::Type)> {
+    fn to_l_value(&self, expr: &abt::Expr) -> Option<(LValue, u64, abt::Type)> {
         match expr {
             abt::Expr::Variable(var_id) => {
                 let ty = self.program.variables.get(var_id).unwrap().ty.clone();
-                Some((Assignee::Variable, *var_id, ty))
+                Some((LValue::Variable, *var_id, ty))
             }
             abt::Expr::VarDeref(var_id) => {
                 let ty = match &self.program.variables.get(var_id).unwrap().ty {
                     abt::Type::Ref(inner) => *inner.to_owned(),
                     _ => unreachable!(),
                 };
-                Some((Assignee::VarDeref, *var_id, ty))
+                Some((LValue::VarDeref, *var_id, ty))
             }
             abt::Expr::Deref(inner) => {
-                let (assignee, var_id, ty) = self.to_assignee(inner)?;
+                let (assignee, var_id, ty) = self.to_l_value(inner)?;
                 let ty = match ty {
                     abt::Type::Ref(inner) => *inner.to_owned(),
                     _ => unreachable!(),
                 };
-                Some((Assignee::Deref(Box::new(assignee)), var_id, ty))
+                Some((LValue::Deref(Box::new(assignee)), var_id, ty))
             }
             abt::Expr::TupleImmediateIndex(expr, index) => {
-                let (assignee, var_id, tuple_ty) = self.to_assignee(expr)?;
+                let (assignee, var_id, tuple_ty) = self.to_l_value(expr)?;
                 let abt::Type::Tuple(head, tail) = tuple_ty.clone() else {
                     unreachable!()
                 };
@@ -100,40 +100,40 @@ impl<'d> Analyser<'d> {
                     tail.get(*index - 1).unwrap().clone()
                 };
                 Some((
-                    Assignee::TupleImmediateIndex(Box::new(assignee), tuple_ty, *index),
+                    LValue::TupleImmediateIndex(Box::new(assignee), tuple_ty, *index),
                     var_id,
                     ty,
                 ))
             }
             abt::Expr::ArrayImmediateIndex(expr, index) => {
-                let (assignee, var_id, tuple_ty) = self.to_assignee(expr)?;
+                let (assignee, var_id, tuple_ty) = self.to_l_value(expr)?;
                 let abt::Type::Array(inner_ty, _) = tuple_ty.clone() else {
                     unreachable!()
                 };
                 Some((
-                    Assignee::ArrayImmediateIndex(Box::new(assignee), tuple_ty, *index),
+                    LValue::ArrayImmediateIndex(Box::new(assignee), tuple_ty, *index),
                     var_id,
                     *inner_ty,
                 ))
             }
             abt::Expr::ArrayIndex(expr, index_expr) => {
-                let (assignee, var_id, tuple_ty) = self.to_assignee(expr)?;
+                let (assignee, var_id, tuple_ty) = self.to_l_value(expr)?;
                 let abt::Type::Array(inner_ty, _) = tuple_ty.clone() else {
                     unreachable!()
                 };
                 Some((
-                    Assignee::ArrayIndex(Box::new(assignee), tuple_ty, index_expr.clone()),
+                    LValue::ArrayIndex(Box::new(assignee), tuple_ty, index_expr.clone()),
                     var_id,
                     *inner_ty,
                 ))
             }
             abt::Expr::PointerIndex(pointer, index) => {
-                let (assignee, var_id, pointer_ty) = self.to_assignee(pointer)?;
+                let (assignee, var_id, pointer_ty) = self.to_l_value(pointer)?;
                 let abt::Type::Pointer(inner_ty) = pointer_ty.clone() else {
                     unreachable!()
                 };
                 Some((
-                    Assignee::PointerIndex(Box::new(assignee), pointer_ty, index.clone()),
+                    LValue::PointerIndex(Box::new(assignee), pointer_ty, index.clone()),
                     var_id,
                     *inner_ty,
                 ))
@@ -143,12 +143,12 @@ impl<'d> Analyser<'d> {
                 data_id,
                 field_id,
             } => {
-                let (assignee, var_id, _) = self.to_assignee(expr)?;
+                let (assignee, var_id, _) = self.to_l_value(expr)?;
                 let info = self.program.datas.get(data_id).unwrap();
                 let field_ty = info.fields[*field_id].1.value.clone();
 
                 Some((
-                    Assignee::FieldAccess(Box::new(assignee), *data_id, *field_id),
+                    LValue::FieldAccess(Box::new(assignee), *data_id, *field_id),
                     var_id,
                     field_ty,
                 ))
@@ -165,7 +165,7 @@ impl<'d> Analyser<'d> {
             return abt::Expr::Unknown;
         }
 
-        let Some((assignee, var_id, expected_type)) = self.to_assignee(&bound_left) else {
+        let Some((assignee, var_id, expected_type)) = self.to_l_value(&bound_left) else {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::AssigneeMustBeVariable)
                 .with_severity(Severity::Error)

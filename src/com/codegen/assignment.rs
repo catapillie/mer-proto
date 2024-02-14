@@ -1,9 +1,9 @@
 use std::io;
 
-use super::Codegen;
+use super::{expression::Value, Codegen};
 use crate::{
     binary,
-    com::abt::{Assignee, Expr, Program, Type},
+    com::abt::{Expr, LValue, Program, Type},
     runtime::{NativeType, Opcode},
 };
 
@@ -17,11 +17,11 @@ enum Lhs {
 impl Codegen {
     pub fn gen_assignment_expression(
         &mut self,
-        assignee: &Assignee,
+        assignee: &LValue,
         var_id: u64,
         expr: &Expr,
         abt: &Program,
-    ) -> io::Result<()> {
+    ) -> io::Result<Value> {
         // write right-hand side
         let size = abt.size_of(&abt.type_of(expr)) as u8;
         self.gen_expression(expr, abt)?;
@@ -36,30 +36,32 @@ impl Codegen {
         // write assignment
         match assignment {
             Lhs::Local(loc_offset) => match size {
-                1 => binary::write_opcode(&mut self.cursor, &Opcode::st_loc(loc_offset)),
-                _ => binary::write_opcode(&mut self.cursor, &Opcode::st_loc_n(loc_offset, size)),
+                1 => binary::write_opcode(&mut self.cursor, &Opcode::st_loc(loc_offset))?,
+                _ => binary::write_opcode(&mut self.cursor, &Opcode::st_loc_n(loc_offset, size))?,
             },
             Lhs::UnknownLocal => match size {
-                1 => binary::write_opcode(&mut self.cursor, &Opcode::st_sloc),
-                _ => binary::write_opcode(&mut self.cursor, &Opcode::st_sloc_n(size)),
+                1 => binary::write_opcode(&mut self.cursor, &Opcode::st_sloc)?,
+                _ => binary::write_opcode(&mut self.cursor, &Opcode::st_sloc_n(size))?,
             },
             Lhs::Address => match size {
-                1 => binary::write_opcode(&mut self.cursor, &Opcode::st_heap),
-                _ => binary::write_opcode(&mut self.cursor, &Opcode::st_heap_n(size)),
+                1 => binary::write_opcode(&mut self.cursor, &Opcode::st_heap)?,
+                _ => binary::write_opcode(&mut self.cursor, &Opcode::st_heap_n(size))?,
             },
-        }
+        };
+
+        Ok(Value::Done)
     }
 
     fn gen_assignment_lhs(
         &mut self,
-        assignee: &Assignee,
+        assignee: &LValue,
         var_id: u64,
         abt: &Program,
-    ) -> Result<Lhs, io::Error> {
+    ) -> io::Result<Lhs> {
         let loc = self.current_locals.get(&var_id).unwrap();
         let info = abt.variables.get(&var_id).unwrap();
         match assignee {
-            Assignee::Variable => {
+            LValue::Variable => {
                 if info.is_on_heap {
                     binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(loc.offset))?;
                     Ok(Lhs::Address)
@@ -67,19 +69,19 @@ impl Codegen {
                     Ok(Lhs::Local(loc.offset))
                 }
             }
-            Assignee::VarDeref => {
+            LValue::VarDeref => {
                 binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(loc.offset))?;
                 if info.is_on_heap {
                     binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?;
                 }
                 Ok(Lhs::Address)
             }
-            Assignee::Deref(a) => {
+            LValue::Deref(a) => {
                 let assignment = self.gen_assignment_lhs(a, var_id, abt)?;
                 binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?;
                 Ok(assignment)
             }
-            Assignee::TupleImmediateIndex(a, ty, index) => {
+            LValue::TupleImmediateIndex(a, ty, index) => {
                 let assignment = self.gen_assignment_lhs(a, var_id, abt)?;
                 let Type::Tuple(head, tail) = ty else {
                     unreachable!()
@@ -114,7 +116,7 @@ impl Codegen {
                     }
                 }
             }
-            Assignee::ArrayImmediateIndex(a, ty, index) => {
+            LValue::ArrayImmediateIndex(a, ty, index) => {
                 let assignment = self.gen_assignment_lhs(a, var_id, abt)?;
                 let Type::Array(inner, _) = ty else {
                     unreachable!()
@@ -139,7 +141,7 @@ impl Codegen {
                     }
                 }
             }
-            Assignee::ArrayIndex(a, ty, index_expr) => {
+            LValue::ArrayIndex(a, ty, index_expr) => {
                 let assignment = self.gen_assignment_lhs(a, var_id, abt)?;
                 let Type::Array(inner, _) = ty else {
                     unreachable!()
@@ -173,7 +175,7 @@ impl Codegen {
                     }
                 }
             }
-            Assignee::PointerIndex(a, ty, index_expr) => {
+            LValue::PointerIndex(a, ty, index_expr) => {
                 let assignment = self.gen_assignment_lhs(a, var_id, abt)?;
                 let Type::Pointer(inner) = ty else {
                     unreachable!()
@@ -196,7 +198,7 @@ impl Codegen {
 
                 Ok(Lhs::Address)
             }
-            Assignee::FieldAccess(a, data_id, field_id) => {
+            LValue::FieldAccess(a, data_id, field_id) => {
                 let assignment = self.gen_assignment_lhs(a, var_id, abt)?;
 
                 let info = abt.datas.get(data_id).unwrap();
@@ -210,7 +212,10 @@ impl Codegen {
                 match assignment {
                     Lhs::Local(loc) => Ok(Lhs::Local(loc + field_offset as u8)),
                     Lhs::UnknownLocal => {
-                        binary::write_opcode(&mut self.cursor, &Opcode::ld_u64(field_offset as u64))?;
+                        binary::write_opcode(
+                            &mut self.cursor,
+                            &Opcode::ld_u64(field_offset as u64),
+                        )?;
                         binary::write_opcode(&mut self.cursor, &Opcode::add(NativeType::u64))?;
                         Ok(Lhs::UnknownLocal)
                     }

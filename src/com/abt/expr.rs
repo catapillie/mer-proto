@@ -1,4 +1,4 @@
-use super::{Assignee, BinOp, Type, UnOp};
+use super::{BinOp, LValue, Type, UnOp};
 
 #[derive(Debug, Clone)]
 pub enum Expr {
@@ -16,7 +16,7 @@ pub enum Expr {
     ArrayIndex(Box<Expr>, Box<Expr>),
     PointerIndex(Box<Expr>, Box<Expr>),
     Assignment {
-        assignee: Assignee,
+        assignee: LValue,
         var_id: u64,
         expr: Box<Expr>,
     },
