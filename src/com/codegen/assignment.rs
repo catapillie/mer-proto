@@ -98,7 +98,7 @@ impl Codegen {
                 match assignment {
                     Lhs::Local(loc) => Ok(Lhs::Local(loc + offset)),
                     Lhs::UnknownLocal => {
-                        binary::write_opcode(&mut self.cursor, &Opcode::ld_u8(offset))?;
+                        binary::write_opcode(&mut self.cursor, &Opcode::ld_u64(offset as u64))?;
                         binary::write_opcode(&mut self.cursor, &Opcode::add(NativeType::u64))?;
                         Ok(Lhs::UnknownLocal)
                     }
@@ -123,7 +123,7 @@ impl Codegen {
                 match assignment {
                     Lhs::Local(loc) => Ok(Lhs::Local(loc + offset as u8)),
                     Lhs::UnknownLocal => {
-                        binary::write_opcode(&mut self.cursor, &Opcode::ld_u8(offset as u8))?;
+                        binary::write_opcode(&mut self.cursor, &Opcode::ld_u64(offset as u64))?;
                         binary::write_opcode(&mut self.cursor, &Opcode::add(NativeType::u64))?;
                         Ok(Lhs::UnknownLocal)
                     }
@@ -210,14 +210,14 @@ impl Codegen {
                 match assignment {
                     Lhs::Local(loc) => Ok(Lhs::Local(loc + field_offset as u8)),
                     Lhs::UnknownLocal => {
-                        binary::write_opcode(&mut self.cursor, &Opcode::ld_u8(field_offset as u8))?;
+                        binary::write_opcode(&mut self.cursor, &Opcode::ld_u64(field_offset as u64))?;
                         binary::write_opcode(&mut self.cursor, &Opcode::add(NativeType::u64))?;
                         Ok(Lhs::UnknownLocal)
                     }
                     Lhs::Address => {
                         binary::write_opcode(
                             &mut self.cursor,
-                            &Opcode::ld_u8(8 * field_offset as u8),
+                            &Opcode::ld_u64(8 * field_offset as u64),
                         )?;
                         binary::write_opcode(&mut self.cursor, &Opcode::add(NativeType::u64))?;
                         Ok(Lhs::Address)

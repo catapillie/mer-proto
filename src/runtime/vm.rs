@@ -1,3 +1,4 @@
+use byteorder::ReadBytesExt;
 use core::slice;
 use std::{
     alloc::{self, Layout},
@@ -7,7 +8,6 @@ use std::{
 };
 
 use super::{error::Error, native_type, opcode, value::Value};
-use byteorder::ReadBytesExt;
 
 const INITIAL_STACK_CAPACITY: usize = 512;
 const INITIAL_CALLSTACK_CAPACITY: usize = 64;
