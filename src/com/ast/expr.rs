@@ -11,6 +11,7 @@ pub enum ExprKind {
     Decimal(f64),
     Identifier(String),
     Boolean(bool),
+    StringLiteral(String),
     Parenthesized(Box<Expr>),
     Tuple(Box<Expr>, Box<[Expr]>),
     Array(Box<[Expr]>),

@@ -22,6 +22,8 @@ impl<'d> Analyser<'d> {
                 => self.analyse_variable_expression(id, expr.span),
             K::Boolean(b)
                 => abt::Expr::Boolean(*b),
+            K::StringLiteral(s)
+                => abt::Expr::StringLiteral(s.clone()),
             K::Parenthesized(inner)
                 => self.analyse_expression(inner),
             K::Tuple(head, tail)

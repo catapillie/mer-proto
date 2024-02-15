@@ -414,6 +414,7 @@ impl<'a> Parser<'a> {
                     | Token::Identifier(_, _)
                     | Token::TrueKw(_, _)
                     | Token::FalseKw(_, _)
+                    | Token::StringLit(_, _)
                     | Token::LeftParen(_, _)
                     | Token::LeftBracket(_, _)
                     | Token::DebugKw(_, _)
@@ -630,6 +631,10 @@ impl<'a> Parser<'a> {
 
             if self.try_match_token::<FalseKw>().is_some() {
                 return Some(ExprKind::Boolean(false));
+            }
+
+            if let Some(s) = self.try_match_token::<StringLit>() {
+                return Some(ExprKind::StringLiteral(s.0));
             }
 
             if let Some(expr) = self.parse_case_expression() {

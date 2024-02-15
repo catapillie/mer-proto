@@ -7,6 +7,7 @@ pub enum Expr {
     Integer(i64),
     Decimal(f64),
     Boolean(bool),
+    StringLiteral(String),
     Variable(u64),
     Function(u64),
     Tuple(Box<Expr>, Box<[Expr]>),

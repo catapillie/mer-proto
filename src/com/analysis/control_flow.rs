@@ -66,6 +66,7 @@ impl<'d> Analyser<'d> {
             E::Integer(_) => false,
             E::Decimal(_) => false,
             E::Boolean(_) => false,
+            E::StringLiteral(_) => false,
             E::Variable(_) => false,
             E::Function(_) => false,
             E::Tuple(head, tail) => Self::is_never(head) || tail.iter().any(Self::is_never),

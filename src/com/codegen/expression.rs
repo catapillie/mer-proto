@@ -72,6 +72,12 @@ impl Codegen {
                 binary::write_opcode(&mut self.cursor, &Opcode::ld_u8(*b as u8))?;
                 Ok(Value::Done)
             }
+            E::StringLiteral(s) => {
+                for byte in s.bytes() {
+                    binary::write_opcode(&mut self.cursor, &Opcode::ld_u8(byte))?;
+                }
+                Ok(Value::Done)
+            }
             E::Binary(op, left, right) => {
                 self.gen_binary_operation_expression(op, left, right, abt)
             }

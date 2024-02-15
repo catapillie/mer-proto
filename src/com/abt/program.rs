@@ -20,6 +20,7 @@ impl Program {
             E::Integer(_) => Ty::I64,
             E::Decimal(_) => Ty::F64,
             E::Boolean(_) => Ty::Bool,
+            E::StringLiteral(s) => Ty::Array(Box::new(Ty::U8), s.len()),
 
             E::Tuple(head, tail) => Ty::Tuple(
                 Box::new(self.type_of(head)),
