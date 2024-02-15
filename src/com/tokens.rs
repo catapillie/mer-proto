@@ -61,6 +61,7 @@ gen_tokens! {
     TodoKw
     UnreachableKw
     DebugKw
+    PrintKw
 
     TrueKw
     FalseKw

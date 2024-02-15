@@ -30,6 +30,7 @@ fn write_then_read_match() {
         Opcode::keep_at(3, 3),
         Opcode::keep_at(5, 6),
         Opcode::rot,
+        Opcode::print,
         Opcode::dbg(NativeType::bool),
         Opcode::dbg(NativeType::u16),
         Opcode::dbg(NativeType::i32),

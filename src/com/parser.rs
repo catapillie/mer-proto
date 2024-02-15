@@ -107,6 +107,7 @@ impl<'a> Parser<'a> {
         try_return_some!(self.parse_do_while_statement());
         try_return_some!(self.parse_function_statement());
         try_return_some!(self.parse_return_statement());
+        try_return_some!(self.parse_print_statement());
 
         if let Some(expr) = self.parse_expression() {
             let span = expr.span;
@@ -349,6 +350,16 @@ impl<'a> Parser<'a> {
         });
 
         stmt.map(|s| s.wrap(span))
+    }
+
+    fn parse_print_statement(&mut self) -> Option<Stmt> {
+        let (stmt, span) = take_span!(self => {
+            self.try_match_token::<PrintKw>()?;
+            let expr = self.expect_expression();
+            Some(StmtKind::Print(Box::new(expr)))
+        });
+
+        Some(stmt?.wrap(span))
     }
 
     fn parse_block_statement(&mut self) -> Option<Stmt> {
@@ -1321,13 +1332,14 @@ impl<'a> Parser<'a> {
                     "or" => OrKw.wrap(span),
                     "xor" => XorKw.wrap(span),
                     "not" => NotKw.wrap(span),
-                    "debug" => DebugKw.wrap(span),
                     "case" => CaseKw.wrap(span),
                     "data" => DataKw.wrap(span),
                     "otherwise" => OtherwiseKw.wrap(span),
                     "alloc" => AllocKw.wrap(span),
                     "todo" => TodoKw.wrap(span),
                     "unreachable" => UnreachableKw.wrap(span),
+                    "debug" => DebugKw.wrap(span),
+                    "print" => PrintKw.wrap(span),
                     _ => Identifier(id).wrap(span),
                 };
             }

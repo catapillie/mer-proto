@@ -30,6 +30,8 @@ impl Codegen {
                 => self.gen_do_while_statement(body, guard, abt),
             S::Return(expr)
                 => self.gen_return_statement(expr, abt),
+            S::Print(expr)
+                => self.gen_print_statement(expr, abt),
         }
     }
 
@@ -171,6 +173,12 @@ impl Codegen {
     fn gen_return_statement(&mut self, expr: &Expr, abt: &Program) -> io::Result<()> {
         self.gen_expression(expr, abt)?;
         binary::write_opcode(&mut self.cursor, &Opcode::ret)?;
+        Ok(())
+    }
+
+    fn gen_print_statement(&mut self, expr: &Expr, abt: &Program) -> io::Result<()> {
+        self.gen_expression(expr, abt)?;
+        binary::write_opcode(&mut self.cursor, &Opcode::print)?;
         Ok(())
     }
 }

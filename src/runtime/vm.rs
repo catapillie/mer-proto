@@ -98,6 +98,16 @@ impl<'a> VM<'a> {
 
                 opcode::rot => self.rot()?,
 
+                opcode::print => {
+                    let size = self.pop()?.get_usize();
+                    let addr = self.pop()?.get_usize();
+                    let bytes = Self::read_heap_array(addr, size)
+                        .iter()
+                        .map(Value::get_u8)
+                        .collect::<Vec<_>>();
+                    let string = String::from_utf8_lossy(&bytes);
+                    println!("{string}");
+                }
                 opcode::dbg => {
                     self.dup()?;
                     let value = self.pop()?;

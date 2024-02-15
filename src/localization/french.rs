@@ -67,6 +67,7 @@ impl Lang for French {
             K::MalformedNumeral => "entier mal formé",
             K::StringLit => "chaîne de caractères",
             K::DebugKw => "mot-clé temporaire 'debug'",
+            K::PrintKw => "mot-clé temporaire 'print'",
         }
     }
 
@@ -127,6 +128,7 @@ impl Lang for French {
             T::MalformedNumeral(_, _) => "entier mal formé".to_string(),
             T::StringLit(_, _) => "chaîne de caractères".to_string(),
             T::DebugKw(_, _) => "mot-clé temporaire 'debug'".to_string(),
+            T::PrintKw(_, _) => "mot-clé temporaire 'print'".to_string(),
         }
     }
 
@@ -364,6 +366,10 @@ impl Lang for French {
                 ),
             K::NonIntegerSize
                 => "taille non-entière".to_string(),
+            K::InvalidPrint(ty)
+                => format!("impossible d'afficher une valeur de type '{}'",
+                    ty.to_string().bold(),
+                )
         }
     }
 

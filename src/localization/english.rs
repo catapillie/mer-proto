@@ -67,6 +67,7 @@ impl Lang for English {
             K::MalformedNumeral => "malformed number",
             K::StringLit => "string literal",
             K::DebugKw => "temporary 'debug' keyword",
+            K::PrintKw => "temporary 'print' keyword",
         }
     }
 
@@ -127,6 +128,7 @@ impl Lang for English {
             T::MalformedNumeral(_, _) => "malformed nulmber".to_string(),
             T::StringLit(_, _) => "string literal".to_string(),
             T::DebugKw(_, _) => "temporary 'debug' keyword".to_string(),
+            T::PrintKw(_, _) => "temporary 'print' keyword".to_string(),
         }
     }
 
@@ -361,6 +363,10 @@ impl Lang for English {
                 ),
             K::NonIntegerSize
                 => "non-integer size".to_string(),
+            K::InvalidPrint(ty)
+                => format!("cannot print a value of type '{}'",
+                    ty.to_string().bold(),
+                )
         }
     }
 

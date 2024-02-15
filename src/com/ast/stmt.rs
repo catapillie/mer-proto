@@ -25,6 +25,7 @@ pub enum StmtKind {
     ),
     Return,
     ReturnWith(Box<Expr>),
+    Print(Box<Expr>),
 }
 
 impl StmtKind {

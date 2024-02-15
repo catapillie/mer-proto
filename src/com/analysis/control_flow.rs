@@ -55,6 +55,7 @@ impl<'d> Analyser<'d> {
                 self.analyse_control_flow(body.as_ref()) | Self::is_never(guard)
             }
             S::Return(_) => true,
+            S::Print(expr) => Self::is_never(expr),
         }
     }
 

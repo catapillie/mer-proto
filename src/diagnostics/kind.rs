@@ -122,4 +122,6 @@ pub enum DiagnosticKind {
     InvalidFieldAccess(String),
 
     NonIntegerSize,
+
+    InvalidPrint(TypeRepr),
 }

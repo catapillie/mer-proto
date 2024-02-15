@@ -1,6 +1,5 @@
-use crate::utils::{Span, Spanned};
-
 use super::Expr;
+use crate::utils::{Span, Spanned};
 
 pub type Stmt = Spanned<StmtKind>;
 
@@ -15,6 +14,7 @@ pub enum StmtKind {
     WhileDo(Box<Expr>, Box<Stmt>),
     DoWhile(Box<Stmt>, Box<Expr>),
     Return(Box<Expr>),
+    Print(Box<Expr>),
 }
 
 impl StmtKind {
