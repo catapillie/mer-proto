@@ -151,6 +151,8 @@ impl Lang for French {
                 => format!("nombre entier invalide ({e})"),
             K::MissingQuote
                 => "chaîne de caractères sans délimitation finale (guillemets)".to_string(),
+            K::InvalidEscapeSequence
+                => "séquence d'échappement de caractère invalide".to_string(),
             K::ExpectedToken { found, expected } => {
                 let exp = match is_token_kind_feminine(expected) {
                     true => "attendue",

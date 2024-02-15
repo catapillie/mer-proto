@@ -1204,6 +1204,8 @@ impl<'a> Parser<'a> {
         let mut chars = String::new();
         let mut closed = false;
         while let Some(c) = self.cursor.peek() {
+            let prev_pos = end_pos;
+
             self.cursor.next();
             end_pos = self.cursor.pos();
             if !c.is_whitespace() {
@@ -1215,7 +1217,31 @@ impl<'a> Parser<'a> {
                 break;
             }
 
-            chars.push(c);
+            if c == '\\' {
+                if let Some(c) = self.cursor.next() {
+                    end_pos = self.cursor.pos();
+                    boundary = end_pos;
+                    let span = Span::new(prev_pos, self.cursor.pos());
+                    match c {
+                        'n' => chars.push('\n'),
+                        'r' => chars.push('\r'),
+                        '\\' => chars.push('\\'),
+                        '0' => chars.push('\0'),
+                        '"' => chars.push('"'),
+                        _ => {
+                            let d = diagnostics::create_diagnostic()
+                                .with_kind(DiagnosticKind::InvalidEscapeSequence)
+                                .with_severity(Severity::Error)
+                                .with_span(span)
+                                .annotate_primary(Note::Here, span)
+                                .done();
+                            self.diagnostics.push(d);
+                        }
+                    }
+                }
+            } else {
+                chars.push(c);
+            }
         }
 
         if !closed {

@@ -151,6 +151,8 @@ impl Lang for English {
                 => format!("invalid integer literal ({e})"),
             K::MissingQuote
                 => "string literal is missing a closing delimiter (quotation mark)".to_string(),
+            K::InvalidEscapeSequence
+                => "invalid character escape sequence".to_string(),
             K::ExpectedToken { found, expected }
                 => format!("expected {}, but found {}",
                     self.token_kind_str(expected).bold(),

@@ -11,6 +11,7 @@ pub enum DiagnosticKind {
     IllegalCharacter(char),
     InvalidInteger(ParseIntError),
     MissingQuote,
+    InvalidEscapeSequence,
 
     ExpectedToken {
         found: Token,
