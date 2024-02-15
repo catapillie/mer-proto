@@ -106,7 +106,7 @@ impl<'a> VM<'a> {
                         .map(Value::get_u8)
                         .collect::<Vec<_>>();
                     let string = String::from_utf8_lossy(&bytes);
-                    println!("{string}");
+                    print!("{string}");
                 }
                 opcode::dbg => {
                     self.dup()?;
