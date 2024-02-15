@@ -96,6 +96,8 @@ impl<'a> VM<'a> {
                 opcode::keep => self.keep()?,
                 opcode::keep_at => self.keep_at()?,
 
+                opcode::rot => self.rot()?,
+
                 opcode::dbg => {
                     self.dup()?;
                     let value = self.pop()?;
@@ -272,6 +274,14 @@ impl<'a> VM<'a> {
 
         self.stack.extend_from_slice(&kept);
 
+        Ok(())
+    }
+
+    fn rot(&mut self) -> Result<(), Error> {
+        let a = self.pop()?;
+        let b = self.pop()?;
+        self.push(a);
+        self.push(b);
         Ok(())
     }
 

@@ -57,6 +57,8 @@ where
         )),
         opcode::keep_at => Ok(Opcode::keep_at(cursor.read_u8()?, cursor.read_u8()?)),
 
+        opcode::rot => Ok(Opcode::rot),
+
         opcode::dbg => Ok(Opcode::dbg(read_native_type(cursor)?)),
 
         opcode::jmp => Ok(Opcode::jmp(cursor.read_u32::<LE>()?)),
@@ -166,6 +168,7 @@ where
             cursor.write_u8(*len)?;
             Ok(())
         }
+        Opcode::rot => cursor.write_u8(opcode::rot),
         Opcode::dbg(ty) => {
             cursor.write_u8(opcode::dbg)?;
             write_native_type(cursor, ty)?;

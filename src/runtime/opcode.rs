@@ -8,6 +8,7 @@ opcodes! {
     0x04 dup_n(u8)
     0x06 keep(u8, u8, u8)
     0x07 keep_at(u8, u8)
+    0x08 rot
     0x0f dbg(NativeType)
 
     0xc0 jmp(u32)
