@@ -183,18 +183,10 @@ impl Codegen {
 
                 match assignment {
                     Lhs::Local(loc) => {
-                        binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(loc + 1))?
+                        binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(loc))?
                     }
-                    Lhs::UnknownLocal => {
-                        binary::write_opcode(&mut self.cursor, &Opcode::ld_u8(1))?;
-                        binary::write_opcode(&mut self.cursor, &Opcode::add(NativeType::u8))?;
-                        binary::write_opcode(&mut self.cursor, &Opcode::ld_sloc)?;
-                    }
-                    Lhs::Address => {
-                        binary::write_opcode(&mut self.cursor, &Opcode::ld_u64(8))?;
-                        binary::write_opcode(&mut self.cursor, &Opcode::add(NativeType::u64))?;
-                        binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?;
-                    }
+                    Lhs::UnknownLocal => binary::write_opcode(&mut self.cursor, &Opcode::ld_sloc)?,
+                    Lhs::Address => binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?,
                 }
 
                 // gen index
