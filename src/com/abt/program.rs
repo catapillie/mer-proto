@@ -146,7 +146,7 @@ impl Program {
             Ty::Bool => 1,
             Ty::Ref(_) => 1,
             Ty::Func(_, _) => 1,
-            Ty::Pointer(_) => 1,
+            Ty::Pointer(_) => 2,
             Ty::Tuple(head, tail)
                 => self.size_of(head) + tail.iter().map(|ty| self.size_of(ty)).sum::<usize>(),
             Ty::Array(ty, size)

@@ -294,16 +294,17 @@ impl Codegen {
 
     fn gen_pointer_index_expression(
         &mut self,
-        array: &Expr,
+        pointer: &Expr,
         index: &Expr,
         abt: &Program,
     ) -> io::Result<Value> {
-        let pointer_ty = abt.type_of(array);
+        let pointer_ty = abt.type_of(pointer);
         let Type::Pointer(inner_ty) = pointer_ty else {
             unreachable!()
         };
 
-        self.gen_expression(array, abt)?;
+        self.gen_expression(pointer, abt)?;
+        binary::write_opcode(&mut self.cursor, &Opcode::keep(1, 1, 2))?;
         self.gen_expression(index, abt)?;
 
         let size = abt.size_of(&inner_ty) as u8;
@@ -519,6 +520,7 @@ impl Codegen {
         abt: &Program,
     ) -> io::Result<Value> {
         self.gen_expression(size_expr, abt)?;
+        binary::write_opcode(&mut self.cursor, &Opcode::dup)?;
 
         let size = abt.size_of(ty);
         if size != 1 {
