@@ -1,0 +1,57 @@
+func rule(left: bool, x: bool, right: bool) -> bool
+    = (x and (not left)) or (x xor right)
+
+func step(board: [&]bool, n: i64) -> ()
+{
+    var i = 0
+    var prev = false
+    while i < n - 1 do
+    {
+        var result = rule(prev, board[i], board[i + 1])
+        prev = board[i]
+        board[i] = result
+        i = i + 1
+    }
+    board[n - 1] = rule(prev, board[n - 1], false)
+    return
+}
+
+func init(size: i64) -> [&]bool
+{
+    var board = alloc<bool>(size)
+    var i = 0
+    while i < size do
+    {
+        board[i] = false
+        i = i + 1
+    }
+    board[size - 1] = true
+    return board
+}
+
+func to_string(board: [&]bool, size: i64) -> [&]u8
+{
+    var str = alloc<u8>(size)
+    var i = 0
+    while i < size do
+    {
+        str[i] = case board[i] then "#".0
+                 otherwise ".".0
+        i = i + 1
+    }
+    return str
+}
+
+
+var size = 40
+var board = init(size)
+var i = 0
+while i < size do
+{
+    print to_string(board, size)
+    print &"\n"
+    step(board, size)
+    i = i + 1
+}
+
+return 
