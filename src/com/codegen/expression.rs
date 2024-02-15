@@ -303,19 +303,29 @@ impl Codegen {
             unreachable!()
         };
 
-        self.gen_expression(pointer, abt)?;
-        binary::write_opcode(&mut self.cursor, &Opcode::keep(1, 1, 2))?;
+        let pointer_value = self.gen_value(pointer, abt)?;
+        match pointer_value {
+            Value::Done => binary::write_opcode(&mut self.cursor, &Opcode::keep(1, 1, 2))?,
+            Value::Local(loc) => binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(loc + 1))?,
+            Value::UnknownLocal => {
+                binary::write_opcode(&mut self.cursor, &Opcode::ld_u8(1))?;
+                binary::write_opcode(&mut self.cursor, &Opcode::add(NativeType::u8))?;
+                binary::write_opcode(&mut self.cursor, &Opcode::ld_sloc)?;
+            }
+            Value::Address => {
+                binary::write_opcode(&mut self.cursor, &Opcode::ld_u64(8))?;
+                binary::write_opcode(&mut self.cursor, &Opcode::add(NativeType::u64))?;
+                binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?;
+            }
+        }
+
         self.gen_expression(index, abt)?;
 
         let size = abt.size_of(&inner_ty) as u8;
         binary::write_opcode(&mut self.cursor, &Opcode::ld_u64(8 * size as u64))?;
         binary::write_opcode(&mut self.cursor, &Opcode::mul(NativeType::u64))?;
         binary::write_opcode(&mut self.cursor, &Opcode::add(NativeType::u64))?;
-        match size {
-            1 => binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?,
-            _ => binary::write_opcode(&mut self.cursor, &Opcode::ld_heap_n(size))?,
-        }
-        Ok(Value::Done)
+        Ok(Value::Address)
     }
 
     fn gen_variable_expression(&mut self, var_id: u64, abt: &Program) -> io::Result<Value> {
