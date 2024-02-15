@@ -39,9 +39,11 @@ impl<'d> Analyser<'d> {
             return abt::Expr::Unknown;
         }
 
-        let ty = if expr_ty == abt::Type::Never || fallback_ty == abt::Type::Never {
+        let ty = if expr_ty == abt::Type::Never && fallback_ty == abt::Type::Never {
             abt::Type::Never
-        } else if expr_ty.is(&fallback_ty) {
+        } else if expr_ty == abt::Type::Never {
+            fallback_ty
+        } else if fallback_ty == abt::Type::Never || expr_ty.is(&fallback_ty) {
             expr_ty
         } else {
             let d = diagnostics::create_diagnostic()
