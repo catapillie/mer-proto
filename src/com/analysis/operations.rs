@@ -33,6 +33,7 @@ impl<'d> Analyser<'d> {
 
         if matches!(op, ast::BinOp::Concat) {
             use abt::Type::Array as Arr;
+            use abt::Type::Tuple as Tup;
             if let (Arr(arr_left, size_left), Arr(arr_right, size_right)) = (&ty_left, &ty_right) {
                 if arr_left != arr_right {
                     let d = diagnostics::create_diagnostic()
@@ -42,21 +43,32 @@ impl<'d> Analyser<'d> {
                         })
                         .with_severity(Severity::Error)
                         .with_span(span)
-                        .annotate_primary(Note::InnerTypesMismatch {
-                            inner_left: self.program.type_repr(arr_left),
-                            inner_right: self.program.type_repr(arr_right),
-                        }, span)
+                        .annotate_primary(
+                            Note::InnerTypesMismatch {
+                                inner_left: self.program.type_repr(arr_left),
+                                inner_right: self.program.type_repr(arr_right),
+                            },
+                            span,
+                        )
                         .done();
                     self.diagnostics.push(d);
                     return abt::Expr::Unknown;
                 }
 
                 let out_ty = abt::Type::Array(arr_left.clone(), size_left + size_right);
-                let bound_op = abt::BinOpKind::Concat.wrap_extern(
-                    (**arr_left).clone(),
-                    (**arr_right).clone(),
-                    out_ty,
-                );
+                let bound_op =
+                    abt::BinOpKind::Concat.wrap_extern(ty_left.clone(), ty_right.clone(), out_ty);
+                return abt::Expr::Binary(bound_op, Box::new(bound_left), Box::new(bound_right));
+            }
+
+            if let (Tup(hd_left, tl_left), Tup(hd_right, tl_right)) = (&ty_left, &ty_right) {
+                let head = (*hd_left).clone();
+                let tail = [&**tl_left, &[(**hd_right).clone()], &**tl_right]
+                    .concat()
+                    .into_boxed_slice();
+                let out_ty = abt::Type::Tuple(head, tail);
+                let bound_op =
+                    abt::BinOpKind::Concat.wrap_extern(ty_left.clone(), ty_right.clone(), out_ty);
                 return abt::Expr::Binary(bound_op, Box::new(bound_left), Box::new(bound_right));
             }
         }
