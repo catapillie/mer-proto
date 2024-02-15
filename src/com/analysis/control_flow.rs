@@ -110,6 +110,7 @@ impl<'d> Analyser<'d> {
                 field_id: _,
             } => Self::is_never(expr),
             E::Alloc(_, size) => Self::is_never(size),
+            E::ToPointer(expr) => Self::is_never(expr),
         }
     }
 }

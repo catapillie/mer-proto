@@ -364,7 +364,7 @@ impl Lang for English {
             K::NonIntegerSize
                 => "non-integer size".to_string(),
             K::InvalidPrint(ty)
-                => format!("cannot print a value of type '{}'",
+                => format!("cannot print a value of type {}",
                     ty.to_string().bold(),
                 )
         }

@@ -123,6 +123,15 @@ impl Program {
                 .clone(),
 
             E::Alloc(ty, _) => Ty::Pointer(ty.clone()),
+            E::ToPointer(expr) => {
+                let Ty::Ref(inner) = self.type_of(expr) else {
+                    unreachable!()
+                };
+                let Ty::Array(inner, _) = *inner else {
+                    unreachable!()
+                };
+                Ty::Pointer(inner)
+            }
         }
     }
 

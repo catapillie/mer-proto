@@ -120,6 +120,7 @@ impl Codegen {
                 field_id,
             } => self.gen_field_access_expression(expr, *data_id, *field_id, abt),
             E::Alloc(ty, size) => self.gen_alloc_expression(ty, size, abt),
+            E::ToPointer(expr) => self.gen_to_pointer_expression(expr, abt),
         }
     }
 
@@ -514,7 +515,7 @@ impl Codegen {
         Ok(Value::Done)
     }
 
-    pub fn gen_alloc_expression(
+    fn gen_alloc_expression(
         &mut self,
         ty: &Type,
         size_expr: &Expr,
@@ -531,6 +532,19 @@ impl Codegen {
 
         binary::write_opcode(&mut self.cursor, &Opcode::mem_alloc)?;
         binary::write_opcode(&mut self.cursor, &Opcode::rot)?;
+        Ok(Value::Done)
+    }
+
+    pub fn gen_to_pointer_expression(&mut self, expr: &Expr, abt: &Program) -> io::Result<Value> {
+        let Type::Ref(inner) = abt.type_of(expr) else {
+            unreachable!()
+        };
+        let Type::Array(_, size) = *inner else {
+            unreachable!()
+        };
+
+        self.gen_expression(expr, abt)?;
+        binary::write_opcode(&mut self.cursor, &Opcode::ld_u64(size as u64))?;
         Ok(Value::Done)
     }
 }

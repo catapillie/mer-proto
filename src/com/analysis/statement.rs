@@ -1,6 +1,6 @@
 use crate::{
     com::{abt, ast},
-    diagnostics::{self, DiagnosticKind, Note, Severity, TypeRepr},
+    diagnostics::{self, DiagnosticKind, Note, Severity},
 };
 
 use super::Analyser;
@@ -62,22 +62,23 @@ impl<'d> Analyser<'d> {
     }
 
     fn analyse_print_statement(&mut self, expr: &ast::Expr) -> abt::StmtKind {
-        let bound_expr = self.analyse_expression(expr);
+        let mut bound_expr = self.analyse_expression(expr);
         let bound_ty = self.program.type_of(&bound_expr);
-        if let abt::Type::Pointer(inner) = &bound_ty {
-            if inner.is(&abt::Type::U8) {
-                return abt::StmtKind::Print(Box::new(bound_expr));
-            }
+        let expected_ty = abt::Type::Pointer(Box::new(abt::Type::U8));
+        if self.type_check_coerce(&mut bound_expr, &expected_ty) {
+            return abt::StmtKind::Print(Box::new(bound_expr));
         }
 
-        let expected_ty_repr = TypeRepr::Pointer(Box::new(TypeRepr::U8));
         let d = diagnostics::create_diagnostic()
             .with_kind(DiagnosticKind::InvalidPrint(
                 self.program.type_repr(&bound_ty),
             ))
             .with_severity(Severity::Error)
             .with_span(expr.span)
-            .annotate_primary(Note::MustBeOfType(expected_ty_repr), expr.span)
+            .annotate_primary(
+                Note::MustBeOfType(self.program.type_repr(&expected_ty)),
+                expr.span,
+            )
             .done();
         self.diagnostics.push(d);
         abt::StmtKind::Empty

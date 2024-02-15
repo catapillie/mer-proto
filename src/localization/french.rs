@@ -367,7 +367,7 @@ impl Lang for French {
             K::NonIntegerSize
                 => "taille non-entière".to_string(),
             K::InvalidPrint(ty)
-                => format!("impossible d'afficher une valeur de type '{}'",
+                => format!("impossible d'afficher une valeur de type {}",
                     ty.to_string().bold(),
                 )
         }

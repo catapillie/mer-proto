@@ -41,4 +41,5 @@ pub enum Expr {
         field_id: usize,
     },
     Alloc(Box<Type>, Box<Expr>),
+    ToPointer(Box<Expr>),
 }

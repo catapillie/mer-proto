@@ -1,9 +1,8 @@
+use super::Analyser;
 use crate::{
     com::{abt, ast},
     diagnostics::{self, DiagnosticKind, Note, Severity},
 };
-
-use super::Analyser;
 
 impl<'d> Analyser<'d> {
     pub fn analyse_type(&mut self, ty: &ast::Type) -> abt::Type {
@@ -54,5 +53,21 @@ impl<'d> Analyser<'d> {
                 abt::Type::Func(bound_arg_tys, Box::new(bound_ret_ty))
             }
         }
+    }
+
+    pub fn type_check_coerce(&mut self, expr: &mut abt::Expr, ty: &abt::Type) -> bool {
+        let expr_ty = self.program.type_of(expr);
+
+        if let (abt::Type::Ref(ref_inner), abt::Type::Pointer(pointer_ty)) = (&expr_ty, ty) {
+            if let abt::Type::Array(inner_ty, _) = &**ref_inner {
+                if inner_ty.is(pointer_ty) {
+                    let prev_expr = std::mem::replace(expr, abt::Expr::Unknown);
+                    *expr = abt::Expr::ToPointer(Box::new(prev_expr));
+                    return true;
+                }
+            }
+        }
+
+        expr_ty.is(ty)
     }
 }
