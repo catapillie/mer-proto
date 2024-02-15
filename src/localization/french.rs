@@ -26,6 +26,7 @@ impl Lang for French {
             K::Colon => ":",
             K::Equal => "=",
             K::Plus => "+",
+            K::PlusPlus => "++",
             K::Minus => "-",
             K::Star => "*",
             K::Slash => "/",
@@ -85,6 +86,7 @@ impl Lang for French {
             T::Colon(_, _) => ":".to_string(),
             T::Equal(_, _) => "=".to_string(),
             T::Plus(_, _) => "+".to_string(),
+            T::PlusPlus(_, _) => "++".to_string(),
             T::Minus(_, _) => "-".to_string(),
             T::Star(_, _) => "*".to_string(),
             T::Slash(_, _) => "/".to_string(),
@@ -238,6 +240,11 @@ impl Lang for French {
                     op.to_string().bold(),
                     left.to_string().bold(),
                     right.to_string().bold(),
+                ),
+            K::InvalidArrayConcatenation { inner_left, inner_right }
+                => format!("impossible de concaténer deux tableaux dont les types intérieurs sont {} et {} respectivement",
+                    inner_left.to_string().bold(),
+                    inner_right.to_string().bold(),
                 ),
             K::MustReturnValue { expected }
                 => format!("une valeur de type {} doit être renvoyée", expected.to_string().bold()),
@@ -499,6 +506,11 @@ impl Lang for French {
             N::NotDataStructure(ty)
                 => format!("ceci n'est pas une structure de données, et est de type '{}'",
                     ty.to_string().bold(),
+                ),
+            N::InnerTypesMismatch { inner_left, inner_right }
+                => format!("les types intérieurs, {} et {}, ne coïncident pas",
+                    inner_left.to_string().bold(),
+                    inner_right.to_string().bold(),
                 ),
         }
     }

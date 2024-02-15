@@ -61,6 +61,10 @@ pub enum DiagnosticKind {
         left: TypeRepr,
         right: TypeRepr,
     },
+    InvalidArrayConcatenation {
+        inner_left: TypeRepr,
+        inner_right: TypeRepr,
+    },
 
     MustReturnValue {
         expected: TypeRepr,

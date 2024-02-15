@@ -432,6 +432,7 @@ impl<'a> Parser<'a> {
             Token::Star(_, _) => Some((BinOp::Mul, 90, Associativity::Left)),
             Token::Slash(_, _) => Some((BinOp::Div, 90, Associativity::Left)),
             Token::Percent(_, _) => Some((BinOp::Rem, 90, Associativity::Left)),
+            Token::PlusPlus(_, _) => Some((BinOp::Concat, 80, Associativity::Left)),
             Token::Plus(_, _) => Some((BinOp::Add, 80, Associativity::Left)),
             Token::Minus(_, _) => Some((BinOp::Sub, 80, Associativity::Left)),
             Token::Ampersand(_, _) => Some((BinOp::BitAnd, 70, Associativity::Left)),
@@ -1266,6 +1267,7 @@ impl<'a> Parser<'a> {
             }
 
             match_by_string!(self, "->" => RightArrow);
+            match_by_string!(self, "++" => PlusPlus);
             match_by_string!(self, "==" => EqualEqual);
             match_by_string!(self, "!=" => NotEqual);
             match_by_string!(self, "<=" => LessEqual);

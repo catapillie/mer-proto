@@ -39,6 +39,10 @@ pub enum Note {
     FieldType(String, TypeRepr),
     MissingFields(Box<[String]>, String),
     NotDataStructure(TypeRepr),
+    InnerTypesMismatch {
+        inner_left: TypeRepr,
+        inner_right: TypeRepr,
+    },
 }
 
 #[rustfmt::skip]

@@ -26,6 +26,7 @@ impl Lang for English {
             K::Colon => ":",
             K::Equal => "=",
             K::Plus => "+",
+            K::PlusPlus => "++",
             K::Minus => "-",
             K::Star => "*",
             K::Slash => "/",
@@ -85,6 +86,7 @@ impl Lang for English {
             T::Colon(_, _) => ":".to_string(),
             T::Equal(_, _) => "=".to_string(),
             T::Plus(_, _) => "+".to_string(),
+            T::PlusPlus(_, _) => "++".to_string(),
             T::Minus(_, _) => "-".to_string(),
             T::Star(_, _) => "*".to_string(),
             T::Slash(_, _) => "/".to_string(),
@@ -229,6 +231,11 @@ impl Lang for English {
                     op.to_string().bold(),
                     left.to_string().bold(),
                     right.to_string().bold(),
+                ),
+            K::InvalidArrayConcatenation { inner_left, inner_right }
+                => format!("cannot concatenate two arrays whose inner types are {} and {} respectively",
+                    inner_left.to_string().bold(),
+                    inner_right.to_string().bold(),
                 ),
             K::MustReturnValue { expected }
                 => format!("a value of type {} must be returned", expected.to_string().bold()),
@@ -491,6 +498,11 @@ impl Lang for English {
             N::NotDataStructure(ty)
                 => format!("this is not a data structure, and is of type '{}'",
                     ty.to_string().bold(),
+                ),
+            N::InnerTypesMismatch { inner_left, inner_right }
+                => format!("array inner types, {} and {}, do not match",
+                    inner_left.to_string().bold(),
+                    inner_right.to_string().bold(),
                 ),
         }
     }

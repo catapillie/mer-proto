@@ -34,7 +34,13 @@ impl Codegen {
         self.gen_expression(left, abt)?;
         self.gen_expression(right, abt)?;
 
-        let opcode = match (&op.in_ty, &op.kind) {
+        // there is literally nothing to do:
+        // the two values appear in sequence on the stack, so they are concatenated!
+        if let K::Concat = op.kind {
+            return Ok(Value::Done);
+        }
+
+        let opcode = match (&op.in_left, &op.kind) {
             (Ty::U8, K::Add) => O::add(Nt::u8),
             (Ty::U8, K::Sub) => O::sub(Nt::u8),
             (Ty::U8, K::Mul) => O::mul(Nt::u8),

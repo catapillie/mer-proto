@@ -24,6 +24,7 @@ gen_tokens! {
 
     Equal
     Plus
+    PlusPlus
     Minus
     Star
     Slash

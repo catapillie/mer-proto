@@ -31,6 +31,36 @@ impl<'d> Analyser<'d> {
             return abt::Expr::Unknown;
         }
 
+        if matches!(op, ast::BinOp::Concat) {
+            use abt::Type::Array as Arr;
+            if let (Arr(arr_left, size_left), Arr(arr_right, size_right)) = (&ty_left, &ty_right) {
+                if arr_left != arr_right {
+                    let d = diagnostics::create_diagnostic()
+                        .with_kind(DiagnosticKind::InvalidArrayConcatenation {
+                            inner_left: self.program.type_repr(arr_left),
+                            inner_right: self.program.type_repr(arr_right),
+                        })
+                        .with_severity(Severity::Error)
+                        .with_span(span)
+                        .annotate_primary(Note::InnerTypesMismatch {
+                            inner_left: self.program.type_repr(arr_left),
+                            inner_right: self.program.type_repr(arr_right),
+                        }, span)
+                        .done();
+                    self.diagnostics.push(d);
+                    return abt::Expr::Unknown;
+                }
+
+                let out_ty = abt::Type::Array(arr_left.clone(), size_left + size_right);
+                let bound_op = abt::BinOpKind::Concat.wrap_extern(
+                    (**arr_left).clone(),
+                    (**arr_right).clone(),
+                    out_ty,
+                );
+                return abt::Expr::Binary(bound_op, Box::new(bound_left), Box::new(bound_right));
+            }
+        }
+
         if ty_left == ty_right {
             use abt::Type as Ty;
             let ty = ty_left.clone();
@@ -218,20 +248,20 @@ impl<'d> Analyser<'d> {
         use abt::Type as Ty;
         use ast::BinOp as Ast;
         match op {
-            Ast::Add => Some(Abt::Add.wrap(ty.clone(), ty)),
-            Ast::Sub => Some(Abt::Sub.wrap(ty.clone(), ty)),
-            Ast::Mul => Some(Abt::Mul.wrap(ty.clone(), ty)),
-            Ast::Div => Some(Abt::Div.wrap(ty.clone(), ty)),
-            Ast::Rem => Some(Abt::Rem.wrap(ty.clone(), ty)),
-            Ast::Eq => Some(Abt::Eq.wrap(ty, Ty::Bool)),
-            Ast::Ne => Some(Abt::Ne.wrap(ty, Ty::Bool)),
-            Ast::Le => Some(Abt::Le.wrap(ty, Ty::Bool)),
-            Ast::Lt => Some(Abt::Lt.wrap(ty, Ty::Bool)),
-            Ast::Ge => Some(Abt::Ge.wrap(ty, Ty::Bool)),
-            Ast::Gt => Some(Abt::Gt.wrap(ty, Ty::Bool)),
-            Ast::BitAnd => Some(Abt::BitAnd.wrap(ty.clone(), ty)),
-            Ast::BitXor => Some(Abt::BitXor.wrap(ty.clone(), ty)),
-            Ast::BitOr => Some(Abt::BitOr.wrap(ty.clone(), ty)),
+            Ast::Add => Some(Abt::Add.wrap_intern(ty.clone(), ty)),
+            Ast::Sub => Some(Abt::Sub.wrap_intern(ty.clone(), ty)),
+            Ast::Mul => Some(Abt::Mul.wrap_intern(ty.clone(), ty)),
+            Ast::Div => Some(Abt::Div.wrap_intern(ty.clone(), ty)),
+            Ast::Rem => Some(Abt::Rem.wrap_intern(ty.clone(), ty)),
+            Ast::Eq => Some(Abt::Eq.wrap_intern(ty, Ty::Bool)),
+            Ast::Ne => Some(Abt::Ne.wrap_intern(ty, Ty::Bool)),
+            Ast::Le => Some(Abt::Le.wrap_intern(ty, Ty::Bool)),
+            Ast::Lt => Some(Abt::Lt.wrap_intern(ty, Ty::Bool)),
+            Ast::Ge => Some(Abt::Ge.wrap_intern(ty, Ty::Bool)),
+            Ast::Gt => Some(Abt::Gt.wrap_intern(ty, Ty::Bool)),
+            Ast::BitAnd => Some(Abt::BitAnd.wrap_intern(ty.clone(), ty)),
+            Ast::BitXor => Some(Abt::BitXor.wrap_intern(ty.clone(), ty)),
+            Ast::BitOr => Some(Abt::BitOr.wrap_intern(ty.clone(), ty)),
             _ => None,
         }
     }
@@ -241,17 +271,17 @@ impl<'d> Analyser<'d> {
         use abt::Type as Ty;
         use ast::BinOp as Ast;
         match op {
-            Ast::Add => Some(Abt::Add.wrap(ty.clone(), ty)),
-            Ast::Sub => Some(Abt::Sub.wrap(ty.clone(), ty)),
-            Ast::Mul => Some(Abt::Mul.wrap(ty.clone(), ty)),
-            Ast::Div => Some(Abt::Div.wrap(ty.clone(), ty)),
-            Ast::Rem => Some(Abt::Rem.wrap(ty.clone(), ty)),
-            Ast::Eq => Some(Abt::Eq.wrap(ty, Ty::Bool)),
-            Ast::Ne => Some(Abt::Ne.wrap(ty, Ty::Bool)),
-            Ast::Le => Some(Abt::Le.wrap(ty, Ty::Bool)),
-            Ast::Lt => Some(Abt::Lt.wrap(ty, Ty::Bool)),
-            Ast::Ge => Some(Abt::Ge.wrap(ty, Ty::Bool)),
-            Ast::Gt => Some(Abt::Gt.wrap(ty, Ty::Bool)),
+            Ast::Add => Some(Abt::Add.wrap_intern(ty.clone(), ty)),
+            Ast::Sub => Some(Abt::Sub.wrap_intern(ty.clone(), ty)),
+            Ast::Mul => Some(Abt::Mul.wrap_intern(ty.clone(), ty)),
+            Ast::Div => Some(Abt::Div.wrap_intern(ty.clone(), ty)),
+            Ast::Rem => Some(Abt::Rem.wrap_intern(ty.clone(), ty)),
+            Ast::Eq => Some(Abt::Eq.wrap_intern(ty, Ty::Bool)),
+            Ast::Ne => Some(Abt::Ne.wrap_intern(ty, Ty::Bool)),
+            Ast::Le => Some(Abt::Le.wrap_intern(ty, Ty::Bool)),
+            Ast::Lt => Some(Abt::Lt.wrap_intern(ty, Ty::Bool)),
+            Ast::Ge => Some(Abt::Ge.wrap_intern(ty, Ty::Bool)),
+            Ast::Gt => Some(Abt::Gt.wrap_intern(ty, Ty::Bool)),
             _ => None,
         }
     }
@@ -261,14 +291,14 @@ impl<'d> Analyser<'d> {
         use abt::Type as Ty;
         use ast::BinOp as Ast;
         match op {
-            Ast::Eq => Some(Abt::Eq.wrap(Ty::Bool, Ty::Bool)),
-            Ast::Ne => Some(Abt::Ne.wrap(Ty::Bool, Ty::Bool)),
-            Ast::BitAnd => Some(Abt::BitAnd.wrap(Ty::Bool, Ty::Bool)),
-            Ast::BitXor => Some(Abt::BitXor.wrap(Ty::Bool, Ty::Bool)),
-            Ast::BitOr => Some(Abt::BitOr.wrap(Ty::Bool, Ty::Bool)),
-            Ast::And => Some(Abt::And.wrap(Ty::Bool, Ty::Bool)),
-            Ast::Or => Some(Abt::Or.wrap(Ty::Bool, Ty::Bool)),
-            Ast::Xor => Some(Abt::Xor.wrap(Ty::Bool, Ty::Bool)),
+            Ast::Eq => Some(Abt::Eq.wrap_intern(Ty::Bool, Ty::Bool)),
+            Ast::Ne => Some(Abt::Ne.wrap_intern(Ty::Bool, Ty::Bool)),
+            Ast::BitAnd => Some(Abt::BitAnd.wrap_intern(Ty::Bool, Ty::Bool)),
+            Ast::BitXor => Some(Abt::BitXor.wrap_intern(Ty::Bool, Ty::Bool)),
+            Ast::BitOr => Some(Abt::BitOr.wrap_intern(Ty::Bool, Ty::Bool)),
+            Ast::And => Some(Abt::And.wrap_intern(Ty::Bool, Ty::Bool)),
+            Ast::Or => Some(Abt::Or.wrap_intern(Ty::Bool, Ty::Bool)),
+            Ast::Xor => Some(Abt::Xor.wrap_intern(Ty::Bool, Ty::Bool)),
             _ => None,
         }
     }

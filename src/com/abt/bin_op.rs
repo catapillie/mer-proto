@@ -3,7 +3,8 @@ use super::Type;
 #[derive(Debug, Clone)]
 pub struct BinOp {
     pub kind: BinOpKind,
-    pub in_ty: Type,
+    pub in_left: Type,
+    pub in_right: Type,
     pub out_ty: Type,
 }
 
@@ -26,13 +27,24 @@ pub enum BinOpKind {
     And,
     Or,
     Xor,
+    Concat,
 }
 
 impl BinOpKind {
-    pub fn wrap(self, in_ty: Type, out_ty: Type) -> BinOp {
+    pub fn wrap_intern(self, in_ty: Type, out_ty: Type) -> BinOp {
         BinOp {
             kind: self,
-            in_ty,
+            in_left: in_ty.clone(),
+            in_right: in_ty,
+            out_ty,
+        }
+    }
+
+    pub fn wrap_extern(self, in_left: Type, in_right: Type, out_ty: Type) -> BinOp {
+        BinOp {
+            kind: self,
+            in_left,
+            in_right,
             out_ty,
         }
     }

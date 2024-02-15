@@ -19,6 +19,7 @@ pub enum BinOp {
     And,
     Or,
     Xor,
+    Concat,
     Assign,
 }
 
@@ -42,6 +43,7 @@ impl Display for BinOp {
             BinOp::And => write!(f, "and"),
             BinOp::Or => write!(f, "or"),
             BinOp::Xor => write!(f, "xor"),
+            BinOp::Concat => write!(f, "++"),
             BinOp::Assign => write!(f, "="),
         }
     }
