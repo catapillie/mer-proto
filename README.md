@@ -572,7 +572,7 @@ var c = alloc<bool>(4)
 c[0] = true
 
 var p = &&x
-@p = 512
+@@p = 512
 
 var abc = Abc {
     a = 4
