@@ -27,7 +27,7 @@ Mer is inspired by low level languages like Rust, C (and maybe even Zig), but al
 Consider checking the current [language walkthrough](#language-walkthrough).
 
 #### hello, world!
-```php
+```swift
 print &"hello, world!\n"
 return
 ```
