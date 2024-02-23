@@ -17,9 +17,9 @@ This original goals and traits for the language are:
 * memory safety
 * automatic memory management (still unimplemented to this date)
 * fast enough
-* in the future, be ahead-of-time compiled (currently run via the vm)
+* in the future, be ahead-of-time compiled to machine code (currently run via the vm)
 
-Mer is inspired by low level languages are Rust, C (and maybe even Zig), but also by Lua for its syntax.
+Mer is inspired by low level languages like Rust, C (and maybe even Zig), but also by Lua for its syntax.
 
 ### Just show me what it looks like
 *note: i'm trying to display code blocks with the most accurate syntax highlighting -- this means sometimes changing the language inside code blocks.*
@@ -316,7 +316,7 @@ An integer literal is quite literally the value of an integer. They are written 
 
 All integer literal types are `u8`, `u16`, `u32`, `u64` (respectively 8-bit, 16-bit, 32-bit, 64-bit, all unsigned), and `i8`, `i16`, `i32`, `i64` (respectively 8-bit, 16-bit, 32-bit, 64-bit, all signed). It is currently only possible to write `i64` integer literals.
 
-*note: `u8` literals can also be written explicitely by exploiting how strings work -- the proper way to write byte literals will be available when integer type inference is actually implemented.*
+*note: `u8` literals can also be explicitely written by exploiting how strings work -- the proper way to write byte literals will be available when integer type inference is actually implemented.*
 
 #### Floating-point number literal
 Take two integer literals, put a dot in-between, and you get a floating-point number literal, for instance `14.7150`, `0.0`, `14.59`, etc... Similarly to integer literals, there is no type inference yet, so they are all considered as `f64`, which is the type for 64-bit (double-precision) floating-point numbers. 
@@ -335,11 +335,11 @@ false
 ```
 
 #### String literals
-Strings in Mer are [UTF-8 encoded](https://en.wikipedia.org/wiki/UTF-8), so string literals are just simply [arrays](#arrays) of bytes, which represent the UTF-8 encoding of that string. String literals are written by wrapping text by double quotation marks `"`. Special characters can also be escaped inside the string with a backslash (`\n`, `\r`, `\"`, `\\` or `\0`).
-
-Examples
+Strings in Mer are [UTF-8 encoded](https://en.wikipedia.org/wiki/UTF-8), so string literals are just simply [arrays](#arrays) of bytes, which represent the UTF-8 encoding of that string. String literals are written by wrapping text by double quotation marks `"`. Special characters can also be escaped inside the string with a backslash (`\n`, `\r`, `\"`, `\\` or `\0`). 
 
 The type of a string literal is the array type on `u8` (bytes), and the size of that array is how many bytes it takes to encode the string in UTF-8.
+
+Examples
 
 <table>
 <tr>
@@ -392,8 +392,9 @@ The type of a string literal is the array type on `u8` (bytes), and the size of 
 </tr>
 </table>
 
+
 #### Variable or function name
-To refer to the value that is held by a variable, you must write the name of that variable as an expression. You can also refer to the "value" of a function (not to be confused with the value it returns -- this is explained in more detail [below](#function-definition)). Variable or function names are written as an identifier, which may start by any alphabetic character (letter) or an underscore, and my be followed by zero or more alphanumerical characters (letters or digits), or more underscores
+To refer to the value that is held by a variable, you must write the name of that variable as an expression. You can also refer to the "value" of a function (not to be confused with the value it returns -- this is explained in more detail [below](#function-definition)). Variable or function names are written as an identifier, which may start by any alphabetic character (letter) or an underscore, and may be followed by zero or more alphanumerical characters (letters or digits), or more underscores.
 ```
 my_variable
 my_function
@@ -409,23 +410,23 @@ my_cool123___variable
 The type of the resulting expression is the type of variable (or the function when a function is being referred to).
 
 #### Parenthesized expression
-Sometimes you need to wrap an expression in parentheses so that it is evaluated first, for instance where operation precedence come into play. This is done, unsurprisingly, by opening a left parenthesis `(`, writing the inner expression, then closing with a right parenthesis `)`.
+Sometimes you need to wrap an expression in parentheses so that it is evaluated first, for instance where operation precedence comes into play. This is done, naturally, by opening a left parenthesis `(`, writing the inner expression, then closing with a right parenthesis `)`.
 ```swift
 (123)
 ((((true))))
 (())
 (2.0 * (3.0 + x))
 ```
-The type of a parenthesized expression is the same type as the inner expression.
+The type of a parenthesized expression is the same type as the inner expression's type.
 
 #### Tuples
-Tuples are expressions which contain two or more values. To write a tuple, you must first open a left parenthesis `(`, then write the tuple's inner values in sequence and separated by a comma `,`, then finally close with a right parenthesis `)`. For instance:
+Tuples are expressions which contain two or more expressions. To write a tuple, you must first open a left parenthesis `(`, then write the tuple's inner expressions in sequence and separated by a comma `,`, then finally close with a right parenthesis `)`. For instance:
 ```swift
 (1, 2, 3)
 (1.0 + 2.0, x, true, 123)
 ((1, 0, 0), (0, 1, 0), (0, 0, 1))
 ```
-Trying to write a tuple or arity 1 (a single value inside a tuple) will not result in a tuple expression, but rather a parenthesized expression -- which is not a tuple.
+Trying to write a tuple of arity 1 (a single value inside a tuple, also called a singleton tuple) will not result in a tuple expression, but rather a parenthesized expression -- which is not a tuple.
 
 The type of a tuple is called the "tuple type", which itself contains the types of its inner values. It is written the same way a tuple expression is written, but with types instead. Some examples:
 * `(1, 2, 3)` is of type `(i64, i64, i64)`
@@ -437,7 +438,7 @@ Generally, if we have a tuple with `n` values, and that `a_1`, `a_2`, ..., `a_n`
 #### Tuple immediate index
 You can retrieve the value inside a tuple by "indexing" the tuple with an "immediate index". To do this, you can follow an expression, whose type is a tuple, by `.` then an integer literal that represents the index. Tuples are zero-indexed, so to get the first value of a tuple, you write `.0`.
 
-Immediate indices are called "immediate" because they are known at compile-time, and so, directly refer to which value in the tuple you want to index. You cannot index a tuple with a value which is not an integer, because the compiler needs to known which value you want to extract out of the tuple. In addition, indexing a tuple at an index which is greater or equal to the size of the tuple will cause a compiler error, because it would be an attempt at indexing the tuple at an out-of-bounds index.
+Immediate indices are called "immediate" because they are known at compile-time, and so, directly refer to which value in the tuple you want to retrieve. You cannot index a tuple with a value which is not an integer, because the compiler needs to known which value you want to extract out of the tuple. In addition, indexing a tuple at an index which is greater or equal to the size of the tuple will cause a compiler error, because it would be an attempt at indexing the tuple at an out-of-bounds index.
 
 ```swift
 (true, 1.0, x).1
@@ -464,7 +465,7 @@ Each array has a known size, and this is reflected in the type of the array itse
 * `[(true, false), (false, false), (true, true)]` is of type `[3](bool, bool)` ("array of three tuples of bool and bool")
 * `[[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]]` is of type `[3][4]i64` ("array of three arrays of four 64-bit signed integers")
 
-Array types whose inner type differ, or who aren't of the same size, cannot be interchanged. This means that you cannot put an array of type `[M]β` where an array of type `[N]α` is expected, *unless* `N` and `M` are equal, and so are types `α` and `β`.
+Array types whose inner type differ, or who aren't of the same size, cannot be interchanged. This means that you cannot put an array of type `[M]β` where an array of type `[N]α` is expected, *unless* `N` and `M` are equal, and `α` and `β` are also equal.
 
 #### Array immediate index
 Similary to the [tuple immediate index](#tuple-immediate-index) expression, you can index an array with an immediate (known) index, using the exact same syntax. Unsurprisingly, you cannot index the array at an index which is greater or equal to the size of the array.
@@ -536,7 +537,7 @@ Almost all binary operators operate on values of the same type. They are however
 
 In addition, there also is a concatenation binary operation between tuples are arrays, written `++`, and appends the right operand onto the left operand.
 * For [tuples](#tuples), the type of the operands can be completely different, because the resulting type is just the tuple containing all the values from the first tuple followed by the values of the second tuple.
-* For [arrays](#arrays), the two operands must be arrays of the same type, but not necessarily of the same size: the resulting type is an array on the same type, whose size is the sum of the sizes of the operands.
+* For [arrays](#arrays), the two operands must be arrays of the same type, but not necessarily of the same size: the resulting type is an array on the same inner type, with a size equal to the sum of the sizes of the operands.
 
 | kind | left operand type | right operand type | resulting type |
 |------|--------------|---------------|----------------|
@@ -624,12 +625,11 @@ var p = &x
 func duplicate_in_heap(x: i64) -> &i64
     = &x
 ```
-(see [function definitions]())
 
 As you may have noticed, the second examples returns a reference to its own argument. The compiler will detect whenever a reference to an L-value is taken, and ensure that the variable behind the L-value lies on the heap. We say that **the variable is heap-allocated**. This way, it is never possible to give a reference of a variable to a scope which outlives the variable: the variable lives on the heap, so it outlives any scope (until it is garbage-collected).
 
 #### References of other values
-*note: syntax for this __will__ be changed. current considerations are `alloc` or `heap` instead of the ampersand symbol. however this could be a problem for string literals, we don't want to write `alloc "..."` for each string literal we ever to manipulate on the heap. but it does look good for stuff like `alloc 4` or maybe `heap [1, 2, 3]`.*
+*note: syntax for this __will__ be changed. current considerations are `alloc` or `heap` instead of the ampersand symbol. however this could be a problem for string literals, we don't want to write `alloc "..."` for each string literal we ever want to manipulate on the heap. but it does look good for stuff like `alloc 4` or maybe `heap [1, 2, 3]`.*
 
 Taking the "reference" to a value which is not an L-value (i.e. it is a temporary value) will cause that value to be allocated on the heap.
 Examples
@@ -643,12 +643,12 @@ Examples
 * `&0` is of type `&i64`
 * `&[1, 2, 3, 4, 5]` is of type `&[5]i64`
 * `&"nous sommes dans l'au-delà, et nous l'avons toujours été"` is of type `&[59]u8` (see [string literals](#string-literals))
-* `&&&&(&&true, &&&true)` is of type `&&&&(&&bool, &&&bool)`
+* `&&&&(&&true, &&&false)` is of type `&&&&(&&bool, &&&bool)`
 
 #### Dereferences
 *note: syntax expected to change soon*
 
-A dereference is the value behind some reference. It is (currently) written with a prefix at-symbol `@`. If the reference is of type `&α`, then performing a dereference will give a value of type `α`.
+A dereference is the value behind some reference. It is (currently) written with a prefix 'at' symbol `@`. If the reference is of type `&α`, then performing a dereference will give a value of type `α`.
 ```go
 var x = (true, [1, 0], 2.45)
 var p = &x
@@ -657,7 +657,7 @@ var p = &x
 ```
 Here, `@p` is of type `(bool, [2]i64, f64)`, because `p` is of type `&(bool, [2]i64, f64)`.
 
-If you have some value whose type starts with `&`, then you can dereference it.
+Generally, if you have some value whose type starts with `&`, then you can dereference it.
 
 #### "Pointers"
 *note: this is a bad name -- other considerations are "span" or "slice"... "pointer" is just off*
@@ -672,7 +672,7 @@ var memory = alloc<u8>(32768)
 var data_points = alloc<(f64, f64)>(100)
 ```
 
-The resulting type for a pointer expression is called the "pointer type", and is written `[&]α`. Note how the ampersand replaces the size in arrays of known-size. This shows how this value is a pointer to an array, of *some* size.
+The resulting type for a pointer expression is called the "pointer type", and is written `[&]α`. Note how the ampersand replaces the size in arrays of known size. This shows how this value is a pointer to an array, of *some* size.
 
 You cannot dereference a pointer-typed value. Instead, you have to index the underlying array with some index (not necessarily known at compile-time).
 ```
@@ -682,7 +682,7 @@ data_points[0]
 Here, `memory[64]` is of type `u8`, and `data_points[0]` is of type `(f64, f64)`, based off of the previous example in this section.
 
 #### Data structure initialization
-Once you have defined a data structure (see [data structure definition](#data-structure-definition)), you can initialize such a structure by writing the name of the data structure, then opening brackets (`{`, `}`), inside which you set all of the structure's fields with an equal sign (similarly to an assignment).
+Once you have defined a data structure (see [data structure definition](#data-structure-definition)), you can initialize such a structure by writing the name of the data structure, then opening brackets (`{`, `}`), inside which you set all of the structure's fields with an equal sign (similarly to how an assignment is written).
 
 ```swift
 var position = Vec3D {
@@ -699,7 +699,7 @@ var myself = Person {
 
 The type of a data structure initialization is written as the name of data structure itself. So, in the example above, we have types `Vec3D` and `Person` for variables `position` and `myself` respectively.
 
-Note how field initializations can be crammed together in a single line, by separating them by a comma. Commas only separate fields if they are on the same line; there should not be a comma at the end of a line on which a field is initialized.
+Note how field initializations can be put together on a single line, by separating them by a comma. Commas only separate fields if they are on the same line; there should not be a comma at the end of a line on which a field is initialized.
 
 When initializing a data structure, all fields must be specified. Missing or non-existing fields are reported as an error by the compiler. The ordre in which fields are specified does not matter
 
@@ -748,7 +748,7 @@ case {
 
 This is a operation of arity `2n + 1`, because we have 1 fallback, and to that add all the conditions and values, both of which we have `n`.
 
-The resulting value of this expression is the first value whose condition evaluates to true. Conditions are tested in the order they are written in. If none of the condition evaluate to `true`, then the fallback value is taken instead. All of the `value`s, including the `value_fallback`, must be of the same type, which is also the type of the whole expression. And obviously, all the `condition`s must be of type `bool`.
+The resulting value of this expression is the first value whose condition evaluates to `true`. Conditions are tested in the order they are written in. If none of the condition evaluate to `true`, then the fallback value is taken instead. All of the `value`s, including the `value_fallback`, must be of the same type, which is also the type of the whole expression. And obviously, all the `condition`s must be of type `bool`.
 
 A special case is the ternary case-then-otherwise: with just one condition, you find yourself with the common "ternary" expression.
 ```lua
@@ -818,8 +818,8 @@ do_something()
 "nothing" ++ "happens"
 ```
 
-Here, `do_something()` is an expression statement, the expression being a [function call](#function-calls). It is not useless, as calling the function `do_something` will cause something to be printed.
-However, the expression statement `"nothing" ++ "happens"` (the expression in question this time being a [concatenation operation](#concatenation-operation)) has no side effects, so it does nothing visible (the evaluation may or may not be performed still, but you can't tell).
+Here, `do_something()` is an expression statement, the expression being a [function call](#function-calls). It is not useless, as calling the function `do_something` will cause something to be printed. The discarded value is `()`.
+However, the expression statement `"nothing" ++ "happens"` (the expression in question this time being a [concatenation operation](#concatenation-operation)) has no side effects, so it does nothing visible (the evaluation may or may not be performed still, but you can't tell). The discarded value here is the result of the concatenation.
 
 #### Block statement
 Block statements are a list of statements, wrapped in braces (`{` and `}`).
@@ -837,7 +837,7 @@ Block statements are a list of statements, wrapped in braces (`{` and `}`).
     var x = 0
 }
 ```
-In the example above, each times there is a pair of braces, it marks a block statement. Block are indented to keep the code clean. Usually you wouldn't want to throw random blocks are like in the above, but this code is still valid. Here, the largest block is redundant, the second largest is necessary, and all the smaller ones are redundant.
+In the example above, each times there is a pair of braces, it marks a block statement. Block are indented to keep the code clean. Usually you wouldn't want to throw random blocks like in the above, but this code is still valid. Here, the largest block is redundant, the second largest is necessary, and all the smaller ones are redundant.
 
 Code inside a block is part of a smaller scope, so trying to reach declarations and definitions from a scope which you are not in is not possible. For instance, [declaring a variable](#variable-definition) inside a smaller scope using a block limits that variable to that scope, and so the fourth line below is an "unknown variable" error.
 ```swift
@@ -875,7 +875,7 @@ Reaching for a declaration in a parent scope is perfectly fine.
 These concepts apply to [variables definitions](#variable-definition), [functions definitions](#function-definition), and [data structure definition](#data-structure-definition).
 
 #### Control flow
-Control flow statements allow you do execute one piece of code or another depending on some condition evaluated at runtime. They are essentially the whole logic of your program.
+Control flow statements allow you do execute one piece of code or another depending on some condition (or "guard") evaluated at runtime. They are essentially the whole logic of your program.
 
 #### If-then
 Executes a statement if the condition evaluates to `true`. The condition of an `if-then` statement must be of type `bool`.
@@ -888,7 +888,7 @@ if some_condition then
     <statements>
 }
 ```
-The inner statement of an `if-then` expression may be any non-empty statement, be it a block containing multiple statements, or just a single statement.
+The inner statement of an `if-then` expression may be any *non-empty* statement, be it a block containing multiple statements, or just a single statement.
 
 #### If-then-else
 Executes a `then`-statement if the condition evaluates to `true`, otherwise executes an `else`-statement. The condition of an `if-then-else` statement must be of type `bool`.
@@ -907,7 +907,7 @@ else
     <else_statements>
 }
 ```
-Just like [`if-then`](#if-then) statements, `if-then-else` inner statements may be any other statement, but the `else`-statement must not be empty. It is valid to type the following:
+Just like [`if-then`](#if-then) statements, `if-then-else` inner statements may be any other statement, but the `else`-statement must not be empty. It is valid to write the following:
 ```lua
 if some_condition then
 else
@@ -926,7 +926,7 @@ while some_condition do
     <statements>
 }
 ```
-The inner statement of a `while-do` expression may be any non-empty statement, be it a block containing multiple statements, or just a single statement.
+The inner statement of a `while-do` expression may be any *non-empty* statement, be it a block containing multiple statements, or just a single statement.
 
 #### Do-while
 Same as [`while-do`](#while-do), but the inner code is executed before the condition is evaluated to determine whether the code should be run again. This means that the inner statement is executed at least once.
@@ -942,12 +942,14 @@ while some_condition
 
 It is okay to leave the inner statement empty in a `do-while` statement. However, if the condition being evaluted has no side effects, and that it evaluates to `true`, this will cause an [infinite loop](https://en.wikipedia.org/wiki/Infinite_loop).
 ```lua
-do while some_condition
+do while some_condition_always_true
 ```
-*note: considering adding a `forever` statement*
+*note: considering adding a `forever` statement (or perhaps `loop`).*
+
+*note: considering adding `until-do` and `do-until` statements.*
 
 #### Variable definition
-To declare a variable in your current scope, use the `var` keyword, followed by the name of the variable, then an equal sign followed by the variable's value (an expression). The type of the variable is the type of the expression you provide.
+To declare a variable in your current scope, use the `var` keyword, followed by the name of the variable, then an equal sign followed by the variable's value (an expression). The type of the variable is the type of the expression you provide, which the compiler will infer.
 ```swift
 var x = 0
 var y = 3.1415
@@ -994,7 +996,7 @@ As such, functions may be used as returned values, which enables a programming (
   * `f_curryfied(a)` is of type `β -> γ -> δ`.
   * `f_curryfied` is of type `α -> β -> γ -> δ`.
 
-Functions which "don't return anything", also called sometimes "procedures", generally perform side effects, and don't calculate any resulting value. Functions like these usually return a unit (`()`), which only takes one possible value (the unit value), and which is discarded when the function call is complete. This is the equivalent of `void` functions in C, C#, etc...
+Functions which "don't return anything", also called sometimes "procedures", generally perform side effects, and don't calculate any resulting value. Functions like these usually return a unit (`()`), which only takes one possible value (the unit value), and which is discarded when the function call is complete. This is the equivalent of `void` functions in C, C#, etc... It works the same way as Rust functions which return unit (though Rust allows you to omit the unit return type annotation -- Mer does not).
 ```swift
 func do_something(a: i64, b: i64) -> ()
 {
@@ -1007,7 +1009,9 @@ do_something(1, 9)
 do_something(0, 0)
 ```
 
-Note that it is incorrect to say that the function "returns nothing". It does return something, it's unit. Functions which actually return nothing would be those that return type "never" (`!`). But it's not that they return nothing, it's that they don't return at all. Because, as mentioned above, all functions return something, a function that returns `!` *will* halt the program (see also [unreachable and todo](#unreachable-and-todo)).
+Note that it is incorrect to say that the function "returns nothing". It *does* return something, it's unit.
+
+Functions which actually "return nothing" would be those that return type "never" (`!`). But it's not that they "return nothing", it's that **they don't return at all**. Because, as mentioned above, all functions must return something, a function that returns `!` *will* halt the program (see also [unreachable and todo](#unreachable-and-todo)). Indeed, no value is of type `!`, so actually "returning" a never-typed value is impossible.
 
 #### Return statement
 Inside of a function's body, you should use `return <expression>` statements to make the function return a value. The expression's type should be that of the function's return type. Every function must return, even those who return unit (`()`).
@@ -1050,7 +1054,7 @@ func okay() -> i64
 }
 ```
 
-Note that the program itself acts like a function body, and must return unit.
+Note that the program itself acts like a function body, and must return unit. This way, `return` statements are valid anywhere, even in the top scope of the program (which is the "main" function is disguise).
 
 #### Data structure definition
 Data structure allow you to pack together values of various type into a single structure with a proper name. The general syntax uses the `data` keyword, and goes like so:
@@ -1078,4 +1082,4 @@ print &"hello, world\n"
 Note that references to [arrays of known size](#arrays) (`&[N]T`) coerce into [pointer types](#pointers) (`[&]T`), so the code above is still valid even though the expression `&"hello, world\n"` is of type `&[13]u8`: it is coerced into `[&]u8`.
 
 ### Miscellaneous
-If you have some critism/feedback, I'd love to hear it. Consider reaching out to me on discord at `@catapillie`.
+If you have some criticism/feedback, I'd love to hear it. Consider reaching out to me on discord at `@catapillie`.
