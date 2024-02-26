@@ -67,7 +67,7 @@ pub enum DiagnosticKind {
         inner_right: TypeRepr,
     },
 
-    MustReturnValue {
+    CannotReturnUnit {
         expected: TypeRepr,
     },
     NotAllPathsReturn,

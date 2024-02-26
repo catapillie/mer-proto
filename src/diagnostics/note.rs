@@ -22,6 +22,7 @@ pub enum Note {
     MustBeOfType(TypeRepr),
     OfType(TypeRepr),
     Type(TypeRepr),
+    ReturnsUnit,
     VariableDeclaration(String),
     VariableType(String, TypeRepr),
     ArgumentType(String, TypeRepr),

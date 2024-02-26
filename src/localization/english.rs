@@ -241,7 +241,7 @@ impl Lang for English {
                     inner_left.to_string().bold(),
                     inner_right.to_string().bold(),
                 ),
-            K::MustReturnValue { expected }
+            K::CannotReturnUnit { expected }
                 => format!("a value of type {} must be returned", expected.to_string().bold()),
             K::NotAllPathsReturn
                 => "not every path is guaranteed to return".to_string(),
@@ -414,6 +414,8 @@ impl Lang for English {
                 => format!("this is of type {}", ty.to_string().bold()),
             N::Type(ty)
                 => ty.to_string().bold().to_string(),
+            N::ReturnsUnit
+                => format!("this returns {}", "()".bold()),
             N::VariableDeclaration(name)
                 => format!("variable '{}' is declared here", name.bold()),
             N::VariableType(name, ty)

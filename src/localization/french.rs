@@ -250,7 +250,7 @@ impl Lang for French {
                     inner_left.to_string().bold(),
                     inner_right.to_string().bold(),
                 ),
-            K::MustReturnValue { expected }
+            K::CannotReturnUnit { expected }
                 => format!("une valeur de type {} doit être renvoyée", expected.to_string().bold()),
             K::NotAllPathsReturn
                 => "certains chemins ne renvoient pas de valeur".to_string(),
@@ -422,6 +422,8 @@ impl Lang for French {
                 => format!("ceci est de type {}", ty.to_string().bold()),
             N::Type(ty)
                 => ty.to_string().bold().to_string(),
+            N::ReturnsUnit
+                => format!("ceci retourne {}", "()".bold()),
             N::VariableDeclaration(name)
                 => format!("la variable '{}' est déclarée ici", name.bold()),
             N::VariableType(name, ty)

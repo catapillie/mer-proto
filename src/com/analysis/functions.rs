@@ -324,30 +324,32 @@ impl<'d> Analyser<'d> {
 
         if !ty.is(&return_ty.0) {
             let d = diagnostics::create_diagnostic()
-                .with_kind(DiagnosticKind::MustReturnValue {
+                .with_kind(DiagnosticKind::CannotReturnUnit {
                     expected: self.program.type_repr(&return_ty.0),
                 })
                 .with_severity(Severity::Error)
-                .with_span(span)
-                .annotate_primary(
-                    Note::OfType(self.program.type_repr(&ty))
-                        .but()
-                        .dddot_front()
-                        .num(2),
-                    span,
-                );
+                .with_span(span);
 
             let d = match return_ty.1 {
-                Some((Some(span), name)) => d
+                Some((Some(ty_span), name)) => d
                     .annotate_secondary(
                         Note::FunctionReturnType(name, self.program.type_repr(&return_ty.0))
                             .dddot_back()
                             .num(1),
-                        span,
+                        ty_span,
                         NoteSeverity::Annotation,
                     )
+                    .annotate_primary(
+                        Note::ReturnsUnit
+                            .but()
+                            .dddot_front()
+                            .num(2),
+                        span,
+                    )
                     .done(),
-                _ => d.done(),
+                _ => d
+                    .annotate_primary(Note::ReturnsUnit, span)
+                    .done(),
             };
             self.diagnostics.push(d);
             return abt::StmtKind::Return(Box::new(abt::Expr::Unknown));
@@ -372,14 +374,7 @@ impl<'d> Analyser<'d> {
                     expected: self.program.type_repr(&return_ty.0),
                 })
                 .with_severity(Severity::Error)
-                .with_span(expr.span)
-                .annotate_primary(
-                    Note::MustBeOfType(self.program.type_repr(&return_ty.0))
-                        .so()
-                        .dddot_front()
-                        .num(2),
-                    expr.span,
-                );
+                .with_span(expr.span);
 
             let d = match return_ty.1 {
                 Some((Some(span), name)) => d
@@ -390,8 +385,17 @@ impl<'d> Analyser<'d> {
                         span,
                         NoteSeverity::Annotation,
                     )
+                    .annotate_primary(
+                        Note::OfType(self.program.type_repr(&ty_expr))
+                            .but()
+                            .dddot_front()
+                            .num(2),
+                        expr.span,
+                    )
                     .done(),
-                _ => d.done(),
+                _ => d
+                    .annotate_primary(Note::OfType(self.program.type_repr(&ty_expr)), expr.span)
+                    .done(),
             };
 
             self.diagnostics.push(d);
