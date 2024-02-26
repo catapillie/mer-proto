@@ -339,17 +339,9 @@ impl<'d> Analyser<'d> {
                         ty_span,
                         NoteSeverity::Annotation,
                     )
-                    .annotate_primary(
-                        Note::ReturnsUnit
-                            .but()
-                            .dddot_front()
-                            .num(2),
-                        span,
-                    )
+                    .annotate_primary(Note::ReturnsUnit.but().dddot_front().num(2), span)
                     .done(),
-                _ => d
-                    .annotate_primary(Note::ReturnsUnit, span)
-                    .done(),
+                _ => d.annotate_primary(Note::ReturnsUnit, span).done(),
             };
             self.diagnostics.push(d);
             return abt::StmtKind::Return(Box::new(abt::Expr::Unknown));
