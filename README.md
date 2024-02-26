@@ -7,6 +7,7 @@
 * [usage](#usage)
   * [checking and compiling](#checking-and-compiling)
   * [disassembling and running](#disassembling-and-running)
+  * [compiler language](#compiler-language)
 * [language walkthrough](#language-walkthrough)
 
 ## Introduction
@@ -241,6 +242,15 @@ To run a compiled program, you can either use the `-r` flag when compiling, or m
 ```shell
 mer run ./a.out
 ```
+
+### Compiler Language
+Diagnostic messages are currently available in
+* english (`en`)
+* french (`fr`)
+
+For any command that can print diagnostics (compiling, checking), you may specify the display language with the `--lang` (or `-l`) option, followed by the language identifier (see the list above).
+
+Contributions for localization are welcome and appreciated! Feel free to open a PR.
 
 ## Language walkthrough
 *note: everything here is likely to change a lot and frequently!*
