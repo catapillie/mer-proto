@@ -1000,11 +1000,11 @@ Functions can be considered as values that can be called, just like in any other
 
 As such, functions may be used as returned values, which enables a programming (and mathematical) technique called [currying](https://en.wikipedia.org/wiki/Currying). The idea is that instead of making functions take more than one argument, we make a function that takes the first argument, and returns another function, which itself takes the second arguments, and returns a third function which takes in the third argument, ... and so on. This stops once we've applied the numbers of arguments we wanted to provide. Both styles are possible in Mer.
 * With a function `f_normal` of type `α β γ -> δ`, we write `f(a, b, c)` and we get a value of type `δ`.
-* With a function `f_curryfied` of type `α -> β -> γ -> δ` (or `α -> (β -> (γ -> δ))` with extra parentheses):
-  * `f_curryfied(a)(b)(c)` is of type `δ`
-  * `f_curryfied(a)(b)` is of type `γ -> δ`
-  * `f_curryfied(a)` is of type `β -> γ -> δ`.
-  * `f_curryfied` is of type `α -> β -> γ -> δ`.
+* With a function `f_curryied` of type `α -> β -> γ -> δ` (or `α -> (β -> (γ -> δ))` with extra parentheses):
+  * `f_curryied(a)(b)(c)` is of type `δ`
+  * `f_curryied(a)(b)` is of type `γ -> δ`
+  * `f_curryied(a)` is of type `β -> γ -> δ`.
+  * `f_curryied` is of type `α -> β -> γ -> δ`.
 
 Functions which "don't return anything", also called sometimes "procedures", generally perform side effects, and don't calculate any resulting value. Functions like these usually return a unit (`()`), which only takes one possible value (the unit value), and which is discarded when the function call is complete. This is the equivalent of `void` functions in C, C#, etc... It works the same way as Rust functions which return unit (though Rust allows you to omit the unit return type annotation -- Mer does not).
 ```swift
