@@ -416,7 +416,7 @@ impl<'a> Parser<'a> {
     }
 
     pub fn is_start_of_expression(&self) -> bool {
-        self.is_binary_operator().is_some()
+        self.is_unary_operator().is_some()
             || self.is_unary_operator().is_some()
             || matches!(
                 self.look_ahead(),
