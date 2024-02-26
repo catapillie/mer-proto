@@ -1,0 +1,4 @@
+var a = [0, 1, 2]
+var b = [3, 4, 5]
+var c = a ++ b
+return c.0 == 0 and c.1 == 1 and c.2 == 2 and c.3 == 3 and c.4 == 4 and c.5 == 5

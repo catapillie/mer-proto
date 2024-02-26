@@ -155,6 +155,9 @@ check_program_output!(pointer_ref_tuple_assign => (bool, Type::Bool) true);
 check_program_output!(pointer_ref_array_assign => (bool, Type::Bool) true);
 check_program_output!(pointer_ref_data_assign => (bool, Type::Bool) true);
 
+check_program_output!(concat_array => (bool, Type::Bool) true);
+check_program_output!(concat_tuple_tuple => (bool, Type::Bool) true);
+
 macro_rules! check_program_output {
     ($name:ident => ($expected_ty:ty, $type_abt:expr) $expected:expr) => {
         #[test]
