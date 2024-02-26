@@ -17,7 +17,7 @@ impl<'d> Analyser<'d> {
             FunctionInfo {
                 id: main_fn_id,
                 name: "<main>".to_string(),
-                span: None,
+                name_span: None,
                 depth: 0,
                 args: vec![],
                 arg_ids: vec![],

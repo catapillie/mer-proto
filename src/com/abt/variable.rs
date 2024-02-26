@@ -1,12 +1,11 @@
 use super::Type;
-use crate::utils::Span;
+use crate::utils::Spanned;
 
 pub struct VariableInfo {
     pub id: u64,
-    pub name: String,
+    pub name: Spanned<String>,
     pub depth: u16,
     pub ty: Type,
-    pub declaration_span: Span,
     pub is_on_heap: bool,
 }
 

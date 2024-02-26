@@ -25,7 +25,7 @@ impl<'d> Analyser<'d> {
         let info = FunctionInfo {
             id: declared,
             name: name.to_string(),
-            span,
+            name_span: span,
             depth: self.scope.depth,
             args,
             arg_ids: Default::default(),
@@ -178,7 +178,7 @@ impl<'d> Analyser<'d> {
     ) -> abt::Expr {
         let info = self.program.functions.get(&id).unwrap();
 
-        let func_span = info.span.unwrap();
+        let func_span = info.name_span.unwrap();
         let func_name = info.name.clone();
         let func_args = info.args.clone();
         let func_arg_ids = info.arg_ids.clone();
@@ -199,7 +199,7 @@ impl<'d> Analyser<'d> {
             let arg_id = func_arg_ids.get(i).unwrap();
             let arg_info = self.program.variables.get(arg_id).unwrap();
             let arg_name = arg_info.name.clone();
-            let arg_span = arg_info.declaration_span;
+            let arg_span = arg_info.name.span;
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::TypeMismatch {
                     found: self.program.type_repr(&ty_param),
@@ -208,7 +208,7 @@ impl<'d> Analyser<'d> {
                 .with_severity(Severity::Error)
                 .with_span(span)
                 .annotate_secondary(
-                    Note::ArgumentType(arg_name, self.program.type_repr(arg_ty))
+                    Note::ArgumentType(arg_name.value, self.program.type_repr(arg_ty))
                         .dddot_back()
                         .num(1),
                     arg_span,
@@ -407,10 +407,10 @@ impl<'d> Analyser<'d> {
 
             let var_info = self.program.variables.get(var_id).unwrap();
             let d = diagnostics::create_diagnostic()
-                .with_kind(DiagnosticKind::UnusedVariable(var_info.name.clone()))
-                .with_span(var_info.declaration_span)
+                .with_kind(DiagnosticKind::UnusedVariable(var_info.name.value.clone()))
+                .with_span(var_info.name.span)
                 .with_severity(Severity::Warning)
-                .annotate_primary(Note::Here, var_info.declaration_span)
+                .annotate_primary(Note::Here, var_info.name.span)
                 .done();
             self.diagnostics.push(d);
         }

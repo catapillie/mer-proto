@@ -6,7 +6,7 @@ use crate::utils::Span;
 pub struct FunctionInfo {
     pub id: u64,
     pub name: String,
-    pub span: Option<Span>,
+    pub name_span: Option<Span>,
     pub depth: u16,
     pub args: Vec<(String, Type)>,
     pub arg_ids: Vec<u64>,

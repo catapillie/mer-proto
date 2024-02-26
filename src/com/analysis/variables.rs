@@ -4,7 +4,7 @@ use crate::{
         ast,
     },
     diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
-    utils::Span,
+    utils::{Span, Spanned},
 };
 
 use super::{Analyser, Declaration};
@@ -16,10 +16,12 @@ impl<'d> Analyser<'d> {
 
         let info = VariableInfo {
             id: declared,
-            name: name.to_string(),
+            name: Spanned {
+                value: name.to_string(),
+                span,
+            },
             depth: self.scope.depth,
             ty,
-            declaration_span: span,
             is_on_heap: false,
         };
         let prev = self.program.variables.insert(declared, info);
@@ -79,7 +81,7 @@ impl<'d> Analyser<'d> {
 
         let id = info.id;
         let depth = info.depth;
-        let declaration_span = info.declaration_span;
+        let declaration_span = info.name.span;
 
         let func_id = self.scope.current_func_id;
         let func_info = self.program.functions.get_mut(&func_id).unwrap();
@@ -101,7 +103,7 @@ impl<'d> Analyser<'d> {
 
         if captured && !alread_captured {
             let func_name = func_info.name.clone();
-            let func_span = func_info.span.expect("called functions have a span");
+            let func_span = func_info.name_span.expect("called functions have a span");
             let var_name = name.to_string();
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::UnallowedVariableCapture {

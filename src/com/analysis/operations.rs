@@ -236,10 +236,10 @@ impl<'d> Analyser<'d> {
                     right.span,
                 )
                 .annotate_secondary(
-                    Note::VariableType(info.name.clone(), self.program.type_repr(&info.ty))
+                    Note::VariableType(info.name.value.clone(), self.program.type_repr(&info.ty))
                         .dddot_back()
                         .num(1),
-                    info.declaration_span,
+                    info.name.span,
                     NoteSeverity::Annotation,
                 )
                 .done();
