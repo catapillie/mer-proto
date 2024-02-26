@@ -55,7 +55,7 @@ impl<'d> Analyser<'d> {
         }
     }
 
-    pub fn type_check_coerce(&mut self, expr: &mut abt::Expr, ty: &abt::Type) -> bool {
+    pub fn type_check_coerce(&self, expr: &mut abt::Expr, ty: &abt::Type) -> bool {
         let expr_ty = self.program.type_of(expr);
 
         if let (abt::Type::Ref(ref_inner), abt::Type::Pointer(pointer_ty)) = (&expr_ty, ty) {

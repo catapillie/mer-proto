@@ -172,7 +172,7 @@ impl<'d> Analyser<'d> {
     fn analyse_immediate_call(
         &mut self,
         args: &[ast::Expr],
-        bound_args: Box<[abt::Expr]>,
+        mut bound_args: Box<[abt::Expr]>,
         span: Span,
         id: u64,
     ) -> abt::Expr {
@@ -186,13 +186,13 @@ impl<'d> Analyser<'d> {
 
         let mut invalid = false;
         for (((i, bound_arg), span), arg_ty) in bound_args
-            .iter()
+            .iter_mut()
             .enumerate()
             .zip(args.iter().map(|arg| arg.span))
             .zip(func_args.iter().map(|(_, arg_ty)| arg_ty))
         {
             let ty_param = self.program.type_of(bound_arg);
-            if ty_param.is(arg_ty) {
+            if self.type_check_coerce(bound_arg, arg_ty) {
                 continue;
             }
 
@@ -263,7 +263,7 @@ impl<'d> Analyser<'d> {
     fn analyse_indirect_call(
         &mut self,
         args: &[ast::Expr],
-        bound_args: Box<[abt::Expr]>,
+        mut bound_args: Box<[abt::Expr]>,
         func_args: &[abt::Type],
         func_return_ty: abt::Type,
         bound_callee: abt::Expr,
@@ -271,12 +271,12 @@ impl<'d> Analyser<'d> {
     ) -> abt::Expr {
         let mut invalid = false;
         for ((bound_arg, span), arg_ty) in bound_args
-            .iter()
+            .iter_mut()
             .zip(args.iter().map(|arg| arg.span))
             .zip(func_args.iter())
         {
             let ty = self.program.type_of(bound_arg);
-            if ty.is(arg_ty) {
+            if self.type_check_coerce(bound_arg, arg_ty) {
                 continue;
             }
 
@@ -351,7 +351,7 @@ impl<'d> Analyser<'d> {
     }
 
     pub fn analyse_return_with_statement(&mut self, expr: &ast::Expr) -> abt::StmtKind {
-        let bound_expr = self.analyse_expression(expr);
+        let mut bound_expr = self.analyse_expression(expr);
         let ty_expr = self.program.type_of(&bound_expr);
         let return_ty = {
             let id = self.scope.current_func_id;
@@ -359,7 +359,7 @@ impl<'d> Analyser<'d> {
             (info.ty.clone(), Some((info.ty_span, info.name.clone())))
         };
 
-        if !ty_expr.is(&return_ty.0) {
+        if !self.type_check_coerce(&mut bound_expr, &return_ty.0) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::TypeMismatch {
                     found: self.program.type_repr(&ty_expr),

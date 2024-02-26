@@ -76,7 +76,7 @@ impl<'d> Analyser<'d> {
         name: &Spanned<String>,
         fields: &[(Spanned<String>, ast::Expr)],
     ) -> abt::Expr {
-        let bound_fields = fields
+        let mut bound_fields = fields
             .iter()
             .map(|(name, expr)| (name, self.analyse_expression(expr)))
             .collect::<Vec<_>>();
@@ -106,7 +106,7 @@ impl<'d> Analyser<'d> {
             .collect::<BTreeMap<_, _>>();
 
         let mut diagnostics = DiagnosticList::new();
-        for ((id, bound_expr), (_, expr)) in bound_fields.iter().zip(fields.iter()) {
+        for ((id, bound_expr), (_, expr)) in bound_fields.iter_mut().zip(fields.iter()) {
             let Some(req) = required_fields.get_mut(&id.value) else {
                 let d = diagnostics::create_diagnostic()
                     .with_kind(DiagnosticKind::UnknownFieldInDataStructure {
@@ -147,7 +147,7 @@ impl<'d> Analyser<'d> {
 
             let expected_ty = req.1;
             let expr_ty = self.program.type_of(bound_expr);
-            if !expr_ty.is(&expected_ty.value) {
+            if !self.type_check_coerce(bound_expr, &expected_ty.value) {
                 let d = diagnostics::create_diagnostic()
                     .with_kind(DiagnosticKind::TypeMismatch {
                         found: self.program.type_repr(&expr_ty),

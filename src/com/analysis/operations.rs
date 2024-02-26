@@ -201,7 +201,7 @@ impl<'d> Analyser<'d> {
 
     fn analyse_assignment(&mut self, left: &ast::Expr, right: &ast::Expr) -> abt::Expr {
         let bound_left = self.analyse_expression(left);
-        let bound_right = self.analyse_expression(right);
+        let mut bound_right = self.analyse_expression(right);
 
         if matches!(bound_left, abt::Expr::Unknown) {
             return abt::Expr::Unknown;
@@ -218,10 +218,9 @@ impl<'d> Analyser<'d> {
             return abt::Expr::Unknown;
         };
 
-        let right_ty = self.program.type_of(&bound_right);
-        let info = self.program.variables.get(&var_id).unwrap();
-
-        if !right_ty.is(&expected_type) {
+        if !self.type_check_coerce(&mut bound_right, &expected_type) {
+            let right_ty = self.program.type_of(&bound_right);
+            let info = self.program.variables.get(&var_id).unwrap();
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::TypeMismatch {
                     found: self.program.type_repr(&right_ty),
