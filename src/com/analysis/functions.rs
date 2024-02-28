@@ -5,7 +5,7 @@ use crate::{
         ast,
     },
     diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
-    utils::Span,
+    utils::{spanned::OptSpanned, Span, Spanned},
 };
 
 use super::Analyser;
@@ -13,24 +13,20 @@ use super::Analyser;
 impl<'d> Analyser<'d> {
     pub fn declare_function_here(
         &mut self,
-        name: &str,
-        span: Option<Span>,
+        name: OptSpanned<String>,
         args: Vec<(String, abt::Type)>,
-        ty: abt::Type,
-        ty_span: Option<Span>,
+        ty: OptSpanned<abt::Type>,
     ) -> Declaration {
         let declared = self.make_unique_id();
-        let shadowed = self.scope.bindings.insert(name.to_string(), declared);
+        let shadowed = self.scope.bindings.insert(name.value.to_string(), declared);
 
         let info = FunctionInfo {
             id: declared,
-            name: name.to_string(),
-            name_span: span,
+            name,
             depth: self.scope.depth,
             args,
             arg_ids: Default::default(),
             ty,
-            ty_span,
             used_variables: Default::default(),
             code: None,
         };
@@ -49,16 +45,16 @@ impl<'d> Analyser<'d> {
 
     pub fn analyse_function_definition(
         &mut self,
-        name: &Option<(String, Span)>,
+        name: &Option<Spanned<String>>,
         args: &[(String, ast::Type, Span)],
         body: &ast::Stmt,
         ty: &ast::Type,
     ) -> abt::StmtKind {
-        let Some((name, span)) = name else {
+        let Some(name) = name else {
             return abt::StmtKind::Empty;
         };
 
-        let info = match self.get_function(name) {
+        let info = match self.get_function(&name.value) {
             Some(info) => info, // already declared
             None => {
                 // must be declared now
@@ -66,14 +62,11 @@ impl<'d> Analyser<'d> {
                     .iter()
                     .map(|(name, ty, _)| (name.clone(), self.analyse_type(ty)))
                     .collect();
-                let bound_ty = self.analyse_type(ty);
-                let decl = self.declare_function_here(
-                    name,
-                    Some(*span),
-                    bound_args,
-                    bound_ty,
-                    Some(ty.span),
-                );
+                let bound_ty = OptSpanned {
+                    value: self.analyse_type(ty),
+                    span: Some(ty.span),
+                };
+                let decl = self.declare_function_here(name.clone().into(), bound_args, bound_ty);
                 self.program.functions.get(&decl.declared).unwrap() // was just declared, cannot be none
             }
         };
@@ -87,7 +80,11 @@ impl<'d> Analyser<'d> {
         self.scope.current_func_id = id;
 
         for ((arg_name, arg_ty), &span) in bound_spanned_args {
-            let decl = self.declare_variable_here(arg_name.as_str(), arg_ty.clone(), span);
+            let spanned_arg = Spanned {
+                value: arg_name.clone(),
+                span,
+            };
+            let decl = self.declare_variable_here(spanned_arg, arg_ty.clone());
             self.program
                 .functions
                 .get_mut(&id)
@@ -114,10 +111,13 @@ impl<'d> Analyser<'d> {
         let var_count = self.count_all_variable_sizes(id);
         if var_count > 255 {
             let d = diagnostics::create_diagnostic()
-                .with_kind(DiagnosticKind::TooManyVariables(name.clone(), var_count))
+                .with_kind(DiagnosticKind::TooManyVariables(
+                    name.value.clone(),
+                    var_count,
+                ))
                 .with_severity(Severity::Error)
-                .with_span(*span)
-                .annotate_primary(Note::FunctionVariableCount(var_count), *span)
+                .with_span(name.span)
+                .annotate_primary(Note::FunctionVariableCount(var_count), name.span)
                 .done();
             self.diagnostics.push(d);
         }
@@ -178,7 +178,6 @@ impl<'d> Analyser<'d> {
     ) -> abt::Expr {
         let info = self.program.functions.get(&id).unwrap();
 
-        let func_span = info.name_span.unwrap();
         let func_name = info.name.clone();
         let func_args = info.args.clone();
         let func_arg_ids = info.arg_ids.clone();
@@ -242,10 +241,10 @@ impl<'d> Analyser<'d> {
                     span,
                 )
                 .annotate_secondary(
-                    Note::FunctionArgs(func_name, func_args.len())
+                    Note::FunctionArgs(func_name.value, func_args.len())
                         .dddot_back()
                         .num(1),
-                    func_span,
+                    func_name.span.expect("called functions have a span"),
                     NoteSeverity::Annotation,
                 )
                 .done();
@@ -256,7 +255,7 @@ impl<'d> Analyser<'d> {
         if invalid {
             abt::Expr::Unknown
         } else {
-            abt::Expr::Call(id, bound_args, ty.clone())
+            abt::Expr::Call(id, bound_args, ty.value.clone())
         }
     }
 
@@ -314,34 +313,37 @@ impl<'d> Analyser<'d> {
         }
     }
 
-    pub fn analyse_return_statement(&mut self, span: Span) -> abt::StmtKind {
+    pub fn analyse_return_statement(&mut self, stmt_span: Span) -> abt::StmtKind {
         let ty = abt::Type::Unit;
-        let return_ty = {
+        let (return_ty, func_name) = {
             let id = self.scope.current_func_id;
             let info = self.program.functions.get(&id).unwrap();
-            (info.ty.clone(), Some((info.ty_span, info.name.clone())))
+            (&info.ty, &info.name)
         };
 
-        if !ty.is(&return_ty.0) {
+        if !ty.is(&return_ty.value) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::CannotReturnUnit {
-                    expected: self.program.type_repr(&return_ty.0),
+                    expected: self.program.type_repr(&return_ty.value),
                 })
                 .with_severity(Severity::Error)
-                .with_span(span);
+                .with_span(stmt_span);
 
-            let d = match return_ty.1 {
-                Some((Some(ty_span), name)) => d
+            let d = match func_name.span {
+                Some(span) => d
                     .annotate_secondary(
-                        Note::FunctionReturnType(name, self.program.type_repr(&return_ty.0))
-                            .dddot_back()
-                            .num(1),
-                        ty_span,
+                        Note::FunctionReturnType(
+                            func_name.value.clone(),
+                            self.program.type_repr(&return_ty.value),
+                        )
+                        .dddot_back()
+                        .num(1),
+                        span,
                         NoteSeverity::Annotation,
                     )
-                    .annotate_primary(Note::ReturnsUnit.but().dddot_front().num(2), span)
+                    .annotate_primary(Note::ReturnsUnit.but().dddot_front().num(2), stmt_span)
                     .done(),
-                _ => d.annotate_primary(Note::ReturnsUnit, span).done(),
+                _ => d.annotate_primary(Note::ReturnsUnit, stmt_span).done(),
             };
             self.diagnostics.push(d);
             return abt::StmtKind::Return(Box::new(abt::Expr::Unknown));
@@ -353,27 +355,30 @@ impl<'d> Analyser<'d> {
     pub fn analyse_return_with_statement(&mut self, expr: &ast::Expr) -> abt::StmtKind {
         let mut bound_expr = self.analyse_expression(expr);
         let ty_expr = self.program.type_of(&bound_expr);
-        let return_ty = {
+        let (return_ty, func_name) = {
             let id = self.scope.current_func_id;
             let info = self.program.functions.get(&id).unwrap();
-            (info.ty.clone(), Some((info.ty_span, info.name.clone())))
+            (&info.ty, &info.name)
         };
 
-        if !self.type_check_coerce(&mut bound_expr, &return_ty.0) {
+        if !self.type_check_coerce(&mut bound_expr, &return_ty.value) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::TypeMismatch {
                     found: self.program.type_repr(&ty_expr),
-                    expected: self.program.type_repr(&return_ty.0),
+                    expected: self.program.type_repr(&return_ty.value),
                 })
                 .with_severity(Severity::Error)
                 .with_span(expr.span);
 
-            let d = match return_ty.1 {
-                Some((Some(span), name)) => d
+            let d = match func_name.span {
+                Some(span) => d
                     .annotate_secondary(
-                        Note::FunctionReturnType(name, self.program.type_repr(&return_ty.0))
-                            .dddot_back()
-                            .num(1),
+                        Note::FunctionReturnType(
+                            func_name.value.clone(),
+                            self.program.type_repr(&return_ty.value),
+                        )
+                        .dddot_back()
+                        .num(1),
                         span,
                         NoteSeverity::Annotation,
                     )

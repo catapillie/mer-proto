@@ -10,16 +10,13 @@ use crate::{
 use super::{Analyser, Declaration};
 
 impl<'d> Analyser<'d> {
-    pub fn declare_variable_here(&mut self, name: &str, ty: abt::Type, span: Span) -> Declaration {
+    pub fn declare_variable_here(&mut self, name: Spanned<String>, ty: abt::Type) -> Declaration {
         let declared = self.make_unique_id();
-        let shadowed = self.scope.bindings.insert(name.to_string(), declared);
+        let shadowed = self.scope.bindings.insert(name.value.clone(), declared);
 
         let info = VariableInfo {
             id: declared,
-            name: Spanned {
-                value: name.to_string(),
-                span,
-            },
+            name,
             depth: self.scope.depth,
             ty,
             is_on_heap: false,
@@ -49,17 +46,16 @@ impl<'d> Analyser<'d> {
 
     pub fn analyse_variable_definition(
         &mut self,
-        id: &Option<(String, Span)>,
+        id: &Option<Spanned<String>>,
         expr: &ast::Expr,
-        span: Span,
     ) -> abt::StmtKind {
         let bound_expr = self.analyse_expression(expr);
 
-        let Some((name, _)) = id else {
+        let Some(name) = id else {
             return abt::StmtKind::Empty;
         };
 
-        let decl = self.declare_variable_here(name, self.program.type_of(&bound_expr), span);
+        let decl = self.declare_variable_here(name.clone(), self.program.type_of(&bound_expr));
         abt::StmtKind::VarInit(decl.declared, Box::new(bound_expr))
     }
 
@@ -102,8 +98,11 @@ impl<'d> Analyser<'d> {
             });
 
         if captured && !alread_captured {
-            let func_name = func_info.name.clone();
-            let func_span = func_info.name_span.expect("called functions have a span");
+            let func_name = func_info.name.value.clone();
+            let func_span = func_info
+                .name
+                .span
+                .expect("declared functions have a name span");
             let var_name = name.to_string();
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::UnallowedVariableCapture {
@@ -113,7 +112,7 @@ impl<'d> Analyser<'d> {
                 .with_severity(Severity::Error)
                 .with_span(span)
                 .annotate_primary(
-                    Note::VariableCapturedBy(name.to_string(), func_info.name.to_string())
+                    Note::VariableCapturedBy(name.to_string(), func_info.name.value.to_string())
                         .then()
                         .dddot_front()
                         .num(2),

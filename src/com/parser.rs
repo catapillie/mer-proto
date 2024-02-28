@@ -159,7 +159,10 @@ impl<'a> Parser<'a> {
         let (stmt, span) = take_span!(self => {
             self.try_match_token::<VarKw>()?;
 
-            let id = self.match_token::<Identifier>().map(|tok| (tok.0, self.last_span()));
+            let id = self.match_token::<Identifier>().map(|tok| Spanned {
+                value: tok.0,
+                span: self.last_span()
+            });
             self.match_token::<Equal>();
             let expr = self.expect_expression();
             Some(StmtKind::VarDef(id, Box::new(expr)))
@@ -283,7 +286,10 @@ impl<'a> Parser<'a> {
         let (stmt, span) = take_span!(self => {
             self.try_match_token::<FuncKw>()?;
 
-            let name = self.match_token::<Identifier>().map(|id| (id.0, self.last_span()));
+            let name = self.match_token::<Identifier>().map(|id| Spanned {
+                value: id.0,
+                span: self.last_span(),
+            });
             let mut params = Vec::new();
 
             self.match_token::<LeftParen>();

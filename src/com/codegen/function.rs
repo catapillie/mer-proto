@@ -19,7 +19,7 @@ impl Codegen {
             .keys()
             .map(|id| abt.size_of(&abt.variables.get(id).unwrap().ty) as u8)
             .sum();
-        let opcode = Opcode::function(info.name.clone(), param_count, local_count);
+        let opcode = Opcode::function(info.name.value.clone(), param_count, local_count);
         binary::write_opcode(&mut self.cursor, &opcode)?;
         let mut loc = 0;
         self.current_locals.clear();
@@ -63,7 +63,7 @@ impl Codegen {
         let code = info
             .code
             .as_ref()
-            .unwrap_or_else(|| panic!("unresolved function code {}", info.name));
+            .unwrap_or_else(|| panic!("unresolved function code for '{}'", info.name.value));
         self.gen_statement(code, abt)?;
         Ok(())
     }

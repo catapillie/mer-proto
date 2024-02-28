@@ -6,4 +6,4 @@ pub mod spanned;
 pub use cursor::Cursor;
 pub use pos::Pos;
 pub use span::Span;
-pub use spanned::Spanned;
+pub use spanned::{OptSpanned, Spanned};

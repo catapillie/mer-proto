@@ -7,7 +7,7 @@ pub type Stmt = Spanned<StmtKind>;
 pub enum StmtKind {
     Empty,
     DataDef(Spanned<String>, Box<[(Spanned<String>, Type)]>),
-    VarDef(Option<(String, Span)>, Box<Expr>),
+    VarDef(Option<Spanned<String>>, Box<Expr>),
     Expr(Box<Expr>),
     Block(Box<[Stmt]>),
     IfThen(Box<Expr>, Box<Stmt>),
@@ -18,7 +18,7 @@ pub enum StmtKind {
     DoWhile(Box<Stmt>, Box<Expr>),
     Do(Box<Stmt>),
     Func(
-        Option<(String, Span)>,
+        Option<Spanned<String>>,
         Box<[(String, Type, Span)]>,
         Box<Stmt>,
         Box<Type>,

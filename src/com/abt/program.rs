@@ -73,10 +73,10 @@ impl Program {
                     .iter()
                     .map(|(_, ty)| ty.clone())
                     .collect::<Box<_>>();
-                Ty::Func(args, Box::new(info.ty.clone()))
+                Ty::Func(args, Box::new(info.ty.value.clone()))
             }
 
-            E::Call(func_id, _, _) => self.functions.get(func_id).unwrap().ty.clone(),
+            E::Call(func_id, _, _) => self.functions.get(func_id).unwrap().ty.value.clone(),
             E::IndirectCall(_, _, ty) => ty.clone(),
 
             E::Assignment {

@@ -4,7 +4,7 @@ use crate::{
         ast,
     },
     diagnostics::{self, DiagnosticKind, Severity},
-    utils::Spanned,
+    utils::{OptSpanned, Spanned},
 };
 
 use super::Analyser;
@@ -16,13 +16,17 @@ impl<'d> Analyser<'d> {
             main_fn_id,
             FunctionInfo {
                 id: main_fn_id,
-                name: "<main>".to_string(),
-                name_span: None,
+                name: OptSpanned {
+                    value: "<main>".to_string(),
+                    span: None,
+                },
                 depth: 0,
                 args: vec![],
                 arg_ids: vec![],
-                ty: expected_type,
-                ty_span: None,
+                ty: OptSpanned {
+                    value: expected_type,
+                    span: None,
+                },
                 used_variables: Default::default(),
                 code: None,
             },
@@ -70,18 +74,19 @@ impl<'d> Analyser<'d> {
 
         for stmt in stmts.iter() {
             match &stmt.value {
-                ast::StmtKind::Func(Some((name, span)), args, _, ty) => {
+                ast::StmtKind::Func(Some(name), args, _, ty) => {
                     let bound_args = args
                         .iter()
                         .map(|(name, ty, _)| (name.clone(), self.analyse_type(ty)))
                         .collect();
                     let bound_ty = self.analyse_type(ty);
                     self.declare_function_here(
-                        name,
-                        Some(*span),
+                        name.clone().into(),
                         bound_args,
-                        bound_ty,
-                        Some(ty.span),
+                        OptSpanned {
+                            value: bound_ty,
+                            span: Some(ty.span),
+                        },
                     );
                 }
                 ast::StmtKind::DataDef(name, fields) => {

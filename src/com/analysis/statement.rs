@@ -14,7 +14,7 @@ impl<'d> Analyser<'d> {
             ast::StmtKind::DataDef(name, fields)
                 => self.analyse_data_structure_definition(name, fields),
             ast::StmtKind::VarDef(name, value)
-                => self.analyse_variable_definition(name, value, stmt.span),
+                => self.analyse_variable_definition(name, value),
             ast::StmtKind::Expr(expr)
                 => abt::StmtKind::Expr(Box::new(self.analyse_expression(expr))),
             ast::StmtKind::Block(stmts)
