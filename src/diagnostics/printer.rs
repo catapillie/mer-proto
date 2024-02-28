@@ -1,8 +1,14 @@
 use colored::{Color, Colorize};
+use itertools::Itertools;
 use std::{collections::BTreeMap, ops::Add};
 
-use super::{Diagnostic, NoteSeverity, Severity};
+use super::{Diagnostic, Note, NoteSeverity, Severity};
 use crate::{localization::Lang, utils::Span};
+
+enum Element<'a> {
+    Annotation(&'a (Span, Note, NoteSeverity)),
+    Highlight(&'a Span),
+}
 
 pub fn print_diagnostic(path: &str, source: &str, diagnostic: &Diagnostic, lang: &dyn Lang) {
     let lines = source.lines().collect::<Vec<_>>().into_boxed_slice();
@@ -21,26 +27,42 @@ pub fn print_diagnostic(path: &str, source: &str, diagnostic: &Diagnostic, lang:
     };
 
     let mut printer = Printer::new(&lines);
-    for (span, note, severity) in &diagnostic.annotations {
-        let note_color = match severity {
-            NoteSeverity::Default => color,
-            NoteSeverity::Annotation => Color::BrightYellow,
-        };
+    for ann in diagnostic
+        .annotations
+        .iter()
+        .map(|ann| Element::Annotation(ann))
+        .chain(
+            diagnostic
+                .highlights
+                .iter()
+                .map(|hi| Element::Highlight(hi)),
+        )
+        .sorted_by_key(|e| match e {
+            Element::Annotation(a) => a.0.from.index,
+            Element::Highlight(s) => s.from.index,
+        })
+        .rev()
+    {
+        match ann {
+            Element::Annotation((span, note, severity)) => {
+                let note_color = match severity {
+                    NoteSeverity::Default => color,
+                    NoteSeverity::Annotation => Color::BrightYellow,
+                };
 
-        printer.highlight_span(span, note_color, false);
-        let line = span.to.line;
-        let msg = lang.note_msg(note);
-        if span.is_one_line() {
-            let from = span.from.column;
-            let to = span.to.column;
-            printer.underline_span(line, from, to, note_color, &msg);
-        } else if !msg.is_empty() {
-            printer.add_on_line(line, note_color, &msg);
+                printer.highlight_span(span, note_color, false);
+                let line = span.to.line;
+                let msg = lang.note_msg(note);
+                if span.is_one_line() {
+                    let from = span.from.column;
+                    let to = span.to.column;
+                    printer.underline_span(line, from, to, note_color, &msg);
+                } else if !msg.is_empty() {
+                    printer.add_on_line(line, note_color, &msg);
+                }
+            }
+            Element::Highlight(span) => printer.highlight_span(span, Color::White, true),
         }
-    }
-
-    for span in &diagnostic.highlights {
-        printer.highlight_span(span, Color::White, true);
     }
 
     if let Some(span) = diagnostic.span {
