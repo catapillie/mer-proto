@@ -30,13 +30,8 @@ pub fn print_diagnostic(path: &str, source: &str, diagnostic: &Diagnostic, lang:
     for ann in diagnostic
         .annotations
         .iter()
-        .map(|ann| Element::Annotation(ann))
-        .chain(
-            diagnostic
-                .highlights
-                .iter()
-                .map(|hi| Element::Highlight(hi)),
-        )
+        .map(Element::Annotation)
+        .chain(diagnostic.highlights.iter().map(Element::Highlight))
         .sorted_by_key(|e| match e {
             Element::Annotation(a) => a.0.from.index,
             Element::Highlight(s) => s.from.index,
