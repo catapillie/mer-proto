@@ -125,14 +125,21 @@ impl<'d> Analyser<'d> {
                 .done();
             self.diagnostics.push(d);
             return abt::Expr::Unknown;
-        } else if otherwise_count > 1 {
-            let d = diagnostics::create_diagnostic()
+        }
+        if otherwise_count > 1 {
+            let mut d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::TooManyOtherwisePaths)
                 .with_span(span)
                 .with_severity(Severity::Error)
-                .annotate_primary(Note::Quiet, span)
-                .done();
-            self.diagnostics.push(d);
+                .annotate_primary(Note::MoreThanOneOtherwisePath, span);
+            for span in paths
+                .iter()
+                .filter(|(g, _)| g.is_none())
+                .map(|(_, e)| e.span)
+            {
+                d = d.annotate_secondary(Note::Here, span, NoteSeverity::Annotation);
+            }
+            self.diagnostics.push(d.done());
             return abt::Expr::Unknown;
         }
 

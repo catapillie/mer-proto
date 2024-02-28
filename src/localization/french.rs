@@ -522,6 +522,8 @@ impl Lang for French {
                     inner_left.to_string().bold(),
                     inner_right.to_string().bold(),
                 ),
+            N::MoreThanOneOtherwisePath
+                => "contient plus d'un chemin otherwise".to_string(),
         }
     }
 }

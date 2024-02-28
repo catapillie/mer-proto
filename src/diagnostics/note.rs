@@ -44,6 +44,7 @@ pub enum Note {
         inner_left: TypeRepr,
         inner_right: TypeRepr,
     },
+    MoreThanOneOtherwisePath,
 }
 
 #[rustfmt::skip]
