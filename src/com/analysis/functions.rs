@@ -329,8 +329,9 @@ impl<'d> Analyser<'d> {
                 .with_severity(Severity::Error)
                 .with_span(stmt_span);
 
-            let d = match func_name.span {
-                Some(span) => d
+            let d = match (func_name.span, return_ty.span) {
+                (Some(span), Some(ty_span)) => d
+                    .highlight(ty_span)
                     .annotate_secondary(
                         Note::FunctionReturnType(
                             func_name.value.clone(),
@@ -370,8 +371,9 @@ impl<'d> Analyser<'d> {
                 .with_severity(Severity::Error)
                 .with_span(expr.span);
 
-            let d = match func_name.span {
-                Some(span) => d
+            let d = match (func_name.span, return_ty.span) {
+                (Some(span), Some(ty_span)) => d
+                    .highlight(ty_span)
                     .annotate_secondary(
                         Note::FunctionReturnType(
                             func_name.value.clone(),
