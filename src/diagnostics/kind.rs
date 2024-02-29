@@ -122,6 +122,7 @@ pub enum DiagnosticKind {
     FieldsNeverSet(String, Box<[String]>, String),
     InvalidFieldAccess(String),
     DiscardingWithExpression(TypeRepr),
+    EmptyWithExpression(TypeRepr),
 
     NonIntegerSize,
 

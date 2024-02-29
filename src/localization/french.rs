@@ -369,7 +369,11 @@ impl Lang for French {
                     name.bold(),
                 ),
             K::DiscardingWithExpression(ty)
-                => format!("l'expression with remplace tous les champs dans la structure de données {}",
+                => format!("l'expression with remplace tous les champs dans la structure de données '{}'",
+                    ty.to_string().bold(),
+                ),
+            K::EmptyWithExpression(ty)
+                => format!("l'expression with ne remplace aucun champ dans la structure de données '{}'",
                     ty.to_string().bold(),
                 ),
             K::NonIntegerSize
@@ -524,7 +528,9 @@ impl Lang for French {
                     ty.to_string().bold(),
                 ),
             N::DiscardedDataStructure
-                => "cette structure de données est entièrement remplacée".to_string(),
+                => "cette structure de données est copiée puis entièrement remplacée".to_string(),
+            N::UnmodifiedDataStructure
+                => "cette structure de données est copiée puis laissée telle quelle".to_string(),
             N::InnerTypesMismatch { inner_left, inner_right }
                 => format!("les types intérieurs, {} et {}, ne coïncident pas",
                     inner_left.to_string().bold(),

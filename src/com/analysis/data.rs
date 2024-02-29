@@ -344,6 +344,18 @@ impl<'d> Analyser<'d> {
             self.diagnostics.push(d);
         }
 
+        if reset_field_count == 0 {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::EmptyWithExpression(
+                    self.program.type_repr(&data_ty),
+                ))
+                .with_span(span)
+                .with_severity(Severity::Warning)
+                .annotate_primary(Note::UnmodifiedDataStructure, expr.span)
+                .done();
+            self.diagnostics.push(d);
+        }
+
         abt::Expr::Unknown
     }
 

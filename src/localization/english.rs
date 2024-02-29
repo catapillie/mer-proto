@@ -366,7 +366,11 @@ impl Lang for English {
                     name.bold(),
                 ),
             K::DiscardingWithExpression(ty)
-                => format!("with-expression replaces all fields in data structure {}",
+                => format!("with-expression replaces all fields in data structure '{}'",
+                    ty.to_string().bold(),
+                ),
+            K::EmptyWithExpression(ty)
+                => format!("with-expression replaces no fields in data structure '{}'",
                     ty.to_string().bold(),
                 ),
             K::NonIntegerSize
@@ -516,7 +520,9 @@ impl Lang for English {
                     ty.to_string().bold(),
                 ),
             N::DiscardedDataStructure
-                => "this data structure is entirely replaced".to_string(),
+                => "this data structure is copied then entirely replaced".to_string(),
+            N::UnmodifiedDataStructure
+                => "this data structure is copied then remains unmodified".to_string(),
             N::InnerTypesMismatch { inner_left, inner_right }
                 => format!("array inner types, {} and {}, do not match",
                     inner_left.to_string().bold(),
