@@ -282,6 +282,7 @@ table of contents:
     * ["pointers"](#pointers)
     * [data structure initialization](#data-structure-initialization)
     * [data structure field access](#data-structure-field-access)
+    * [data structure with-expression](#data-structure-with-expression)
     * [case-then-otherwise expression](#case-then-otherwise-expression)
     * [unreachable and todo](#unreachable-and-todo)
     * [debug expression](#debug-expression)
@@ -739,6 +740,45 @@ myself.height
 ```
 
 The type of a field access is the type of the field declared in the data structure.
+
+#### Data structure with-expression
+`with`-expressions allow you to copy a data structure and to re-specify a set of given fields. This is essentially sugar syntax, and is very similar to the one for [data structure initialization](#data-structure-initialization).
+```cs
+data Abc {
+    a: i64
+    b: (bool, bool)
+    c: f64
+}
+
+var abc = Abc {
+    a = 4
+    b = (true, false)
+    c = 3.14
+}
+
+var xyz = abc with {
+    c = 8.00
+}
+```
+In the example above, `xyz` is a copy of `abc`, but with the field `c` replaced with value `8.00`, instead of `3.14`.
+
+The type of a `with`-expression is the same as the type of the data structure being copied and modified. Type-checking works the same for fields as it does when data structures are initialized. It is not required to re-specify all fields.
+
+The compiler will emit a warning if no fields are re-specified:
+```cs
+var abc_copy = abc with { }
+```
+In this example, the `with`-expression can be removed (only leaving the copied data structure).
+
+There will also be a warning for when *all* fields are re-specified, because then the original data structure being copied is not used at all:
+```cs
+var x = abc with {
+    a = 42
+    b = (false, false)
+    c = 8.00
+}
+```
+In the example above, the `with`-expression can simply be replaced by a [data structure initialization](#data-structure-definition) expression.
 
 #### Case-then-otherwise expression
 Some languages have a ternary expression that goes like `condition ? a : b`, which means "take `a` if the condition evaluates to `true`, otherwise take `b`". This construct is called the terary operator because it takes three expressions as inputs (the condition and two values).
