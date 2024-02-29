@@ -291,7 +291,7 @@ impl<'d> Analyser<'d> {
             }
 
             let expected_ty = field_ty;
-            let expr_ty = self.program.type_of(&bound_field);
+            let expr_ty = self.program.type_of(bound_field);
             if !self.type_check_coerce(bound_field, &expected_ty.value) {
                 let d = diagnostics::create_diagnostic()
                     .with_kind(DiagnosticKind::TypeMismatch {
@@ -333,6 +333,10 @@ impl<'d> Analyser<'d> {
     ) -> abt::Expr {
         let bound_expr = self.analyse_expression(expr);
         let expr_ty = self.program.type_of(&bound_expr);
+
+        if !expr_ty.is_known() {
+            return abt::Expr::Unknown;
+        }
 
         let abt::Type::Data(data_id) = expr_ty else {
             let d = diagnostics::create_diagnostic()
