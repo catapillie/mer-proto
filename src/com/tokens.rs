@@ -57,6 +57,7 @@ gen_tokens! {
     CaseKw
     DataKw
     OtherwiseKw
+    WithKw
     AllocKw
     TodoKw
     UnreachableKw

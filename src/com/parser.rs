@@ -743,6 +743,42 @@ impl<'a> Parser<'a> {
                 continue;
             }
 
+            if self.try_match_token::<WithKw>().is_some() {
+                self.skip_newlines();
+                self.match_token::<LeftBrace>();
+                self.skip_newlines();
+
+                let mut fields = Vec::new();
+                while let Some(id) = self.try_match_token::<Identifier>() {
+                    let field_name = Spanned {
+                        value: id.0,
+                        span: self.last_span(),
+                    };
+
+                    self.match_token::<Equal>();
+                    let field_value = self.expect_expression();
+                    fields.push((field_name, field_value));
+
+                    if matches!(self.look_ahead(), Token::RightBrace(_, _)) {
+                        break;
+                    }
+
+                    if self.try_match_token::<Comma>().is_some() {
+                        self.skip_newlines()
+                    } else {
+                        self.expect_newlines_or_eof();
+                    }
+                }
+
+                self.skip_newlines();
+                self.match_token::<RightBrace>();
+                self.skip_newlines();
+
+                span = span.join(self.last_span());
+                expr = ExprKind::DataWith(Box::new(expr), fields.into()).wrap(span);
+                continue;
+            }
+
             break;
         }
 
@@ -1367,6 +1403,7 @@ impl<'a> Parser<'a> {
                     "case" => CaseKw.wrap(span),
                     "data" => DataKw.wrap(span),
                     "otherwise" => OtherwiseKw.wrap(span),
+                    "with" => WithKw.wrap(span),
                     "alloc" => AllocKw.wrap(span),
                     "todo" => TodoKw.wrap(span),
                     "unreachable" => UnreachableKw.wrap(span),

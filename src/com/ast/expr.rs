@@ -28,6 +28,7 @@ pub enum ExprKind {
     TernaryCase(Box<Expr>, Box<Expr>, Box<Expr>, Span),
     Case(Box<[(Option<Expr>, Expr)]>, Span),
     DataInit(Spanned<String>, Box<[(Spanned<String>, Expr)]>),
+    DataWith(Box<Expr>, Box<[(Spanned<String>, Expr)]>),
     FieldAccess(Box<Expr>, Spanned<String>),
     Alloc(Box<Type>, Box<Expr>),
 }

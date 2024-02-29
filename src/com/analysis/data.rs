@@ -215,6 +215,117 @@ impl<'d> Analyser<'d> {
         abt::Expr::Data(info.id, bound_data_struct)
     }
 
+    pub fn analyse_data_with_expression(
+        &mut self,
+        expr: &ast::Expr,
+        fields: &[(Spanned<String>, ast::Expr)],
+    ) -> abt::Expr {
+        let bound_expr = self.analyse_expression(expr);
+        let bound_ty = self.program.type_of(&bound_expr);
+        let mut bound_fields = fields
+            .iter()
+            .map(|(s, expr)| (s, self.analyse_expression(expr)))
+            .collect::<Box<_>>();
+
+        if !bound_ty.is_known() {
+            return abt::Expr::Unknown;
+        }
+
+        let abt::Type::Data(id) = bound_ty else {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::InvalidDataStructureExpression)
+                .with_span(expr.span)
+                .with_severity(Severity::Error)
+                .annotate_primary(Note::OfType(self.program.type_repr(&bound_ty)), expr.span)
+                .done();
+            self.diagnostics.push(d);
+            return abt::Expr::Unknown;
+        };
+
+        let info = self.program.datas.get(&id).unwrap();
+
+        // hashmap: name -> (span, type, set_span)
+        let mut available_fields = info
+            .fields
+            .iter()
+            .map(|(name, ty)| (&name.value, (name.span, ty, None)))
+            .collect::<BTreeMap<_, _>>();
+
+        for ((id, bound_field), (_, expr)) in bound_fields.iter_mut().zip(fields) {
+            let Some((field_span, field_ty, set_span)) = available_fields.get_mut(&id.value) else {
+                let d = diagnostics::create_diagnostic()
+                    .with_kind(DiagnosticKind::UnknownFieldInDataStructure {
+                        field_name: id.value.clone(),
+                        data_name: info.name.value.clone(),
+                    })
+                    .with_severity(Severity::Error)
+                    .with_span(id.span)
+                    .annotate_primary(Note::Unknown, id.span)
+                    .done();
+                self.diagnostics.push(d);
+                continue;
+            };
+
+            match set_span {
+                None => *set_span = Some(id.span),
+                Some(prev_span) => {
+                    let d = diagnostics::create_diagnostic()
+                        .with_kind(DiagnosticKind::FieldSetMoreThanOnce(id.value.clone()))
+                        .with_severity(Severity::Error)
+                        .with_span(id.span)
+                        .annotate_secondary(
+                            Note::FieldSet(id.value.clone()).dddot_back().num(1),
+                            *prev_span,
+                            NoteSeverity::Annotation,
+                        )
+                        .annotate_primary(
+                            Note::FieldSetAgain(id.value.clone())
+                                .then()
+                                .dddot_front()
+                                .num(2),
+                            id.span,
+                        )
+                        .done();
+                    self.diagnostics.push(d);
+                }
+            }
+
+            let expected_ty = field_ty;
+            let expr_ty = self.program.type_of(&bound_field);
+            if !self.type_check_coerce(bound_field, &expected_ty.value) {
+                let d = diagnostics::create_diagnostic()
+                    .with_kind(DiagnosticKind::TypeMismatch {
+                        found: self.program.type_repr(&expr_ty),
+                        expected: self.program.type_repr(&expected_ty.value),
+                    })
+                    .with_severity(Severity::Error)
+                    .with_span(expr.span)
+                    .annotate_primary(
+                        Note::MustBeOfType(self.program.type_repr(&expected_ty.value))
+                            .so()
+                            .dddot_front()
+                            .num(2),
+                        expr.span,
+                    )
+                    .annotate_secondary(
+                        Note::FieldType(
+                            id.value.clone(),
+                            self.program.type_repr(&expected_ty.value),
+                        )
+                        .dddot_back()
+                        .num(1),
+                        field_span.join(expected_ty.span),
+                        NoteSeverity::Annotation,
+                    )
+                    .highlight(info.name.span)
+                    .done();
+                self.diagnostics.push(d);
+            }
+        }
+
+        abt::Expr::Unknown
+    }
+
     pub fn analyse_data_field_access(
         &mut self,
         expr: &ast::Expr,
