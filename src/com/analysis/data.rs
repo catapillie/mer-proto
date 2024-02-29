@@ -8,7 +8,7 @@ use crate::{
         ast,
     },
     diagnostics::{self, DiagnosticKind, DiagnosticList, Note, NoteSeverity, Severity},
-    utils::Spanned,
+    utils::{Span, Spanned},
 };
 
 impl<'d> Analyser<'d> {
@@ -219,6 +219,7 @@ impl<'d> Analyser<'d> {
         &mut self,
         expr: &ast::Expr,
         fields: &[(Spanned<String>, ast::Expr)],
+        span: Span,
     ) -> abt::Expr {
         let bound_expr = self.analyse_expression(expr);
         let bound_ty = self.program.type_of(&bound_expr);
@@ -321,6 +322,26 @@ impl<'d> Analyser<'d> {
                     .done();
                 self.diagnostics.push(d);
             }
+        }
+
+        let data_ty = abt::Type::Data(id);
+
+        let total_field_count = available_fields.len();
+        let reset_field_count = available_fields
+            .values()
+            .filter(|(_, _, set)| set.is_some())
+            .count();
+
+        if reset_field_count == total_field_count {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::DiscardingWithExpression(
+                    self.program.type_repr(&data_ty),
+                ))
+                .with_span(span)
+                .with_severity(Severity::Warning)
+                .annotate_primary(Note::DiscardedDataStructure, expr.span)
+                .done();
+            self.diagnostics.push(d);
         }
 
         abt::Expr::Unknown

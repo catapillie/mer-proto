@@ -368,6 +368,10 @@ impl Lang for French {
                 => format!("impossible d'accéder au champ '{}' d'une valeur qui n'est pas une structure de données",
                     name.bold(),
                 ),
+            K::DiscardingWithExpression(ty)
+                => format!("l'expression with remplace tous les champs dans la structure de données {}",
+                    ty.to_string().bold(),
+                ),
             K::NonIntegerSize
                 => "taille non-entière".to_string(),
             K::InvalidPrint(ty)
@@ -519,6 +523,8 @@ impl Lang for French {
                 => format!("ceci n'est pas une structure de données, et est de type '{}'",
                     ty.to_string().bold(),
                 ),
+            N::DiscardedDataStructure
+                => "cette structure de données est entièrement remplacée".to_string(),
             N::InnerTypesMismatch { inner_left, inner_right }
                 => format!("les types intérieurs, {} et {}, ne coïncident pas",
                     inner_left.to_string().bold(),

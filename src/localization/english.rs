@@ -365,6 +365,10 @@ impl Lang for English {
                 => format!("cannot access field '{}' of a value which is not a data structure",
                     name.bold(),
                 ),
+            K::DiscardingWithExpression(ty)
+                => format!("with-expression replaces all fields in data structure {}",
+                    ty.to_string().bold(),
+                ),
             K::NonIntegerSize
                 => "non-integer size".to_string(),
             K::InvalidPrint(ty)
@@ -511,6 +515,8 @@ impl Lang for English {
                 => format!("this is not a data structure, and is of type '{}'",
                     ty.to_string().bold(),
                 ),
+            N::DiscardedDataStructure
+                => "this data structure is entirely replaced".to_string(),
             N::InnerTypesMismatch { inner_left, inner_right }
                 => format!("array inner types, {} and {}, do not match",
                     inner_left.to_string().bold(),

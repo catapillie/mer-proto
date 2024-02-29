@@ -40,6 +40,7 @@ pub enum Note {
     FieldType(String, TypeRepr),
     MissingFields(Box<[String]>, String),
     NotDataStructure(TypeRepr),
+    DiscardedDataStructure,
     InnerTypesMismatch {
         inner_left: TypeRepr,
         inner_right: TypeRepr,
