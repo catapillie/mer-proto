@@ -332,7 +332,7 @@ impl<'d> Analyser<'d> {
             .filter(|(_, _, set)| set.is_some())
             .count();
 
-        if reset_field_count == total_field_count {
+        if reset_field_count == total_field_count && total_field_count > 0 {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::DiscardingWithExpression(
                     self.program.type_repr(&data_ty),
