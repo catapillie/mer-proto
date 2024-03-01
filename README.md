@@ -19,6 +19,7 @@ This original goals and traits for the language are:
 * automatic memory management (still unimplemented to this date)
 * fast enough
 * in the future, be ahead-of-time compiled to machine code (currently run via the vm)
+* simple syntax, readable code
 
 Mer is inspired by low level languages like Rust, C (and maybe even Zig), but also by Lua for its syntax.
 
