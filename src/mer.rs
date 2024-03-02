@@ -20,7 +20,6 @@ const DEFAULT_LANG: &dyn Lang = &localization::English;
 
 fn main() {
     let cli = Cli::parse();
-
     match cli.command {
         Command::Com(args) => com(args),
         Command::Check(args) => check(args),

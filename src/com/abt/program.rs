@@ -107,6 +107,7 @@ impl Program {
             E::CaseTernary(_, _, _, ty) => ty.clone(),
 
             E::Data(id, _) => Ty::Data(*id),
+            E::DataWith(id, _, _) => Ty::Data(*id),
             E::FieldAccess {
                 expr: _,
                 data_id,

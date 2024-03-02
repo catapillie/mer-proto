@@ -95,7 +95,7 @@ impl<'a> VM<'a> {
 
                 opcode::keep => self.keep()?,
                 opcode::keep_at => self.keep_at()?,
-
+                opcode::replace => self.replace()?,
                 opcode::rot => self.rot()?,
 
                 opcode::print => {
@@ -283,6 +283,24 @@ impl<'a> VM<'a> {
         self.stack.truncate(self.stack.len() - trim_bottom);
 
         self.stack.extend_from_slice(&kept);
+
+        Ok(())
+    }
+
+    fn replace(&mut self) -> Result<(), Error> {
+        let n = self.read_u8() as usize;
+        let len = self.read_u8() as usize;
+        if n > len {
+            return Err(Error::StackUnderflow);
+        }
+
+        let top = self.stack.len();
+        unsafe {
+            let from = &self.stack[top - n] as *const Value;
+            let to = &mut self.stack[top - n - len] as *mut Value;
+            from.copy_to_nonoverlapping(to, n);
+        };
+        self.stack.truncate(top - n);
 
         Ok(())
     }

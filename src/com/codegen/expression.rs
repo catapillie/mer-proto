@@ -6,10 +6,7 @@ use super::Codegen;
 use crate::{
     binary,
     com::abt::{Expr, Program, Type},
-    runtime::{
-        opcode::{self},
-        NativeType, Opcode,
-    },
+    runtime::{opcode, NativeType, Opcode},
 };
 
 #[allow(dead_code)]
@@ -114,6 +111,7 @@ impl Codegen {
                 self.gen_case_ternary_expression(guard, expr, fallback, abt)
             }
             E::Data(_, fields) => self.gen_data_expression(fields, abt),
+            E::DataWith(id, expr, fields) => self.gen_data_with_expression(*id, expr, fields, abt),
             E::FieldAccess {
                 expr,
                 data_id,
@@ -383,6 +381,42 @@ impl Codegen {
         for field in fields.iter() {
             self.gen_expression(field, abt)?;
         }
+        Ok(Value::Done)
+    }
+
+    fn gen_data_with_expression(
+        &mut self,
+        data_id: u64,
+        expr: &Expr,
+        fields: &[(usize, Expr)],
+        abt: &Program,
+    ) -> io::Result<Value> {
+        let data_ty = abt.type_of(expr);
+        let total_size = abt.size_of(&data_ty);
+        let data_info = abt.datas.get(&data_id).unwrap();
+
+        self.gen_expression(expr, abt)?;
+
+        let mut offset = 0;
+        let mut field_index = 0;
+        for (field_id, field_expr) in fields.iter() {
+            while field_index < *field_id {
+                offset += abt.size_of(&data_info.fields[field_index].1.value);
+                field_index += 1;
+            }
+            let field_ty = &data_info.fields[*field_id].1.value;
+            let field_size = abt.size_of(field_ty);
+
+            self.gen_expression(field_expr, abt)?;
+            binary::write_opcode(
+                &mut self.cursor,
+                &Opcode::replace(field_size as u8, (total_size - offset) as u8),
+            )?;
+
+            offset += field_size;
+            field_index += 1;
+        }
+
         Ok(Value::Done)
     }
 

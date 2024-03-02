@@ -57,6 +57,11 @@ where
         )),
         opcode::keep_at => Ok(Opcode::keep_at(cursor.read_u8()?, cursor.read_u8()?)),
 
+        opcode::replace => Ok(Opcode::replace(
+            cursor.read_u8()?,
+            cursor.read_u8()?,
+        )),
+
         opcode::rot => Ok(Opcode::rot),
 
         opcode::print => Ok(Opcode::print),
@@ -165,6 +170,12 @@ where
         }
         Opcode::keep_at(n, len) => {
             cursor.write_u8(opcode::keep_at)?;
+            cursor.write_u8(*n)?;
+            cursor.write_u8(*len)?;
+            Ok(())
+        }
+        Opcode::replace(n, len) => {
+            cursor.write_u8(opcode::replace)?;
             cursor.write_u8(*n)?;
             cursor.write_u8(*len)?;
             Ok(())

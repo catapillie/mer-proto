@@ -35,6 +35,7 @@ pub enum Expr {
     Case(Box<[(Expr, Expr)]>, Box<Expr>, Type),
     CaseTernary(Box<Expr>, Box<Expr>, Box<Expr>, Type),
     Data(u64, Box<[Expr]>),
+    DataWith(u64, Box<Expr>, Box<[(usize, Expr)]>),
     FieldAccess {
         expr: Box<Expr>,
         data_id: u64,

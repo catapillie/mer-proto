@@ -226,7 +226,7 @@ impl<'d> Analyser<'d> {
         let mut bound_fields = fields
             .iter()
             .map(|(s, expr)| (s, self.analyse_expression(expr)))
-            .collect::<Box<_>>();
+            .collect::<Vec<_>>();
 
         if !bound_ty.is_known() {
             return abt::Expr::Unknown;
@@ -245,15 +245,17 @@ impl<'d> Analyser<'d> {
 
         let info = self.program.datas.get(&id).unwrap();
 
-        // hashmap: name -> (span, type, set_span)
+        // hashmap: name -> (span, type, id, set_span)
         let mut available_fields = info
             .fields
             .iter()
-            .map(|(name, ty)| (&name.value, (name.span, ty, None)))
+            .enumerate()
+            .map(|(i, (name, ty))| (&name.value, (name.span, ty, i, None)))
             .collect::<BTreeMap<_, _>>();
 
         for ((id, bound_field), (_, expr)) in bound_fields.iter_mut().zip(fields) {
-            let Some((field_span, field_ty, set_span)) = available_fields.get_mut(&id.value) else {
+            let Some((field_span, field_ty, _, set_span)) = available_fields.get_mut(&id.value)
+            else {
                 let d = diagnostics::create_diagnostic()
                     .with_kind(DiagnosticKind::UnknownFieldInDataStructure {
                         field_name: id.value.clone(),
@@ -329,7 +331,7 @@ impl<'d> Analyser<'d> {
         let total_field_count = available_fields.len();
         let reset_field_count = available_fields
             .values()
-            .filter(|(_, _, set)| set.is_some())
+            .filter(|(_, _, _, set)| set.is_some())
             .count();
 
         if reset_field_count == total_field_count && total_field_count > 0 {
@@ -356,7 +358,17 @@ impl<'d> Analyser<'d> {
             self.diagnostics.push(d);
         }
 
-        abt::Expr::Unknown
+        let bound_with_fields = bound_fields
+            .into_iter()
+            .filter_map(|(field_name, field_expr)| {
+                available_fields
+                    .get(&field_name.value)
+                    .map(|t| (t.2, field_expr))
+            })
+            .sorted_by_cached_key(|&(id, _)| id)
+            .collect::<Box<_>>();
+
+        abt::Expr::DataWith(id, Box::new(bound_expr), bound_with_fields)
     }
 
     pub fn analyse_data_field_access(
