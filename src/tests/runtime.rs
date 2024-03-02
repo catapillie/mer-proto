@@ -157,6 +157,12 @@ check_program_output!(pointer_ref_data_assign => (bool, Type::Bool) true);
 check_program_output!(concat_array => (bool, Type::Bool) true);
 check_program_output!(concat_tuple_tuple => (bool, Type::Bool) true);
 
+check_program_output!(data_with_00 => (bool, Type::Bool) true);
+check_program_output!(data_with_01 => (bool, Type::Bool) true);
+check_program_output!(data_with_02 => (bool, Type::Bool) true);
+check_program_output!(data_with_03 => (bool, Type::Bool) true);
+check_program_output!(data_with_04 => (bool, Type::Bool) true);
+
 macro_rules! check_program_output {
     ($name:ident => ($expected_ty:ty, $type_abt:expr) $expected:expr) => {
         #[test]
