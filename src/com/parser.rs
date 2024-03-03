@@ -1404,6 +1404,7 @@ impl<'a> Parser<'a> {
                     "data" => DataKw.wrap(span),
                     "otherwise" => OtherwiseKw.wrap(span),
                     "with" => WithKw.wrap(span),
+                    "heap" => AllocKw.wrap(span),
                     "alloc" => AllocKw.wrap(span),
                     "todo" => TodoKw.wrap(span),
                     "unreachable" => UnreachableKw.wrap(span),
