@@ -436,6 +436,7 @@ impl<'a> Parser<'a> {
                     | Token::LeftBracket(_, _)
                     | Token::DebugKw(_, _)
                     | Token::Ampersand(_, _)
+                    | Token::HeapKw(_, _)
                     | Token::At(_, _)
                     | Token::TodoKw(_, _)
                     | Token::UnreachableKw(_, _)
