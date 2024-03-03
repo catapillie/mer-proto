@@ -31,7 +31,7 @@ impl<'d> Analyser<'d> {
         let bound_expr = self.analyse_expression(expr);
         let ty = self.program.type_of(&bound_expr);
 
-        if matches!(bound_expr, abt::Expr::Unknown) {
+        if !ty.is_known() || matches!(bound_expr, abt::Expr::Unknown) {
             return abt::Expr::Unknown;
         }
 
