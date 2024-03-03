@@ -58,7 +58,6 @@ impl Lang for French {
             K::DataKw => "mot-clé 'data'",
             K::OtherwiseKw => "mot-clé 'otherwise'",
             K::WithKw => "mot-clé 'with'",
-            K::HeapKw => "mot-clé 'heap'",
             K::AllocKw => "mot-clé 'alloc'",
             K::TrueKw => "constante 'true'",
             K::FalseKw => "constante 'false'",
@@ -121,7 +120,6 @@ impl Lang for French {
             T::DataKw(_, _) => "mot-clé 'data'".to_string(),
             T::OtherwiseKw(_, _) => "mot-clé 'otherwise'".to_string(),
             T::WithKw(_, _) => "mot-clé 'with'".to_string(),
-            T::HeapKw(_, _) => "mot-clé 'heap'".to_string(),
             T::AllocKw(_, _) => "mot-clé 'alloc'".to_string(),
             T::TrueKw(_, _) => "'true' literal".to_string(),
             T::FalseKw(_, _) => "'false' literal".to_string(),
@@ -271,8 +269,6 @@ impl Lang for French {
                 => format!("impossible de débugger une valeur de type {}",
                     ty.to_string().bold(),
                 ),
-            K::CannotTakeReference
-                => "cannot take a reference to a value which does not represent the location of a variable".to_string(),
             K::InvalidDereference(ty)
                 => format!("impossible de déréférencer une valeur de type {}",
                     ty.to_string().bold(),
@@ -438,8 +434,6 @@ impl Lang for French {
                 => ty.to_string().bold().to_string(),
             N::ReturnsUnit
                 => format!("ceci retourne {}", "()".bold()),
-            N::NotLValue
-                => "ceci n'est pas un emplacement de variable (l-value)".to_string(),
             N::VariableDeclaration(name)
                 => format!("la variable '{}' est déclarée ici", name.bold()),
             N::VariableType(name, ty)

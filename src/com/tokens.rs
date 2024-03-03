@@ -58,7 +58,6 @@ gen_tokens! {
     DataKw
     OtherwiseKw
     WithKw
-    HeapKw
     AllocKw
     TodoKw
     UnreachableKw

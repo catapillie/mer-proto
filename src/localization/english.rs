@@ -58,7 +58,6 @@ impl Lang for English {
             K::DataKw => "'data' keyword",
             K::OtherwiseKw => "'otherwise' keyword",
             K::WithKw => "'with' keyword",
-            K::HeapKw => "'heap' keyword",
             K::AllocKw => "'alloc' keyword",
             K::TrueKw => "'true' literal",
             K::FalseKw => "'false' literal",
@@ -121,7 +120,6 @@ impl Lang for English {
             T::DataKw(_, _) => "'data' keyword".to_string(),
             T::OtherwiseKw(_, _) => "'otherwise' keyword".to_string(),
             T::WithKw(_, _) => "'with' keyword".to_string(),
-            T::HeapKw(_, _) => "'heap' keyword".to_string(),
             T::AllocKw(_, _) => "'alloc' keyword".to_string(),
             T::TrueKw(_, _) => "'true' literal".to_string(),
             T::FalseKw(_, _) => "'false' literal".to_string(),
@@ -262,8 +260,6 @@ impl Lang for English {
                 => format!("cannot debug value of type {}",
                     ty.to_string().bold(),
                 ),
-            K::CannotTakeReference
-                => "cannot take a reference to a value which does not represent the location of a variable".to_string(),
             K::InvalidDereference(ty)
                 => format!("cannot dereference value of type {}",
                     ty.to_string().bold(),
@@ -430,8 +426,6 @@ impl Lang for English {
                 => ty.to_string().bold().to_string(),
             N::ReturnsUnit
                 => format!("this returns {}", "()".bold()),
-            N::NotLValue
-                => "this is not a variable location (l-value)".to_string(),
             N::VariableDeclaration(name)
                 => format!("variable '{}' is declared here", name.bold()),
             N::VariableType(name, ty)

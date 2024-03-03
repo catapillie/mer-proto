@@ -14,21 +14,10 @@ impl<'d> Analyser<'d> {
             if let Some(info) = self.program.variables.get_mut(&var_id) {
                 info.is_on_heap = true;
             }
-            return abt::Expr::VarRef(var_id);
+            abt::Expr::VarRef(var_id)
+        } else {
+            abt::Expr::Heap(Box::new(self.analyse_expression(expr)))
         }
-
-        let d = diagnostics::create_diagnostic()
-            .with_kind(DiagnosticKind::CannotTakeReference)
-            .with_span(expr.span)
-            .with_severity(Severity::Error)
-            .annotate_primary(Note::NotLValue, expr.span)
-            .done();
-        self.diagnostics.push(d);
-        abt::Expr::Unknown
-    }
-
-    pub fn analyse_heap_expression(&mut self, expr: &ast::Expr) -> abt::Expr {
-        abt::Expr::Heap(Box::new(self.analyse_expression(expr)))
     }
 
     pub fn analyse_dereference_expression(&mut self, expr: &ast::Expr) -> abt::Expr {

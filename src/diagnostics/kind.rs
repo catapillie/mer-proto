@@ -82,7 +82,6 @@ pub enum DiagnosticKind {
 
     InvalidDebugExpression(TypeRepr),
 
-    CannotTakeReference,
     InvalidDereference(TypeRepr),
 
     InvalidImmediateIndex,

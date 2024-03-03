@@ -22,7 +22,6 @@ pub enum ExprKind {
     Call(Box<Expr>, Box<[Expr]>),
     Debug(Box<Expr>),
     Ref(Box<Expr>),
-    Heap(Box<Expr>),
     Deref(Box<Expr>),
     Todo,
     Unreachable,
