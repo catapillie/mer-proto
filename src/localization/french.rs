@@ -192,7 +192,7 @@ impl Lang for French {
             K::ThenWithoutIf
                 => "instruction then sans instruction if".to_string(),
             K::ElseWithoutIfThen
-                => "instruction then sans instruction if-then".to_string(),
+                => "instruction else sans instruction if-then".to_string(),
             K::EmptyWhileDoStatement
                 => "instruction while-do vide".to_string(),
             K::EmptyDoWhileStatement
