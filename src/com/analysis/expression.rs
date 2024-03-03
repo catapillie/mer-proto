@@ -44,6 +44,8 @@ impl<'d> Analyser<'d> {
                 => self.analyse_debug_expression(inner),
             K::Ref(expr)
                 => self.analyse_reference_expression(expr),
+            K::Heap(expr)
+                => self.analyse_heap_expression(expr),
             K::Deref(expr)
                 => self.analyse_dereference_expression(expr),
             K::Todo

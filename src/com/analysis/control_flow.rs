@@ -88,7 +88,7 @@ impl<'d> Analyser<'d> {
                 Self::is_never(callee) && args.iter().any(Self::is_never)
             }
             E::Debug(expr, _) => Self::is_never(expr),
-            E::Ref(expr) => Self::is_never(expr),
+            E::Heap(expr) => Self::is_never(expr),
             E::VarRef(_) => false,
             E::Deref(expr) => Self::is_never(expr),
             E::Todo => true,

@@ -27,6 +27,10 @@ impl<'d> Analyser<'d> {
         abt::Expr::Unknown
     }
 
+    pub fn analyse_heap_expression(&mut self, expr: &ast::Expr) -> abt::Expr {
+        abt::Expr::Heap(Box::new(self.analyse_expression(expr)))
+    }
+
     pub fn analyse_dereference_expression(&mut self, expr: &ast::Expr) -> abt::Expr {
         let bound_expr = self.analyse_expression(expr);
         let ty = self.program.type_of(&bound_expr);

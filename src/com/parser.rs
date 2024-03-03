@@ -502,6 +502,14 @@ impl<'a> Parser<'a> {
             return Some(ExprKind::Debug(Box::new(inner)).wrap(span));
         }
 
+        if self.try_match_token::<HeapKw>().is_some() {
+            let span = self.last_span();
+            let inner = self.expect_expression();
+            let span = span.join(inner.span);
+            return Some(ExprKind::Heap(Box::new(inner)).wrap(span));
+        }
+
+
         self.parse_operation_expression(Precedence::MIN)
     }
 
@@ -1404,7 +1412,7 @@ impl<'a> Parser<'a> {
                     "data" => DataKw.wrap(span),
                     "otherwise" => OtherwiseKw.wrap(span),
                     "with" => WithKw.wrap(span),
-                    "heap" => AllocKw.wrap(span),
+                    "heap" => HeapKw.wrap(span),
                     "alloc" => AllocKw.wrap(span),
                     "todo" => TodoKw.wrap(span),
                     "unreachable" => UnreachableKw.wrap(span),

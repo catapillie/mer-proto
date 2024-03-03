@@ -26,7 +26,7 @@ pub enum Expr {
     Call(u64, Box<[Expr]>, Type),
     IndirectCall(Box<Expr>, Box<[Expr]>, Type),
     Debug(Box<Expr>, Type),
-    Ref(Box<Expr>),
+    Heap(Box<Expr>),
     VarRef(u64),
     Deref(Box<Expr>),
     Todo,
