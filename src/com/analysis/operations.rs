@@ -116,13 +116,6 @@ impl<'d> Analyser<'d> {
                 let ty = self.program.variables.get(var_id).unwrap().ty.clone();
                 Some((LValue::Variable, *var_id, ty))
             }
-            abt::Expr::VarDeref(var_id) => {
-                let ty = match &self.program.variables.get(var_id).unwrap().ty {
-                    abt::Type::Ref(inner) => *inner.to_owned(),
-                    _ => unreachable!(),
-                };
-                Some((LValue::VarDeref, *var_id, ty))
-            }
             abt::Expr::Deref(inner) => {
                 let (assignee, var_id, ty) = self.to_l_value(inner)?;
                 let ty = match ty {

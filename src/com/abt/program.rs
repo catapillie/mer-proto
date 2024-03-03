@@ -95,10 +95,6 @@ impl Program {
                 Ty::Ref(ty) => *ty,
                 _ => unreachable!(),
             },
-            E::VarDeref(var_id) => match self.type_of(&E::Variable(*var_id)) {
-                Ty::Ref(ty) => *ty,
-                _ => unreachable!(),
-            },
 
             E::Todo => Ty::Never,
             E::Unreachable => Ty::Never,

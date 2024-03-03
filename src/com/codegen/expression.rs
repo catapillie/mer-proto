@@ -105,7 +105,6 @@ impl Codegen {
             E::Ref(expr) => self.gen_ref_expression(expr, abt),
             E::VarRef(var_id) => self.gen_var_ref_expression(*var_id),
             E::Deref(expr) => self.gen_deref_expression(expr, abt),
-            E::VarDeref(var_id) => self.gen_var_deref_expression(*var_id),
             E::Case(paths, fallback, _) => self.gen_case_expression(paths, fallback, abt),
             E::CaseTernary(guard, expr, fallback, _) => {
                 self.gen_case_ternary_expression(guard, expr, fallback, abt)
@@ -368,12 +367,6 @@ impl Codegen {
 
     fn gen_deref_expression(&mut self, expr: &Expr, abt: &Program) -> io::Result<Value> {
         self.gen_expression(expr, abt)?;
-        Ok(Value::Address)
-    }
-
-    fn gen_var_deref_expression(&mut self, var_id: u64) -> io::Result<Value> {
-        let loc = self.current_locals.get(&var_id).unwrap();
-        binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(loc.offset))?;
         Ok(Value::Address)
     }
 

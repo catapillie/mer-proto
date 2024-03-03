@@ -29,7 +29,6 @@ pub enum Expr {
     Ref(Box<Expr>),
     VarRef(u64),
     Deref(Box<Expr>),
-    VarDeref(u64),
     Todo,
     Unreachable,
     Case(Box<[(Expr, Expr)]>, Box<Expr>, Type),

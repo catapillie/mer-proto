@@ -29,10 +29,7 @@ impl<'d> Analyser<'d> {
         }
 
         match ty {
-            abt::Type::Ref(_) => match bound_expr {
-                abt::Expr::Variable(var_id) => abt::Expr::VarDeref(var_id),
-                _ => abt::Expr::Deref(Box::new(bound_expr)),
-            },
+            abt::Type::Ref(_) => abt::Expr::Deref(Box::new(bound_expr)),
             _ => {
                 let d = diagnostics::create_diagnostic()
                     .with_kind(DiagnosticKind::InvalidDereference(

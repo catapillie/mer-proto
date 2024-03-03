@@ -91,7 +91,6 @@ impl<'d> Analyser<'d> {
             E::Ref(expr) => Self::is_never(expr),
             E::VarRef(_) => false,
             E::Deref(expr) => Self::is_never(expr),
-            E::VarDeref(_) => false,
             E::Todo => true,
             E::Unreachable => true,
             E::Case(paths, default, _) => {

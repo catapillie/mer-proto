@@ -3,7 +3,6 @@ use super::{Expr, Type};
 #[derive(Debug, Clone)]
 pub enum LValue {
     Variable,
-    VarDeref,
     Deref(Box<LValue>),
     TupleImmediateIndex(Box<LValue>, Type, usize),
     ArrayImmediateIndex(Box<LValue>, Type, usize),

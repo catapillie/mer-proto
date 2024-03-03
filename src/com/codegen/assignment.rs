@@ -69,17 +69,14 @@ impl Codegen {
                     Ok(Lhs::Local(loc.offset))
                 }
             }
-            LValue::VarDeref => {
-                binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(loc.offset))?;
-                if info.is_on_heap {
-                    binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?;
-                }
-                Ok(Lhs::Address)
-            }
             LValue::Deref(a) => {
                 let assignment = self.gen_assignment_lhs(a, var_id, abt)?;
-                binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?;
-                Ok(assignment)
+                match assignment {
+                    Lhs::Local(loc) => binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(loc))?,
+                    Lhs::UnknownLocal => binary::write_opcode(&mut self.cursor, &Opcode::ld_sloc)?,
+                    Lhs::Address => binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?,
+                };
+                Ok(Lhs::Address)
             }
             LValue::TupleImmediateIndex(a, ty, index) => {
                 let assignment = self.gen_assignment_lhs(a, var_id, abt)?;
