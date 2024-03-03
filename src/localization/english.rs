@@ -262,6 +262,8 @@ impl Lang for English {
                 => format!("cannot debug value of type {}",
                     ty.to_string().bold(),
                 ),
+            K::CannotTakeReference
+                => "cannot take a reference to a value which does not represent the location of a variable".to_string(),
             K::InvalidDereference(ty)
                 => format!("cannot dereference value of type {}",
                     ty.to_string().bold(),
@@ -428,6 +430,8 @@ impl Lang for English {
                 => ty.to_string().bold().to_string(),
             N::ReturnsUnit
                 => format!("this returns {}", "()".bold()),
+            N::NotLValue
+                => "this is not a variable location (l-value)".to_string(),
             N::VariableDeclaration(name)
                 => format!("variable '{}' is declared here", name.bold()),
             N::VariableType(name, ty)

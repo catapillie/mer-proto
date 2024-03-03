@@ -23,6 +23,7 @@ pub enum Note {
     OfType(TypeRepr),
     Type(TypeRepr),
     ReturnsUnit,
+    NotLValue,
     VariableDeclaration(String),
     VariableType(String, TypeRepr),
     ArgumentType(String, TypeRepr),

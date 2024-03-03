@@ -271,6 +271,8 @@ impl Lang for French {
                 => format!("impossible de débugger une valeur de type {}",
                     ty.to_string().bold(),
                 ),
+            K::CannotTakeReference
+                => "cannot take a reference to a value which does not represent the location of a variable".to_string(),
             K::InvalidDereference(ty)
                 => format!("impossible de déréférencer une valeur de type {}",
                     ty.to_string().bold(),
@@ -436,6 +438,8 @@ impl Lang for French {
                 => ty.to_string().bold().to_string(),
             N::ReturnsUnit
                 => format!("ceci retourne {}", "()".bold()),
+            N::NotLValue
+                => "ceci n'est pas un emplacement de variable (l-value)".to_string(),
             N::VariableDeclaration(name)
                 => format!("la variable '{}' est déclarée ici", name.bold()),
             N::VariableType(name, ty)
