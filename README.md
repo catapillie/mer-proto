@@ -162,10 +162,18 @@ func birthday(them: &Person) -> () {
 }
 
 var myself = Person {
-    name = &"catapille"
+    name = &"catapillie"
     age = 19, height = 1.85
 }
 birthday(&myself)
+
+var otherself = myself with {
+    name = &"eillipatac"
+}
+birthday(&otherself)
+
+debug myself.age == 20
+debug otherself.age == 21
 
 return
 ```
