@@ -805,7 +805,7 @@ case {
 }
 ```
 
-This is a operation of arity `2n + 1`, because we have 1 fallback, and to that add all the conditions and values, both of which we have `n`.
+This is an operation of arity `2n + 1`, because we have 1 fallback, and to that add all the conditions and values, both of which we have `n`.
 
 The resulting value of this expression is the first value whose condition evaluates to `true`. Conditions are tested in the order they are written in. If none of the condition evaluate to `true`, then the fallback value is taken instead. All of the `value`s, including the `value_fallback`, must be of the same type, which is also the type of the whole expression. And obviously, all the `condition`s must be of type `bool`.
 
