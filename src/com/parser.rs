@@ -495,13 +495,6 @@ impl<'a> Parser<'a> {
     }
 
     pub fn parse_expression(&mut self) -> Option<Expr> {
-        if self.try_match_token::<DebugKw>().is_some() {
-            let span = self.last_span();
-            let inner = self.expect_expression();
-            let span = span.join(inner.span);
-            return Some(ExprKind::Debug(Box::new(inner)).wrap(span));
-        }
-
         self.parse_operation_expression(Precedence::MIN)
     }
 
@@ -597,6 +590,10 @@ impl<'a> Parser<'a> {
                 };
 
                 return Some(ExprKind::Deref(Box::new(expr)));
+            }
+
+            if self.try_match_token::<DebugKw>().is_some() {
+                return Some(ExprKind::Debug(Box::new(self.expect_expression())));
             }
 
             if self.try_match_token::<AllocKw>().is_some() {
