@@ -103,7 +103,7 @@ impl Codegen {
                 self.gen_indirect_call_expression(callee, args, abt)
             }
             E::Heap(expr) => self.gen_heap_expression(expr, abt),
-            E::Ref(lvalue, var_id, ty) => self.gen_ref_expression(lvalue, *var_id, ty, abt),
+            E::Ref(lvalue, var_id,  _) => self.gen_ref_expression(lvalue, *var_id, abt),
             E::Deref(expr) => self.gen_deref_expression(expr, abt),
             E::Case(paths, fallback, _) => self.gen_case_expression(paths, fallback, abt),
             E::CaseTernary(guard, expr, fallback, _) => {
