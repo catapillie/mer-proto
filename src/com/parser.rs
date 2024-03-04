@@ -436,7 +436,6 @@ impl<'a> Parser<'a> {
                     | Token::LeftBracket(_, _)
                     | Token::DebugKw(_, _)
                     | Token::Ampersand(_, _)
-                    | Token::At(_, _)
                     | Token::TodoKw(_, _)
                     | Token::UnreachableKw(_, _)
                     | Token::CaseKw(_, _)
@@ -574,24 +573,6 @@ impl<'a> Parser<'a> {
                 return Some(ExprKind::Ref(Box::new(expr)));
             }
 
-            if self.try_match_token::<At>().is_some() {
-                let expr = match self.parse_primary_expression() {
-                    Some(expr) => expr,
-                    None => {
-                        let d = diagnostics::create_diagnostic()
-                            .with_kind(DiagnosticKind::ExpectedExpression)
-                            .with_severity(Severity::Error)
-                            .with_pos(self.last_boundary())
-                            .annotate_primary(Note::Here, Span::at(self.last_boundary()))
-                            .done();
-                        self.diagnostics.push(d);
-                        ExprKind::Bad.wrap(Span::at(self.last_boundary()))
-                    },
-                };
-
-                return Some(ExprKind::Deref(Box::new(expr)));
-            }
-
             if self.try_match_token::<DebugKw>().is_some() {
                 return Some(ExprKind::Debug(Box::new(self.expect_expression())));
             }
@@ -725,6 +706,12 @@ impl<'a> Parser<'a> {
                     };
                     span = span.join(self.last_span());
                     expr = ExprKind::FieldAccess(Box::new(expr), name).wrap(span);
+                    continue;
+                }
+
+                if self.try_match_token::<Star>().is_some() {
+                    span = span.join(self.last_span());
+                    expr = ExprKind::Deref(Box::new(expr)).wrap(span);
                     continue;
                 }
 
@@ -1368,7 +1355,6 @@ impl<'a> Parser<'a> {
             match_by_string!(self, "&" => Ampersand);
             match_by_string!(self, "|" => Bar);
             match_by_string!(self, "^" => Caret);
-            match_by_string!(self, "@" => At);
 
             if let Some((string, span)) = self.try_consume_string_literal() {
                 return StringLit(string).wrap(span);

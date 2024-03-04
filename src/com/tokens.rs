@@ -38,7 +38,6 @@ gen_tokens! {
     LessThan
     GreaterEqual
     GreaterThan
-    At
 
     RightArrow
 
