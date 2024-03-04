@@ -632,8 +632,6 @@ Reference expressions can mean two things depending on the context, even though 
 If `α` is the type of the operand, then taking a reference gives an expression of type `&α`.
 
 #### References of L-values
-*note: currently, only variables fall in this category, the rest of L-values has not yet been implemented (and so fall in the next section)*
-
 A reference on an L-value results in the address of the variable behind the L-value. This means you can pass the address to a variable in some other other part of your code, *regardless of whether it lives longer or not*, and use that address indefinitely. The address will remain valid until it is no longer used, after which the garbage collector will free it up.
 
 Examples
@@ -649,7 +647,7 @@ func duplicate_in_heap(x: i64) -> &i64
 As you may have noticed, the second examples returns a reference to its own argument. The compiler will detect whenever a reference to an L-value is taken, and ensure that the variable behind the L-value lies on the heap. We say that **the variable is heap-allocated**. This way, it is never possible to give a reference of a variable to a scope which outlives the variable: the variable lives on the heap, so it outlives any scope (until it is garbage-collected).
 
 #### References of other values
-*note: syntax for this __will__ be changed. current considerations are `alloc` or `heap` instead of the ampersand symbol. however this could be a problem for string literals, we don't want to write `alloc "..."` for each string literal we ever want to manipulate on the heap. but it does look good for stuff like `alloc 4` or maybe `heap [1, 2, 3]`.*
+*note: the syntax is very likely to be changed, because we wouldn't want to confuse a `&` reference of an L-value, and a `&` heap allocation. current considerations are `alloc` or `heap` instead of the ampersand symbol. however this could be a problem for string literals, we don't want to write `alloc "..."` for each string literal we ever want to manipulate on the heap. but it does look good for stuff like `alloc 4` or maybe `heap [1, 2, 3]`, although a little strange when there is more indirection, for instance `heap heap 1`, or `alloc alloc alloc [1, 2, 3]`*
 
 Taking the "reference" to a value which is not an L-value (i.e. it is a temporary value) will cause that value to be allocated on the heap.
 Examples
