@@ -114,7 +114,7 @@ var y = &[1, 2, 3]
 
 var z = "hello"
 var p = &z
-@p = "olleh"
+p.* = "olleh"
 
 return
 ```
@@ -125,7 +125,7 @@ func id(x: i64) -> i64
     = x
 
 func bump(x: &i64) -> () {
-    @x = @x + 1
+    x.* = x.* + 1
     return
 }
 
@@ -155,9 +155,9 @@ data Person {
 
 func birthday(them: &Person) -> () {
     print &"happy birthday, "
-    print (@them).name
+    print them.*.name
     print &"!\n"
-    (@them).age = (@them).age + 1
+    them.*.age = them.*.age + 1
     return
 }
 
@@ -593,7 +593,7 @@ var c = alloc<bool>(4)
 c[0] = true
 
 var p = &&x
-@@p = 512
+p.*.* = 512
 
 var abc = Abc {
     a = 4
@@ -666,14 +666,14 @@ Examples
 #### Dereferences
 *note: syntax expected to change soon*
 
-A dereference is the value behind some reference. It is (currently) written with a prefix 'at' symbol `@`. If the reference is of type `&α`, then performing a dereference will give a value of type `α`.
+A dereference is the value behind some reference. It is (currently) written by accessing the `*` field of a reference type. If the reference is of type `&α`, then performing a dereference will give a value of type `α`.
 ```go
 var x = (true, [1, 0], 2.45)
 var p = &x
 
-@p
+p.*
 ```
-Here, `@p` is of type `(bool, [2]i64, f64)`, because `p` is of type `&(bool, [2]i64, f64)`.
+Here, `p.*` is of type `(bool, [2]i64, f64)`, because `p` is of type `&(bool, [2]i64, f64)`.
 
 Generally, if you have some value whose type starts with `&`, then you can dereference it.
 
