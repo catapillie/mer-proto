@@ -12,6 +12,7 @@ mod expression;
 mod function;
 mod operation;
 mod statement;
+mod reference;
 
 struct Loc {
     offset: u8,

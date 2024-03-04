@@ -1,6 +1,6 @@
 use crate::{
     com::{
-        abt::{self, LValue},
+        abt::{self},
         ast,
     },
     diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
@@ -110,88 +110,6 @@ impl<'d> Analyser<'d> {
         abt::Expr::Unknown
     }
 
-    fn to_l_value(&self, expr: &abt::Expr) -> Option<(LValue, u64, abt::Type)> {
-        match expr {
-            abt::Expr::Variable(var_id) => {
-                let ty = self.program.variables.get(var_id).unwrap().ty.clone();
-                Some((LValue::Variable, *var_id, ty))
-            }
-            abt::Expr::Deref(inner) => {
-                let (assignee, var_id, ty) = self.to_l_value(inner)?;
-                let ty = match ty {
-                    abt::Type::Ref(inner) => *inner.to_owned(),
-                    _ => unreachable!(),
-                };
-                Some((LValue::Deref(Box::new(assignee)), var_id, ty))
-            }
-            abt::Expr::TupleImmediateIndex(expr, index) => {
-                let (assignee, var_id, tuple_ty) = self.to_l_value(expr)?;
-                let abt::Type::Tuple(head, tail) = tuple_ty.clone() else {
-                    unreachable!()
-                };
-                let ty = if *index == 0 {
-                    *head
-                } else {
-                    tail.get(*index - 1).unwrap().clone()
-                };
-                Some((
-                    LValue::TupleImmediateIndex(Box::new(assignee), tuple_ty, *index),
-                    var_id,
-                    ty,
-                ))
-            }
-            abt::Expr::ArrayImmediateIndex(expr, index) => {
-                let (assignee, var_id, tuple_ty) = self.to_l_value(expr)?;
-                let abt::Type::Array(inner_ty, _) = tuple_ty.clone() else {
-                    unreachable!()
-                };
-                Some((
-                    LValue::ArrayImmediateIndex(Box::new(assignee), tuple_ty, *index),
-                    var_id,
-                    *inner_ty,
-                ))
-            }
-            abt::Expr::ArrayIndex(expr, index_expr) => {
-                let (assignee, var_id, tuple_ty) = self.to_l_value(expr)?;
-                let abt::Type::Array(inner_ty, _) = tuple_ty.clone() else {
-                    unreachable!()
-                };
-                Some((
-                    LValue::ArrayIndex(Box::new(assignee), tuple_ty, index_expr.clone()),
-                    var_id,
-                    *inner_ty,
-                ))
-            }
-            abt::Expr::PointerIndex(pointer, index) => {
-                let (assignee, var_id, pointer_ty) = self.to_l_value(pointer)?;
-                let abt::Type::Pointer(inner_ty) = pointer_ty.clone() else {
-                    unreachable!()
-                };
-                Some((
-                    LValue::PointerIndex(Box::new(assignee), pointer_ty, index.clone()),
-                    var_id,
-                    *inner_ty,
-                ))
-            }
-            abt::Expr::FieldAccess {
-                expr,
-                data_id,
-                field_id,
-            } => {
-                let (assignee, var_id, _) = self.to_l_value(expr)?;
-                let info = self.program.datas.get(data_id).unwrap();
-                let field_ty = info.fields[*field_id].1.value.clone();
-
-                Some((
-                    LValue::FieldAccess(Box::new(assignee), *data_id, *field_id),
-                    var_id,
-                    field_ty,
-                ))
-            }
-            _ => None,
-        }
-    }
-
     fn analyse_assignment(&mut self, left: &ast::Expr, right: &ast::Expr) -> abt::Expr {
         let bound_left = self.analyse_expression(left);
         let mut bound_right = self.analyse_expression(right);
@@ -200,7 +118,7 @@ impl<'d> Analyser<'d> {
             return abt::Expr::Unknown;
         }
 
-        let Some((assignee, var_id, expected_type)) = self.to_l_value(&bound_left) else {
+        let Some((assignee, var_id, expected_type)) = self.to_lvalue(&bound_left) else {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::AssigneeMustBeVariable)
                 .with_severity(Severity::Error)

@@ -9,6 +9,7 @@ mod scope;
 mod control_flow;
 mod data;
 mod expression;
+mod lvalue;
 mod program;
 mod statement;
 mod types;

@@ -1,5 +1,8 @@
 use crate::{
-    com::{abt, ast},
+    com::{
+        abt::{self},
+        ast,
+    },
     diagnostics::{self, DiagnosticKind, Note, Severity},
 };
 
@@ -9,14 +12,13 @@ impl<'d> Analyser<'d> {
     pub fn analyse_reference_expression(&mut self, expr: &ast::Expr) -> abt::Expr {
         let bound_expr = self.analyse_expression(expr);
 
-        if let abt::Expr::Variable(var_id) = bound_expr {
-            // mark variable as heap-allocated
-            if let Some(info) = self.program.variables.get_mut(&var_id) {
-                info.is_on_heap = true;
+        match self.to_lvalue(&bound_expr) {
+            Some((lvalue, var_id, ty)) => {
+                // mark variable as heap-allocated
+                self.program.variables.get_mut(&var_id).unwrap().is_on_heap = true;
+                abt::Expr::Ref(Box::new(lvalue), var_id, Box::new(ty))
             }
-            abt::Expr::VarRef(var_id)
-        } else {
-            abt::Expr::Heap(Box::new(self.analyse_expression(expr)))
+            None => abt::Expr::Heap(Box::new(self.analyse_expression(expr))),
         }
     }
 

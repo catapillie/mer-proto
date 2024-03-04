@@ -102,8 +102,8 @@ impl Codegen {
             E::IndirectCall(callee, args, _) => {
                 self.gen_indirect_call_expression(callee, args, abt)
             }
-            E::Heap(expr) => self.gen_ref_expression(expr, abt),
-            E::VarRef(var_id) => self.gen_var_ref_expression(*var_id),
+            E::Heap(expr) => self.gen_heap_expression(expr, abt),
+            E::Ref(lvalue, var_id, ty) => self.gen_ref_expression(lvalue, *var_id, ty, abt),
             E::Deref(expr) => self.gen_deref_expression(expr, abt),
             E::Case(paths, fallback, _) => self.gen_case_expression(paths, fallback, abt),
             E::CaseTernary(guard, expr, fallback, _) => {
@@ -349,19 +349,13 @@ impl Codegen {
         Ok(Value::Done)
     }
 
-    fn gen_ref_expression(&mut self, expr: &Expr, abt: &Program) -> io::Result<Value> {
+    fn gen_heap_expression(&mut self, expr: &Expr, abt: &Program) -> io::Result<Value> {
         self.gen_expression(expr, abt)?;
         let size = abt.size_of(&abt.type_of(expr)) as u8;
         match size {
             1 => binary::write_opcode(&mut self.cursor, &Opcode::alloc)?,
             _ => binary::write_opcode(&mut self.cursor, &Opcode::alloc_n(size))?,
         }
-        Ok(Value::Done)
-    }
-
-    fn gen_var_ref_expression(&mut self, var_id: u64) -> io::Result<Value> {
-        let loc = self.current_locals.get(&var_id).unwrap();
-        binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(loc.offset))?;
         Ok(Value::Done)
     }
 

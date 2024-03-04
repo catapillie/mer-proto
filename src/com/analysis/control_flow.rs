@@ -1,5 +1,5 @@
 use crate::{
-    com::abt,
+    com::abt::{self, LValue},
     diagnostics::{self, DiagnosticKind, Note, Severity},
     utils::Span,
 };
@@ -89,7 +89,7 @@ impl<'d> Analyser<'d> {
             }
             E::Debug(expr, _) => Self::is_never(expr),
             E::Heap(expr) => Self::is_never(expr),
-            E::VarRef(_) => false,
+            E::Ref(l_value, _, _) => Self::is_never_lvalue(l_value),
             E::Deref(expr) => Self::is_never(expr),
             E::Todo => true,
             E::Unreachable => true,
@@ -113,6 +113,22 @@ impl<'d> Analyser<'d> {
             } => Self::is_never(expr),
             E::Alloc(_, size) => Self::is_never(size),
             E::ToPointer(expr) => Self::is_never(expr),
+        }
+    }
+
+    fn is_never_lvalue(l_value: &LValue) -> bool {
+        match l_value {
+            LValue::Variable => false,
+            LValue::Deref(inner) => Self::is_never_lvalue(inner),
+            LValue::TupleImmediateIndex(inner, _, _) => Self::is_never_lvalue(inner),
+            LValue::ArrayImmediateIndex(inner, _, _) => Self::is_never_lvalue(inner),
+            LValue::ArrayIndex(inner, _, index) => {
+                Self::is_never_lvalue(inner) || Self::is_never(index)
+            }
+            LValue::PointerIndex(inner, _, index) => {
+                Self::is_never_lvalue(inner) || Self::is_never(index)
+            }
+            LValue::FieldAccess(inner, _, _) => Self::is_never_lvalue(inner),
         }
     }
 }

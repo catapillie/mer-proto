@@ -90,7 +90,7 @@ impl Program {
             E::Debug(_, ty) => ty.clone(),
 
             E::Heap(inner) => Ty::Ref(Box::new(self.type_of(inner))),
-            E::VarRef(var_id) => Ty::Ref(Box::new(self.type_of(&E::Variable(*var_id)))),
+            E::Ref(_, _, ty) => Ty::Ref(ty.clone()),
             E::Deref(inner) => match self.type_of(inner) {
                 Ty::Ref(ty) => *ty,
                 _ => unreachable!(),
