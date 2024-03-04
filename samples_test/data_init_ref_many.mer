@@ -11,4 +11,4 @@ var xyz = &Xyz
     z = [true, false, false, true]
 }
 
-return (@xyz).x == 42.0 and (@xyz).y.0 == 0.8 and (@xyz).y.1 == 0.2 and (@xyz).z.0 == true and (@xyz).z.1 == false and (@xyz).z.2 == false and (@xyz).z.3 == true
+return xyz.*.x == 42.0 and xyz.*.y.0 == 0.8 and xyz.*.y.1 == 0.2 and xyz.*.z.0 == true and xyz.*.z.1 == false and xyz.*.z.2 == false and xyz.*.z.3 == true

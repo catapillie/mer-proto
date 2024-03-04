@@ -1,12 +1,12 @@
 func unbump(x: &i64) -> ()
 {
-    @x = @x - 1
+    x.* = x.* - 1
     return
 }
 
 func bump(x: &i64) -> ()
 {
-    @x = @x + 1
+    x.* = x.* + 1
     return
 }
 

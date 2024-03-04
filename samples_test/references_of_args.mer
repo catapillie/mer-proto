@@ -1,7 +1,7 @@
 func ref_then_deref_eq(x: i64) -> bool
 {
     var r = &x
-    var d = @r
+    var d = r.*
     return d == x
 }
 
@@ -9,4 +9,4 @@ func ref_then_deref_eq(x: i64) -> bool
 var a = 64
 var b = &20
 
-return ref_then_deref_eq(a) and ref_then_deref_eq(@b)
+return ref_then_deref_eq(a) and ref_then_deref_eq(b.*)

@@ -8,7 +8,7 @@ func still_nothing() -> &-> ()
 
 var n = &nothing
 
-(@n)()
-(@still_nothing())()
+n.*()
+(still_nothing().*)()
 
 return

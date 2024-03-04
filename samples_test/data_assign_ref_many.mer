@@ -11,12 +11,12 @@ var xyz = &Xyz
     z = [true, false, false, true]
 }
 
-(@xyz).x = 64.0
-(@xyz).y.0 = 0.4
-(@xyz).y.1 = 0.6
-(@xyz).z.0 = false
-(@xyz).z.1 = true
-(@xyz).z.2 = false
-(@xyz).z.3 = true
+xyz.*.x = 64.0
+xyz.*.y.0 = 0.4
+xyz.*.y.1 = 0.6
+xyz.*.z.0 = false
+xyz.*.z.1 = true
+xyz.*.z.2 = false
+xyz.*.z.3 = true
 
-return (@xyz).x == 64.0 and (@xyz).y.0 == 0.4 and (@xyz).y.1 == 0.6 and (@xyz).z.0 == false and (@xyz).z.1 == true and (@xyz).z.2 == false and (@xyz).z.3 == true
+return xyz.*.x == 64.0 and xyz.*.y.0 == 0.4 and xyz.*.y.1 == 0.6 and xyz.*.z.0 == false and xyz.*.z.1 == true and xyz.*.z.2 == false and xyz.*.z.3 == true

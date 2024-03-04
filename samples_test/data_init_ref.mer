@@ -11,4 +11,4 @@ var abc = &Abc
     c = true
 }
 
-return (@abc).a == 42 and (@abc).b == 3.14 and (@abc).c == true
+return abc.*.a == 42 and abc.*.b == 3.14 and abc.*.c == true

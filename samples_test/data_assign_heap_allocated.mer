@@ -12,8 +12,8 @@ var abc = Abc
 }
 var p = &abc
 
-(@p).a = 64
-(@p).b = 6.28
-(@p).c = false
+p.*.a = 64
+p.*.b = 6.28
+p.*.c = false
 
-return (@p).a == 64 and (@p).b == 6.28 and (@p).c == false
+return p.*.a == 64 and p.*.b == 6.28 and p.*.c == false

@@ -12,4 +12,4 @@ var xyz = Xyz
 }
 var p = &xyz
 
-return (@p).x == 42.0 and (@p).y.0 == 0.8 and (@p).y.1 == 0.2 and (@p).z.0 == true and (@p).z.1 == false and (@p).z.2 == false and (@p).z.3 == true
+return p.*.x == 42.0 and p.*.y.0 == 0.8 and p.*.y.1 == 0.2 and p.*.z.0 == true and p.*.z.1 == false and p.*.z.2 == false and p.*.z.3 == true

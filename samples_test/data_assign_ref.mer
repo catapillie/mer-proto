@@ -11,8 +11,8 @@ var abc = &Abc
     c = true
 }
 
-(@abc).a = 64
-(@abc).b = 6.28
-(@abc).c = false
+abc.*.a = 64
+abc.*.b = 6.28
+abc.*.c = false
 
-return (@abc).a == 64 and (@abc).b == 6.28 and (@abc).c == false
+return abc.*.a == 64 and abc.*.b == 6.28 and abc.*.c == false

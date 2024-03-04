@@ -34,12 +34,12 @@ var tc0 = t.c.0 == s.c.0
 var tc1 = t.c.1 == s.c.1
 var tc2 = t.c.2 == s.c.2
 var tc3 = t.c.3 == s.c.3
-var tdx = (@t.d).x == (@s.d).x
-var tdy0 = (@(@t.d).y).0 == (@(@s.d).y).0
-var tdy1 = (@(@t.d).y).1 == (@(@s.d).y).1
-var tdy2 = (@(@t.d).y).2 == (@(@s.d).y).2
-var tdy3 = (@(@t.d).y).3 == (@(@s.d).y).3
-var tdy4 = (@(@t.d).y).4 == (@(@s.d).y).4
+var tdx = t.d.*.x == s.d.*.x
+var tdy0 = t.d.*.y.*.0 == s.d.*.y.*.0
+var tdy1 = t.d.*.y.*.1 == s.d.*.y.*.1
+var tdy2 = t.d.*.y.*.2 == s.d.*.y.*.2
+var tdy3 = t.d.*.y.*.3 == s.d.*.y.*.3
+var tdy4 = t.d.*.y.*.4 == s.d.*.y.*.4
 var te = t.e == s.e
 
 return ta & tb0 & tb1 & tc0 & tc1 & tc2 & tc3 & tdx & tdy0 & tdy1 & tdy2 & tdy3 & tdy4 & te

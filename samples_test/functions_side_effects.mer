@@ -1,7 +1,7 @@
 func sqr(x: &f64) -> f64
 {
-    var xx = (@x) * (@x)
-    @x = xx
+    var xx = x.* * x.*
+    x.* = xx
     return xx
 }
 

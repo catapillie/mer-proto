@@ -14,38 +14,38 @@ func list_create() -> List
 
 func list_push(l: &List, x: i64) -> ()
 {
-    var len = (@l).len
-    var cap = (@l).cap
+    var len = l.*.len
+    var cap = l.*.cap
 
     if len >= cap then
     {
-        var ptr = (@l).ptr
-        (@l).cap = cap * 2
-        (@l).ptr = alloc<i64>(cap * 2)
+        var ptr = l.*.ptr
+        l.*.cap = cap * 2
+        l.*.ptr = alloc<i64>(cap * 2)
 
         var i = 0
         while i < cap do
         {
-            (@l).ptr[i] = ptr[i]
+            l.*.ptr[i] = ptr[i]
             i = i + 1
         }
     }
 
-    (@l).ptr[len] = x
-    (@l).len = len + 1
+    l.*.ptr[len] = x
+    l.*.len = len + 1
     return
 }
 
 func list_pop(l: &List) -> i64
 {
-    (@l).len = (@l).len - 1
-    if (@l).len < 0 then unreachable
-    else return (@l).ptr[(@l).len]
+    l.*.len = l.*.len - 1
+    if l.*.len < 0 then unreachable
+    else return l.*.ptr[l.*.len]
 }
 
 func list_get(l: &List, index: i64) -> i64
-    = case index < 0 or index >= (@l).len then unreachable
-      otherwise (@l).ptr[index]
+    = case index < 0 or index >= l.*.len then unreachable
+      otherwise l.*.ptr[index]
 
 
 var n = 1000

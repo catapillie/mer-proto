@@ -1,4 +1,4 @@
 var x = 200
 var px = &x
 
-return @px == x
+return px.* == x

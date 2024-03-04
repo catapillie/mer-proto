@@ -1,5 +1,5 @@
 func clone_ref(a: &[2]bool) -> [2]bool
-    = @a
+    = a.*
 
 func id(a: [2]bool) -> [2]bool
     = clone_ref(&a)
