@@ -371,19 +371,41 @@ impl<'d> Analyser<'d> {
         abt::Expr::DataWith(id, Box::new(bound_expr), bound_with_fields)
     }
 
+    fn try_coerce_data_structure(&self, expr: &mut abt::Expr) -> Option<u64> {
+        let mut ty = self.program.type_of(expr);
+        let mut deref_count = 0;
+        let id = loop {
+            match ty {
+                abt::Type::Data(id) => break id,
+                abt::Type::Ref(inner) => {
+                    ty = *inner;
+                    deref_count += 1;
+                }
+                _ => return None,
+            }
+        };
+
+        for _ in 0..deref_count {
+            let inner = std::mem::replace(expr, abt::Expr::Unknown);
+            *expr = abt::Expr::Deref(Box::new(inner));
+        }
+
+        Some(id)
+    }
+
     pub fn analyse_data_field_access(
         &mut self,
         expr: &ast::Expr,
         name: &Spanned<String>,
     ) -> abt::Expr {
-        let bound_expr = self.analyse_expression(expr);
-        let expr_ty = self.program.type_of(&bound_expr);
+        let mut bound_expr = self.analyse_expression(expr);
 
+        let expr_ty = self.program.type_of(&bound_expr);
         if !expr_ty.is_known() {
             return abt::Expr::Unknown;
         }
 
-        let abt::Type::Data(data_id) = expr_ty else {
+        let Some(data_id) = self.try_coerce_data_structure(&mut bound_expr) else {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::InvalidFieldAccess(name.value.clone()))
                 .with_severity(Severity::Error)
