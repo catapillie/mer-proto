@@ -237,7 +237,10 @@ impl<'d> Analyser<'d> {
                 .with_kind(DiagnosticKind::InvalidDataStructureExpression)
                 .with_span(expr.span)
                 .with_severity(Severity::Error)
-                .annotate_primary(Note::OfType(self.program.type_repr(&bound_ty)), expr.span)
+                .annotate_primary(
+                    Note::NotDataStructure(self.program.type_repr(&bound_ty)),
+                    expr.span,
+                )
                 .done();
             self.diagnostics.push(d);
             return abt::Expr::Unknown;
