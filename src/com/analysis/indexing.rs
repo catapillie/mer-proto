@@ -1,19 +1,64 @@
+use super::Analyser;
 use crate::{
     com::{abt, ast},
     diagnostics::{self, DiagnosticKind, Note, Severity},
     utils::Span,
 };
 
-use super::Analyser;
-
 impl<'d> Analyser<'d> {
+    fn try_coerce_indexable(&self, expr: &mut abt::Expr) -> Option<abt::Type> {
+        let mut ty = self.program.type_of(expr);
+        let mut deref_count = 0;
+        let final_ty = loop {
+            match ty {
+                abt::Type::Array(_, _) => break ty,
+                abt::Type::Pointer(_) => break ty,
+                abt::Type::Ref(inner) => {
+                    ty = *inner;
+                    deref_count += 1;
+                }
+                _ => return None,
+            }
+        };
+
+        for _ in 0..deref_count {
+            let inner = std::mem::replace(expr, abt::Expr::Unknown);
+            *expr = abt::Expr::Deref(Box::new(inner));
+        }
+
+        Some(final_ty)
+    }
+
+    fn try_coerce_immediate_indexable(&self, expr: &mut abt::Expr) -> Option<abt::Type> {
+        let mut ty = self.program.type_of(expr);
+        let mut deref_count = 0;
+        let final_ty = loop {
+            match ty {
+                abt::Type::Tuple(_, _) => break ty,
+                abt::Type::Array(_, _) => break ty,
+                abt::Type::Ref(inner) => {
+                    ty = *inner;
+                    deref_count += 1;
+                }
+                _ => return None,
+            }
+        };
+
+        for _ in 0..deref_count {
+            let inner = std::mem::replace(expr, abt::Expr::Unknown);
+            *expr = abt::Expr::Deref(Box::new(inner));
+        }
+
+        Some(final_ty)
+    }
+
     pub fn analyse_index_expression(
         &mut self,
         expr: &ast::Expr,
         index_expr: &ast::Expr,
         span: Span,
     ) -> abt::Expr {
-        let bound_expr = self.analyse_expression(expr);
+        let mut bound_expr = self.analyse_expression(expr);
         let bound_index = self.analyse_expression(index_expr);
 
         let expr_ty = self.program.type_of(&bound_expr);
@@ -37,8 +82,8 @@ impl<'d> Analyser<'d> {
             return abt::Expr::Unknown;
         }
 
-        match expr_ty {
-            abt::Type::Array(_, size) => {
+        match self.try_coerce_indexable(&mut bound_expr) {
+            Some(abt::Type::Array(_, size)) => {
                 if let abt::Expr::Integer(index) = bound_index {
                     let d = if index as usize >= size {
                         diagnostics::create_diagnostic()
@@ -66,7 +111,7 @@ impl<'d> Analyser<'d> {
 
                 abt::Expr::ArrayIndex(Box::new(bound_expr), Box::new(bound_index))
             }
-            abt::Type::Pointer(_) => {
+            Some(abt::Type::Pointer(_)) => {
                 abt::Expr::PointerIndex(Box::new(bound_expr), Box::new(bound_index))
             }
             _ => {
@@ -88,26 +133,29 @@ impl<'d> Analyser<'d> {
         index: u64,
         span: Span,
     ) -> abt::Expr {
-        let bound_expr = self.analyse_expression(expr);
+        let mut bound_expr = self.analyse_expression(expr);
         let ty = self.program.type_of(&bound_expr);
-
         if !ty.is_known() {
             return abt::Expr::Unknown;
         }
 
-        if let abt::Type::Tuple(_, tail) = ty {
-            self.analyse_tuple_immediate_index(expr, bound_expr, &tail, index, span)
-        } else if let abt::Type::Array(_, size) = ty {
-            self.analyse_array_immediate_index(expr, bound_expr, index, size, span)
-        } else {
-            let d = diagnostics::create_diagnostic()
-                .with_kind(DiagnosticKind::InvalidImmediateIndex)
-                .with_span(span)
-                .with_severity(Severity::Error)
-                .annotate_primary(Note::OfType(self.program.type_repr(&ty)), expr.span)
-                .done();
-            self.diagnostics.push(d);
-            abt::Expr::Unknown
+        match self.try_coerce_immediate_indexable(&mut bound_expr) {
+            Some(abt::Type::Tuple(_, tail)) => {
+                self.analyse_tuple_immediate_index(expr, bound_expr, &tail, index, span)
+            }
+            Some(abt::Type::Array(_, size)) => {
+                self.analyse_array_immediate_index(expr, bound_expr, index, size, span)
+            }
+            _ => {
+                let d = diagnostics::create_diagnostic()
+                    .with_kind(DiagnosticKind::InvalidImmediateIndex)
+                    .with_span(span)
+                    .with_severity(Severity::Error)
+                    .annotate_primary(Note::OfType(self.program.type_repr(&ty)), expr.span)
+                    .done();
+                self.diagnostics.push(d);
+                abt::Expr::Unknown
+            }
         }
     }
 }
