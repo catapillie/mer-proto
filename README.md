@@ -155,9 +155,9 @@ data Person {
 
 func birthday(them: &Person) -> () {
     print &"happy birthday, "
-    print them.*.name
+    print them.name
     print &"!\n"
-    them.*.age = them.*.age + 1
+    them.age = them.age + 1
     return
 }
 

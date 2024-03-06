@@ -12,4 +12,4 @@ var abc = Abc
 }
 var p = &abc
 
-return p.*.a == 42 and p.*.b == 3.14 and p.*.c == true
+return p.a == 42 and p.b == 3.14 and p.c == true
