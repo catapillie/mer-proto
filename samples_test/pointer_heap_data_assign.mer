@@ -16,19 +16,19 @@ var i = 0
 var f = 0.0
 while i < n do
 {
-    p.*[i].a = (i % 3 == 0)
-    p.*[i].b.0 = f
-    p.*[i].b.1 = -f
-    p.*[i].c.0 = i
-    p.*[i].c.1 = i * i
-    p.*[i].c.2 = i * i * i
+    p[i].a = (i % 3 == 0)
+    p[i].b.0 = f
+    p[i].b.1 = -f
+    p[i].c.0 = i
+    p[i].c.1 = i * i
+    p[i].c.2 = i * i * i
 
-    b = b & (p.*[i].a == (i % 3 == 0))
-    b = b & (p.*[i].b.0 == f)
-    b = b & (p.*[i].b.1 == -f)
-    b = b & (p.*[i].c.0 == i)
-    b = b & (p.*[i].c.1 == i * i)
-    b = b & (p.*[i].c.2 == i * i * i)
+    b = b & (p[i].a == (i % 3 == 0))
+    b = b & (p[i].b.0 == f)
+    b = b & (p[i].b.1 == -f)
+    b = b & (p[i].c.0 == i)
+    b = b & (p[i].c.1 == i * i)
+    b = b & (p[i].c.2 == i * i * i)
 
     i = i + 1
     f = f + 0.25
@@ -38,18 +38,18 @@ var i = 0
 var f = 0.0
 while i < n do
 {
-    p.*[i] = Abc {
+    p[i] = Abc {
         a = (i % 3 == 0)
         b = (f, -f)
         c = [i, i * i, i * i * i]
     }
 
-    b = b & (p.*[i].a == (i % 3 == 0))
-    b = b & (p.*[i].b.0 == f)
-    b = b & (p.*[i].b.1 == -f)
-    b = b & (p.*[i].c.0 == i)
-    b = b & (p.*[i].c.1 == i * i)
-    b = b & (p.*[i].c.2 == i * i * i)
+    b = b & (p[i].a == (i % 3 == 0))
+    b = b & (p[i].b.0 == f)
+    b = b & (p[i].b.1 == -f)
+    b = b & (p[i].c.0 == i)
+    b = b & (p[i].c.1 == i * i)
+    b = b & (p[i].c.2 == i * i * i)
 
     i = i + 1
     f = f + 0.25

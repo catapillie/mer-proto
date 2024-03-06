@@ -2,4 +2,4 @@ var xyz = &(1.0, 2.0, 3.0)
 var abc = xyz.*
 abc
 
-return abc.0 == xyz.*.0 and abc.1 == xyz.*.1 and abc.2 == xyz.*.2
+return abc.0 == xyz.0 and abc.1 == xyz.1 and abc.2 == xyz.2

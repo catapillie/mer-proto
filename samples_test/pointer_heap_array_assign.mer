@@ -8,13 +8,13 @@ var i = 0
 var f = 0.0
 while i < n do
 {
-    p.*[i].0 = f
-    p.*[i].1 = f * f
-    p.*[i].2 = f * f * f
+    p[i].0 = f
+    p[i].1 = f * f
+    p[i].2 = f * f * f
 
-    b = b & (p.*[i].0 == f)
-    b = b & (p.*[i].1 == f * f)
-    b = b & (p.*[i].2 == f * f * f)
+    b = b & (p[i].0 == f)
+    b = b & (p[i].1 == f * f)
+    b = b & (p[i].2 == f * f * f)
 
     i = i + 1
     f = f + 0.25
@@ -24,10 +24,10 @@ var i = 0
 var f = 0.0
 while i < n do
 {
-    p.*[i] = [f, f * f, f * f * f]
-    b = b & (p.*[i].0 == f)
-    b = b & (p.*[i].1 == f * f)
-    b = b & (p.*[i].2 == f * f * f)
+    p[i] = [f, f * f, f * f * f]
+    b = b & (p[i].0 == f)
+    b = b & (p[i].1 == f * f)
+    b = b & (p[i].2 == f * f * f)
 
     i = i + 1
     f = f + 0.25
