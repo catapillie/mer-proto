@@ -221,7 +221,7 @@ impl<'d> Analyser<'d> {
         fields: &[(Spanned<String>, ast::Expr)],
         span: Span,
     ) -> abt::Expr {
-        let bound_expr = self.analyse_expression(expr);
+        let mut bound_expr = self.analyse_expression(expr);
         let bound_ty = self.program.type_of(&bound_expr);
         let mut bound_fields = fields
             .iter()
@@ -232,7 +232,7 @@ impl<'d> Analyser<'d> {
             return abt::Expr::Unknown;
         }
 
-        let abt::Type::Data(id) = bound_ty else {
+        let Some(id) = self.try_coerce_data_structure(&mut bound_expr) else {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::InvalidDataStructureExpression)
                 .with_span(expr.span)
