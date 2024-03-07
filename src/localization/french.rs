@@ -529,7 +529,7 @@ impl Lang for French {
                 }
             }
             N::NotDataStructure(ty)
-                => format!("ceci n'est pas une structure de données, et est de type '{}'",
+                => format!("ceci n'est pas une structure de données, et est de type {}",
                     ty.to_string().bold(),
                 ),
             N::DiscardedDataStructure

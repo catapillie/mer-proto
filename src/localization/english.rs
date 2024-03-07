@@ -521,7 +521,7 @@ impl Lang for English {
                 }
             }
             N::NotDataStructure(ty)
-                => format!("this is not a data structure, and is of type '{}'",
+                => format!("this is not a data structure, and is of type {}",
                     ty.to_string().bold(),
                 ),
             N::DiscardedDataStructure
