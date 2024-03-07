@@ -69,6 +69,7 @@ where
 
         opcode::jmp => Ok(Opcode::jmp(cursor.read_u32::<LE>()?)),
         opcode::jmp_if => Ok(Opcode::jmp_if(cursor.read_u32::<LE>()?)),
+        opcode::jmp_if_not => Ok(Opcode::jmp_if_not(cursor.read_u32::<LE>()?)),
         opcode::ret => Ok(Opcode::ret),
         opcode::call => Ok(Opcode::call(cursor.read_u32::<LE>()?)),
         opcode::call_addr => Ok(Opcode::call_addr),
@@ -195,6 +196,11 @@ where
         }
         Opcode::jmp_if(addr) => {
             cursor.write_u8(opcode::jmp_if)?;
+            cursor.write_u32::<LE>(*addr)?;
+            Ok(())
+        }
+        Opcode::jmp_if_not(addr) => {
+            cursor.write_u8(opcode::jmp_if_not)?;
             cursor.write_u32::<LE>(*addr)?;
             Ok(())
         }

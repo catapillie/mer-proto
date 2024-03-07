@@ -43,6 +43,8 @@ fn write_then_read_match() {
         Opcode::jmp(654),
         Opcode::jmp_if(12),
         Opcode::jmp_if(99999),
+        Opcode::jmp_if_not(12),
+        Opcode::jmp_if_not(99999),
         Opcode::ret,
         Opcode::call(5),
         Opcode::call(18),

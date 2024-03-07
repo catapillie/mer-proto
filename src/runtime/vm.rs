@@ -130,6 +130,7 @@ impl<'a> VM<'a> {
 
                 opcode::jmp => self.jmp(),
                 opcode::jmp_if => self.jmp_if()?,
+                opcode::jmp_if_not => self.jmp_if_not()?,
                 opcode::ret => self.destroy_frame()?,
                 opcode::call => self.call()?,
                 opcode::call_addr => self.call_addr()?,
@@ -322,6 +323,15 @@ impl<'a> VM<'a> {
         let to = self.read_u32();
         let guard = self.pop()?.get_bool();
         if guard {
+            self.cursor.set_position(to as u64);
+        }
+        Ok(())
+    }
+
+    fn jmp_if_not(&mut self) -> Result<(), Error> {
+        let to = self.read_u32();
+        let guard = self.pop()?.get_bool();
+        if !guard {
             self.cursor.set_position(to as u64);
         }
         Ok(())

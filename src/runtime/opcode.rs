@@ -15,9 +15,10 @@ opcodes! {
 
     0xc0 jmp(u32)
     0xc1 jmp_if(u32)
-    0xc2 ret
-    0xc3 call(u32)
-    0xc4 call_addr
+    0xc2 jmp_if_not(u32)
+    0xc3 ret
+    0xc4 call(u32)
+    0xc5 call_addr
 
     0xd0 ld_loc(u8)
     0xd1 ld_loc_n(u8, u8)

@@ -460,8 +460,7 @@ impl Codegen {
 
             // <guard> then ...
             self.gen_expression(guard, abt)?;
-            binary::write_opcode(&mut self.cursor, &Opcode::neg(NativeType::bool))?;
-            self.cursor.write_u8(opcode::jmp_if)?;
+            self.cursor.write_u8(opcode::jmp_if_not)?;
 
             // wire previous conditional jump
             if let Some(cursor) = prev_guard_cursor {

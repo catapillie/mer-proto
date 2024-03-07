@@ -5,7 +5,7 @@ use super::Codegen;
 use crate::{
     binary,
     com::abt::{Expr, Program, Stmt, StmtKind},
-    runtime::{opcode, NativeType, Opcode},
+    runtime::{opcode, Opcode},
 };
 
 impl Codegen {
@@ -85,8 +85,7 @@ impl Codegen {
     ) -> io::Result<()> {
         // if ...
         self.gen_expression(guard, abt)?;
-        binary::write_opcode(&mut self.cursor, &Opcode::neg(NativeType::bool))?;
-        self.cursor.write_u8(opcode::jmp_if)?;
+        self.cursor.write_u8(opcode::jmp_if_not)?;
         let cursor_from = self.gen_u32_placeholder()?;
 
         // then ...
@@ -137,8 +136,7 @@ impl Codegen {
         // while ...
         let cursor_guard_start = self.position();
         self.gen_expression(guard, abt)?;
-        binary::write_opcode(&mut self.cursor, &Opcode::neg(NativeType::bool))?;
-        self.cursor.write_u8(opcode::jmp_if)?;
+        self.cursor.write_u8(opcode::jmp_if_not)?;
         let cursor_guard_end = self.gen_u32_placeholder()?;
 
         // do ...

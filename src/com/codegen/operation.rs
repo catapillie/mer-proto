@@ -196,8 +196,7 @@ impl Codegen {
     ) -> io::Result<Value> {
         self.gen_expression(left, abt)?;
         self.cursor.write_u8(opcode::dup)?;
-        binary::write_opcode(&mut self.cursor, &Opcode::neg(NativeType::bool))?;
-        self.cursor.write_u8(opcode::jmp_if)?;
+        self.cursor.write_u8(opcode::jmp_if_not)?;
         let cursor_a = self.gen_u32_placeholder()?;
 
         self.gen_expression(right, abt)?;
