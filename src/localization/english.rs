@@ -494,6 +494,8 @@ impl Lang for English {
                 => format!("can be rewritten as immediate index: {}",
                     format!(".{index}").bold(),
                 ),
+            N::ArrayLength(size)
+                => format!("this is an array of length {}", size.to_string().bold()),
             N::FieldSet(field_name)
                 => format!("field '{}' is first set here",
                     field_name.bold(),

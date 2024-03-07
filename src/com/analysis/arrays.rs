@@ -75,7 +75,7 @@ impl<'d> Analyser<'d> {
                 .with_span(span)
                 .with_severity(Severity::Error)
                 .annotate_primary(
-                    Note::OfType(self.program.type_repr(&self.program.type_of(&bound_expr))),
+                    Note::ArrayLength(size),
                     expr.span,
                 )
                 .done();

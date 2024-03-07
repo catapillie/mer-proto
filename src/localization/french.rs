@@ -502,6 +502,8 @@ impl Lang for French {
                 => format!("peut être réécrit en indice immédiat: {}",
                     format!(".{index}").bold(),
                 ),
+            N::ArrayLength(size)
+                => format!("ceci est un tableau de taille {}", size.to_string().bold()),
             N::FieldSet(field_name)
                 => format!("le champ '{}' est d'abord spécifié ici",
                     field_name.bold(),

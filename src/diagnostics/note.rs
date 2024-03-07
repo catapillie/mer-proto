@@ -36,6 +36,7 @@ pub enum Note {
     TupleValueCount(usize),
     KnownIndexTooLarge,
     CanBeImmediateIndex(usize),
+    ArrayLength(usize),
     FieldSet(String),
     FieldSetAgain(String),
     FieldType(String, TypeRepr),

@@ -1,7 +1,7 @@
 use super::Analyser;
 use crate::{
     com::{abt, ast},
-    diagnostics::{self, DiagnosticKind, Note, Severity},
+    diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
     utils::Span,
 };
 
@@ -97,6 +97,11 @@ impl<'d> Analyser<'d> {
                             .with_span(index_expr.span)
                             .with_severity(Severity::Error)
                             .annotate_primary(Note::KnownIndexTooLarge, index_expr.span)
+                            .annotate_secondary(
+                                Note::ArrayLength(size),
+                                expr.span,
+                                NoteSeverity::Annotation,
+                            )
                             .done()
                     } else {
                         diagnostics::create_diagnostic()
