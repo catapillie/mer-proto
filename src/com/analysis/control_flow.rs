@@ -96,12 +96,10 @@ impl<'d> Analyser<'d> {
             E::Case(paths, default, _) => {
                 paths
                     .iter()
-                    .any(|(guard, expr)| Self::is_never(guard) || Self::is_never(expr))
+                    .all(|(guard, expr)| Self::is_never(guard) || Self::is_never(expr))
                     || Self::is_never(default)
             }
-            E::CaseTernary(guard, expr, fallback, _) => {
-                Self::is_never(guard) || Self::is_never(expr) || Self::is_never(fallback)
-            }
+            E::CaseTernary(guard, _, _, _) => Self::is_never(guard),
             E::Data(_, fields) => fields.iter().any(Self::is_never),
             E::DataWith(_, expr, fields) => {
                 Self::is_never(expr) || fields.iter().any(|(_, expr)| Self::is_never(expr))
