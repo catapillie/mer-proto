@@ -27,13 +27,17 @@ impl<'d> Analyser<'d> {
             self.diagnostics.push(d);
         }
 
-        if !self.program.type_of(&bound_guard).is(&abt::Type::Bool) {
+        let guard_ty = self.program.type_of(&bound_guard);
+        if !guard_ty.is(&abt::Type::Bool) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::GuardNotBoolean)
                 .with_severity(Severity::Error)
                 .with_span(guard.span)
                 .annotate_primary(
-                    Note::MustBeOfType(self.program.type_repr(&abt::Type::Bool)),
+                    Note::OfTypeButShouldBe(
+                        self.program.type_repr(&guard_ty),
+                        self.program.type_repr(&abt::Type::Bool),
+                    ),
                     guard.span,
                 )
                 .done();
@@ -79,13 +83,17 @@ impl<'d> Analyser<'d> {
             self.diagnostics.push(d);
         }
 
-        if !self.program.type_of(&bound_guard).is(&abt::Type::Bool) {
+        let guard_ty = self.program.type_of(&bound_guard);
+        if !guard_ty.is(&abt::Type::Bool) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::GuardNotBoolean)
                 .with_severity(Severity::Error)
                 .with_span(guard.span)
                 .annotate_primary(
-                    Note::MustBeOfType(self.program.type_repr(&abt::Type::Bool)),
+                    Note::OfTypeButShouldBe(
+                        self.program.type_repr(&guard_ty),
+                        self.program.type_repr(&abt::Type::Bool),
+                    ),
                     guard.span,
                 )
                 .done();

@@ -21,6 +21,7 @@ pub enum Note {
     CannotAssign,
     MustBeOfType(TypeRepr),
     OfType(TypeRepr),
+    OfTypeButShouldBe(TypeRepr, TypeRepr),
     Type(TypeRepr),
     ReturnsUnit,
     VariableDeclaration(String),

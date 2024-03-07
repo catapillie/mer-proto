@@ -70,7 +70,10 @@ impl<'d> Analyser<'d> {
                 .with_span(index_expr.span)
                 .with_severity(Severity::Error)
                 .annotate_primary(
-                    Note::OfType(self.program.type_repr(&index_ty)),
+                    Note::OfTypeButShouldBe(
+                        self.program.type_repr(&index_ty),
+                        self.program.type_repr(&abt::Type::I64),
+                    ),
                     index_expr.span,
                 )
                 .done();

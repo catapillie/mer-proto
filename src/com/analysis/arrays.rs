@@ -89,14 +89,17 @@ impl<'d> Analyser<'d> {
     pub fn analyse_alloc_expression(&mut self, ty: &ast::Type, size: &ast::Expr) -> abt::Expr {
         let bound_ty = self.analyse_type(ty);
         let bound_size = self.analyse_expression(size);
-
-        if !self.program.type_of(&bound_size).is(&abt::Type::I64) {
+        let size_ty = self.program.type_of(&bound_size);
+        if !size_ty.is(&abt::Type::I64) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::NonIntegerSize)
                 .with_severity(Severity::Error)
                 .with_span(size.span)
                 .annotate_primary(
-                    Note::MustBeOfType(self.program.type_repr(&abt::Type::I64)),
+                    Note::OfTypeButShouldBe(
+                        self.program.type_repr(&size_ty),
+                        self.program.type_repr(&abt::Type::I64),
+                    ),
                     size.span,
                 )
                 .done();

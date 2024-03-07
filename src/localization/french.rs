@@ -428,6 +428,11 @@ impl Lang for French {
                 => format!("ceci doit être de type {}", ty.to_string().bold()),
             N::OfType(ty)
                 => format!("ceci est de type {}", ty.to_string().bold()),
+            N::OfTypeButShouldBe(got, expected)
+                => format!("ceci est de type {}, mais devrait être {}",
+                    got.to_string().bold(),
+                    expected.to_string().bold(),
+                ),
             N::Type(ty)
                 => ty.to_string().bold().to_string(),
             N::ReturnsUnit

@@ -24,7 +24,10 @@ impl<'d> Analyser<'d> {
                 .with_span(guard.span)
                 .with_severity(Severity::Error)
                 .annotate_primary(
-                    Note::MustBeOfType(self.program.type_repr(&abt::Type::Bool)),
+                    Note::OfTypeButShouldBe(
+                        self.program.type_repr(&guard_ty),
+                        self.program.type_repr(&abt::Type::Bool),
+                    ),
                     guard.span,
                 )
                 .done();
@@ -105,7 +108,10 @@ impl<'d> Analyser<'d> {
                     .with_span(guard.span)
                     .with_severity(Severity::Error)
                     .annotate_primary(
-                        Note::MustBeOfType(self.program.type_repr(&abt::Type::Bool)),
+                        Note::OfTypeButShouldBe(
+                            self.program.type_repr(&guard_ty),
+                            self.program.type_repr(&abt::Type::Bool),
+                        ),
                         guard.span,
                     )
                     .done();

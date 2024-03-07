@@ -214,8 +214,8 @@ impl<'d> Analyser<'d> {
                     NoteSeverity::Annotation,
                 )
                 .annotate_primary(
-                    Note::MustBeOfType(self.program.type_repr(arg_ty))
-                        .so()
+                    Note::OfType(self.program.type_repr(&ty_param))
+                        .but()
                         .dddot_front()
                         .num(2),
                     span,

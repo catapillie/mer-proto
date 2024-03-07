@@ -420,6 +420,11 @@ impl Lang for English {
                 => format!("this must be of type {}", ty.to_string().bold()),
             N::OfType(ty)
                 => format!("this is of type {}", ty.to_string().bold()),
+            N::OfTypeButShouldBe(got, expected)
+                => format!("this is of type {}, should be {} instead",
+                    got.to_string().bold(),
+                    expected.to_string().bold(),
+                ),
             N::Type(ty)
                 => ty.to_string().bold().to_string(),
             N::ReturnsUnit
