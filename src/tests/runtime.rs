@@ -1,4 +1,3 @@
-use std::fs;
 use colored::Colorize;
 use merlib::{
     binary,
@@ -6,6 +5,7 @@ use merlib::{
     diagnostics::Severity,
     runtime::VM,
 };
+use std::fs;
 
 check_program_output!(return_i64 => (i64, Type::I64) 10);
 check_program_output!(return_f64 => (f64, Type::F64) 6.2584);

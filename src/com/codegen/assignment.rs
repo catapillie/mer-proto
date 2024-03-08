@@ -72,7 +72,9 @@ impl Codegen {
             LValue::Deref(a) => {
                 let assignment = self.gen_assignment_lhs(a, var_id, abt)?;
                 match assignment {
-                    Lhs::Local(loc) => binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(loc))?,
+                    Lhs::Local(loc) => {
+                        binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(loc))?
+                    }
                     Lhs::UnknownLocal => binary::write_opcode(&mut self.cursor, &Opcode::ld_sloc)?,
                     Lhs::Address => binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?,
                 };

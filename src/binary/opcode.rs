@@ -57,10 +57,7 @@ where
         )),
         opcode::keep_at => Ok(Opcode::keep_at(cursor.read_u8()?, cursor.read_u8()?)),
 
-        opcode::replace => Ok(Opcode::replace(
-            cursor.read_u8()?,
-            cursor.read_u8()?,
-        )),
+        opcode::replace => Ok(Opcode::replace(cursor.read_u8()?, cursor.read_u8()?)),
 
         opcode::rot => Ok(Opcode::rot),
 

@@ -74,10 +74,7 @@ impl<'d> Analyser<'d> {
                 })
                 .with_span(span)
                 .with_severity(Severity::Error)
-                .annotate_primary(
-                    Note::ArrayLength(size),
-                    expr.span,
-                )
+                .annotate_primary(Note::ArrayLength(size), expr.span)
                 .done();
             self.diagnostics.push(d);
             return abt::Expr::Unknown;
