@@ -320,7 +320,13 @@ fn dis(args: Dis) {
                 len.to_string().bold(),
                 op = opcode.name()
             ),
-            Opcode::jmp(addr) | Opcode::jmp_if(addr) => println!(
+            Opcode::replace(n, len) => println!(
+                "{offset:0>8} ║ {op:>20} [{}] of [{}]",
+                n.to_string().bold(),
+                len.to_string().bold(),
+                op = opcode.name()
+            ),
+            Opcode::jmp(addr) | Opcode::jmp_if(addr) | Opcode::jmp_if_not(addr) => println!(
                 "{offset:0>8} ║ {op:>20} -> {}",
                 format!("{addr:0>8}").bold(),
                 op = opcode.name()
@@ -347,10 +353,25 @@ fn dis(args: Dis) {
                     op = opcode.name(),
                 )
             }
+            Opcode::ld_sloc_n(n) | Opcode::st_sloc_n(n) => {
+                println!(
+                    "{offset:0>8} ║ {op:>20} [{}]",
+                    n.to_string().bold(),
+                    op = opcode.name(),
+                )
+            }
             Opcode::realloc_loc(loc) => {
                 println!(
                     "{offset:0>8} ║ {op:>20} {}",
                     loc.to_string().bold(),
+                    op = opcode.name(),
+                )
+            }
+            Opcode::realloc_loc_n(loc, n) => {
+                println!(
+                    "{offset:0>8} ║ {op:>20} {} [{}]",
+                    loc.to_string().bold(),
+                    n.to_string().bold(),
                     op = opcode.name(),
                 )
             }
