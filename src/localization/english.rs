@@ -347,7 +347,7 @@ impl Lang for English {
                     data_name.bold(),
                 ),
             K::FieldSetMoreThanOnce(field_name)
-                => format!("field '{}' is being set more than once",
+                => format!("field '{}' is set more than once",
                     field_name.bold(),
                 ),
             K::FieldsNeverSet(name, fields, last_field) => {
