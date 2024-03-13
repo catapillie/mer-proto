@@ -10,7 +10,9 @@ var x = Xyz {
     z = "wxyz"
 }
 var p = &x
-p.x = (0.71, 0.29)
-p.y = true
-p.z = "abcd"
+p.* = Xyz {
+    x = (0.71, 0.29)
+    y = true
+    z = "abcd"
+}
 return x.x.0 == 0.71 and x.x.1 == 0.29 and x.y == true and x.z.0 == "a".0 and x.z.1 == "b".0 and x.z.2 == "c".0 and x.z.3 == "d".0
