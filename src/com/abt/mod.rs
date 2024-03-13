@@ -1,8 +1,8 @@
-pub mod assignee;
 pub mod bin_op;
 pub mod data;
 pub mod expr;
 pub mod function;
+pub mod lvalue;
 pub mod program;
 pub mod stmt;
 pub mod types;
@@ -11,8 +11,8 @@ pub mod variable;
 
 pub use program::Program;
 
-pub use assignee::LValue;
 pub use expr::Expr;
+pub use lvalue::LValue;
 pub use stmt::{Stmt, StmtKind};
 pub use types::Type;
 
