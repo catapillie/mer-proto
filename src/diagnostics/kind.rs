@@ -112,6 +112,7 @@ pub enum DiagnosticKind {
     CaseOtherwiseCanBeSimplified,
     CaseThenOtherwiseCanBeSimplified,
 
+    InfiniteDataStructure(String),
     InvalidDataStructureExpression,
     UnknownDataStructure(String),
     UnknownFieldInDataStructure {

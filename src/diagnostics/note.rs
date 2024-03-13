@@ -41,6 +41,7 @@ pub enum Note {
     FieldSetAgain(String),
     FieldType(String, TypeRepr),
     MissingFields(Box<[String]>, String),
+    DataInfiniteSize(String),
     NotDataStructure(TypeRepr),
     DiscardedDataStructure,
     UnmodifiedDataStructure,

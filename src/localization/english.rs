@@ -327,6 +327,10 @@ impl Lang for English {
                 => "case-otherwise expression has a unique path and can be simplified".to_string(),
             K::CaseThenOtherwiseCanBeSimplified
                 => "there exists a simpler syntax for case-then-otherwise expressions".to_string(),
+            K::InfiniteDataStructure(name)
+                => format!("data structure '{}' is infinite without indirection",
+                    name.to_string().bold(),
+                ),
             K::InvalidDataStructureExpression
                 => "invalid data structure expression".to_string(),
             K::UnknownDataStructure(name)
@@ -520,6 +524,10 @@ impl Lang for English {
                     format!("missing fields {first_fields} and '{}'", last_field.bold())
                 }
             }
+            N::DataInfiniteSize(name)
+                => format!("type '{}' contains itself without indirection, and has an infinite size",
+                    name.to_string().bold(),
+                ),
             N::NotDataStructure(ty)
                 => format!("this is not a data structure, and is of type {}",
                     ty.to_string().bold(),

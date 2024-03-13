@@ -12,24 +12,14 @@ use crate::{
 };
 
 impl<'d> Analyser<'d> {
-    pub fn declare_data_structure_here(
-        &mut self,
-        name: &Spanned<String>,
-        fields: Vec<(Spanned<String>, Spanned<abt::Type>)>,
-    ) -> Declaration {
+    pub fn declare_data_structure_here(&mut self, name: &Spanned<String>) -> Declaration {
         let declared = self.make_unique_id();
         let shadowed = self.scope.bindings.insert(name.value.clone(), declared);
-
-        let size = fields
-            .iter()
-            .map(|(_, ty)| self.program.size_of(&ty.value))
-            .sum();
-
         let info = DataInfo {
             name: name.clone(),
             id: declared,
-            fields,
-            size,
+            fields: vec![],
+            size: 0,
         };
         let prev = self.program.datas.insert(declared, info);
         assert!(prev.is_none(), "id must be unique");
@@ -42,9 +32,8 @@ impl<'d> Analyser<'d> {
         name: &Spanned<String>,
         fields: &[(Spanned<String>, ast::Type)],
     ) -> abt::StmtKind {
-        if self.get_data_structure(&name.value).is_some() {
-            return abt::StmtKind::Empty;
-        }
+        let decl = self.declare_data_structure_here(name);
+        let id = decl.declared;
 
         // data structure has already not been declared yet, let's do it now
         let bound_fields = fields
@@ -60,8 +49,71 @@ impl<'d> Analyser<'d> {
             })
             .collect::<Vec<_>>();
 
-        self.declare_data_structure_here(name, bound_fields);
+        let size = bound_fields
+            .iter()
+            .map(|f| self.data_structure_size(&f.1.value, id))
+            .fold(Some(0), |a, b| Some(a? + b?));
+        let size = match size {
+            Some(size) => size,
+            None => {
+                let d = diagnostics::create_diagnostic()
+                    .with_kind(DiagnosticKind::InfiniteDataStructure(name.value.clone()))
+                    .with_span(name.span)
+                    .with_severity(Severity::Error)
+                    .annotate_primary(Note::DataInfiniteSize(name.value.clone()), name.span)
+                    .done();
+                self.diagnostics.push(d);
+                0
+            }
+        };
+
+        let info = self
+            .program
+            .datas
+            .get_mut(&id)
+            .expect("data structure was just declared");
+
+        info.size = size;
+        info.fields = bound_fields;
+
         abt::StmtKind::Empty
+    }
+
+    pub fn data_structure_size(&self, ty: &abt::Type, data_id: u64) -> Option<usize> {
+        use abt::Type as Ty;
+        match ty {
+            Ty::Unknown
+            | Ty::Never
+            | Ty::Unit
+            | Ty::U8
+            | Ty::U16
+            | Ty::U32
+            | Ty::U64
+            | Ty::I8
+            | Ty::I16
+            | Ty::I32
+            | Ty::I64
+            | Ty::F32
+            | Ty::F64
+            | Ty::Bool => Some(1),
+            Ty::Ref(_) => Some(1),
+            Ty::Func(_, _) => Some(1),
+            Ty::Pointer(_) => Some(2),
+            Ty::Tuple(head, tail) => tail
+                .iter()
+                .map(|ty| self.data_structure_size(ty, data_id))
+                .fold(self.data_structure_size(head, data_id), |a, b| {
+                    Some(a? + b?)
+                }),
+            Ty::Array(ty, size) => Some(self.data_structure_size(ty, data_id)? * size),
+            Ty::Data(id) => {
+                if *id == data_id {
+                    None
+                } else {
+                    Some(self.program.datas.get(id).unwrap().size)
+                }
+            }
+        }
     }
 
     pub fn get_data_structure(&self, name: &str) -> Option<&DataInfo> {

@@ -330,6 +330,10 @@ impl Lang for French {
                 => "l'expression case-otherwise ne contient qu'un unique chemin, et peut être simplifiée".to_string(),
             K::CaseThenOtherwiseCanBeSimplified
                 => "il existe une syntaxe plus simple pour les expressions case-then-otherwise".to_string(),
+            K::InfiniteDataStructure(name)
+                => format!("la structure de données '{}' est infinie sans indirection",
+                    name.to_string().bold(),
+                ),
             K::InvalidDataStructureExpression
                 => "expression de structure de données invalide".to_string(),
             K::UnknownDataStructure(name)
@@ -528,6 +532,10 @@ impl Lang for French {
                     format!("champs manquants {first_fields} et '{}'", last_field.bold())
                 }
             }
+            N::DataInfiniteSize(name)
+                => format!("le type '{}' se contient lui-même sans indirection, et a une taille infinie",
+                    name.to_string().bold(),
+                ),
             N::NotDataStructure(ty)
                 => format!("ceci n'est pas une structure de données, et est de type {}",
                     ty.to_string().bold(),
