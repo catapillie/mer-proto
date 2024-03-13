@@ -219,7 +219,7 @@ impl Lang for English {
             K::InvalidCallee
                 => "callee is not a function, and cannot be called".to_string(),
             K::UnknownType(id)
-                => format!("unknown type {}", id.bold()),
+                => format!("unknown type '{}'", id.bold()),
             K::TypeMismatch { found, expected }
                 => format!("type mismatch of {} into {}",
                     found.to_string().bold(),

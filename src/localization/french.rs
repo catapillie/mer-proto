@@ -228,7 +228,7 @@ impl Lang for French {
             K::InvalidCallee
                 => "l'appelé n'est pas une fonction, et ne peut pas être appelé".to_string(),
             K::UnknownType(id)
-                => format!("type inconnu {}", id.bold()),
+                => format!("type inconnu '{}'", id.bold()),
             K::TypeMismatch { found, expected }
                 => format!("le type {} ne correspond pas au type {}",
                     found.to_string().bold(),
