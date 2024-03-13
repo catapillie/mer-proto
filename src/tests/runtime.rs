@@ -163,6 +163,56 @@ check_program_output!(data_with_02 => (bool, Type::Bool) true);
 check_program_output!(data_with_03 => (bool, Type::Bool) true);
 check_program_output!(data_with_04 => (bool, Type::Bool) true);
 
+check_program_output!(lvalue_single_var => (bool, Type::Bool) true);
+check_program_output!(lvalue_single_var_deref_one => (bool, Type::Bool) true);
+check_program_output!(lvalue_single_var_deref_two => (bool, Type::Bool) true);
+check_program_output!(lvalue_single_var_deref_three => (bool, Type::Bool) true);
+check_program_output!(lvalue_single_tuple => (bool, Type::Bool) true);
+check_program_output!(lvalue_single_tuple_deref_one => (bool, Type::Bool) true);
+check_program_output!(lvalue_single_tuple_deref_two => (bool, Type::Bool) true);
+check_program_output!(lvalue_single_tuple_deref_three => (bool, Type::Bool) true);
+check_program_output!(lvalue_single_array => (bool, Type::Bool) true);
+check_program_output!(lvalue_single_array_deref_one => (bool, Type::Bool) true);
+check_program_output!(lvalue_single_array_deref_two => (bool, Type::Bool) true);
+check_program_output!(lvalue_single_array_deref_three => (bool, Type::Bool) true);
+check_program_output!(lvalue_single_array_index => (bool, Type::Bool) true);
+check_program_output!(lvalue_single_array_index_deref_one => (bool, Type::Bool) true);
+check_program_output!(lvalue_single_array_index_deref_two => (bool, Type::Bool) true);
+check_program_output!(lvalue_single_array_index_deref_three => (bool, Type::Bool) true);
+check_program_output!(lvalue_single_pointer => (bool, Type::Bool) true);
+check_program_output!(lvalue_single_pointer_deref_one => (bool, Type::Bool) true);
+check_program_output!(lvalue_single_pointer_deref_two => (bool, Type::Bool) true);
+check_program_output!(lvalue_single_pointer_deref_three => (bool, Type::Bool) true);
+check_program_output!(lvalue_single_data => (bool, Type::Bool) true);
+check_program_output!(lvalue_single_data_deref_one => (bool, Type::Bool) true);
+check_program_output!(lvalue_single_data_deref_two => (bool, Type::Bool) true);
+check_program_output!(lvalue_single_data_deref_three => (bool, Type::Bool) true);
+
+check_program_output!(lvalue_many_var => (bool, Type::Bool) true);
+check_program_output!(lvalue_many_var_deref_one => (bool, Type::Bool) true);
+check_program_output!(lvalue_many_var_deref_two => (bool, Type::Bool) true);
+check_program_output!(lvalue_many_var_deref_three => (bool, Type::Bool) true);
+check_program_output!(lvalue_many_tuple => (bool, Type::Bool) true);
+check_program_output!(lvalue_many_tuple_deref_one => (bool, Type::Bool) true);
+check_program_output!(lvalue_many_tuple_deref_two => (bool, Type::Bool) true);
+check_program_output!(lvalue_many_tuple_deref_three => (bool, Type::Bool) true);
+check_program_output!(lvalue_many_array => (bool, Type::Bool) true);
+check_program_output!(lvalue_many_array_deref_one => (bool, Type::Bool) true);
+check_program_output!(lvalue_many_array_deref_two => (bool, Type::Bool) true);
+check_program_output!(lvalue_many_array_deref_three => (bool, Type::Bool) true);
+check_program_output!(lvalue_many_array_index => (bool, Type::Bool) true);
+check_program_output!(lvalue_many_array_index_deref_one => (bool, Type::Bool) true);
+check_program_output!(lvalue_many_array_index_deref_two => (bool, Type::Bool) true);
+check_program_output!(lvalue_many_array_index_deref_three => (bool, Type::Bool) true);
+check_program_output!(lvalue_many_pointer => (bool, Type::Bool) true);
+check_program_output!(lvalue_many_pointer_deref_one => (bool, Type::Bool) true);
+check_program_output!(lvalue_many_pointer_deref_two => (bool, Type::Bool) true);
+check_program_output!(lvalue_many_pointer_deref_three => (bool, Type::Bool) true);
+check_program_output!(lvalue_many_data => (bool, Type::Bool) true);
+check_program_output!(lvalue_many_data_deref_one => (bool, Type::Bool) true);
+check_program_output!(lvalue_many_data_deref_two => (bool, Type::Bool) true);
+check_program_output!(lvalue_many_data_deref_three => (bool, Type::Bool) true);
+
 macro_rules! check_program_output {
     ($name:ident => ($expected_ty:ty, $type_abt:expr) $expected:expr) => {
         #[test]

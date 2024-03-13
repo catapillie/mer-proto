@@ -1,0 +1,18 @@
+data Abc {
+    a: f64
+    b: f64
+    c: f64
+}
+
+var x = Abc {
+    a = 0.42
+    b = 0.75
+    c = 0.11
+}
+var pa = &x.a
+var pb = &x.b
+var pc = &x.c
+pa.* = 0.58
+pb.* = 0.25
+pc.* = 0.89
+return x.a == 0.58 and x.b == 0.25 and x.c == 0.89

@@ -1,0 +1,49 @@
+data Xyz {
+    x: (f64, f64)
+    y: bool
+    z: [4]u8
+}
+
+data Abc {
+    a: Xyz
+    b: Xyz
+    c: Xyz
+}
+
+var x = &Abc {
+    a = Xyz {
+        x = (0.32, 0.68)
+        y = false
+        z = "wxyz"
+    }
+    b = Xyz {
+        x = (0.01, 0.99)
+        y = true
+        z = "abcd"
+    }
+    c = Xyz {
+        x = (0.55, 0.54)
+        y = true
+        z = "efgh"
+    }
+}
+var pa = &x.a
+var pb = &x.b
+var pc = &x.c
+
+pa.x = (0.71, 0.29)
+pa.y = true
+pa.z = "abcd"
+
+pb.x = (0.66, 0.33)
+pb.y = false
+pb.z = "ijkl"
+
+pc.x = (0.12, 0.88)
+pc.y = false
+pc.z = "mnop"
+
+var t0 = x.a.x.0 == 0.71 and x.a.x.1 == 0.29 and x.a.y == true and x.a.z.0 == "a".0 and x.a.z.1 == "b".0 and x.a.z.2 == "c".0 and x.a.z.3 == "d".0
+var t1 = x.b.x.0 == 0.66 and x.b.x.1 == 0.33 and x.b.y == false and x.b.z.0 == "i".0 and x.b.z.1 == "j".0 and x.b.z.2 == "k".0 and x.b.z.3 == "l".0
+var t2 = x.c.x.0 == 0.12 and x.c.x.1 == 0.88 and x.c.y == false and x.c.z.0 == "m".0 and x.c.z.1 == "n".0 and x.c.z.2 == "o".0 and x.c.z.3 == "p".0
+return t0 & t1 & t2

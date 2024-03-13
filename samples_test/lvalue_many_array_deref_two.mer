@@ -1,0 +1,43 @@
+data Xyz {
+    x: (f64, f64)
+    y: bool
+    z: [4]u8
+}
+
+var x0 = Xyz {
+    x = (0.32, 0.68)
+    y = false
+    z = "wxyz"
+}
+var x1 = Xyz {
+    x = (0.01, 0.99)
+    y = true
+    z = "abcd"
+}
+var x2 = Xyz {
+    x = (0.55, 0.54)
+    y = true
+    z = "efgh"
+}
+
+var x = &&[x0, x1, x2]
+var p0 = &x.0
+var p1 = &x.1
+var p2 = &x.2
+
+p0.x = (0.71, 0.29)
+p0.y = true
+p0.z = "abcd"
+
+p1.x = (0.66, 0.33)
+p1.y = false
+p1.z = "ijkl"
+
+p2.x = (0.12, 0.88)
+p2.y = false
+p2.z = "mnop"
+
+var t0 = x.0.x.0 == 0.71 and x.0.x.1 == 0.29 and x.0.y == true and x.0.z.0 == "a".0 and x.0.z.1 == "b".0 and x.0.z.2 == "c".0 and x.0.z.3 == "d".0
+var t1 = x.1.x.0 == 0.66 and x.1.x.1 == 0.33 and x.1.y == false and x.1.z.0 == "i".0 and x.1.z.1 == "j".0 and x.1.z.2 == "k".0 and x.1.z.3 == "l".0
+var t2 = x.2.x.0 == 0.12 and x.2.x.1 == 0.88 and x.2.y == false and x.2.z.0 == "m".0 and x.2.z.1 == "n".0 and x.2.z.2 == "o".0 and x.2.z.3 == "p".0
+return t0 & t1 & t2
