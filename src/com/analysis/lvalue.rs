@@ -1,6 +1,5 @@
-use crate::com::abt::{self, LValue};
-
 use super::Analyser;
+use crate::com::abt::{self, LValue};
 
 impl<'d> Analyser<'d> {
     pub fn to_lvalue(&self, expr: &abt::Expr) -> Option<(LValue, u64, abt::Type)> {

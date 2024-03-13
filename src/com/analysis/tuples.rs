@@ -1,10 +1,9 @@
+use super::Analyser;
 use crate::{
     com::{abt, ast},
     diagnostics::{self, DiagnosticKind, Note, Severity},
     utils::Span,
 };
-
-use super::Analyser;
 
 impl<'d> Analyser<'d> {
     pub fn analyse_tuple_expression(&mut self, head: &ast::Expr, tail: &[ast::Expr]) -> abt::Expr {

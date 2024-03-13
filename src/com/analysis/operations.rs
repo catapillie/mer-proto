@@ -1,3 +1,4 @@
+use super::Analyser;
 use crate::{
     com::{
         abt::{self},
@@ -6,8 +7,6 @@ use crate::{
     diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
     utils::Span,
 };
-
-use super::Analyser;
 
 impl<'d> Analyser<'d> {
     pub fn analyse_binary_operation(

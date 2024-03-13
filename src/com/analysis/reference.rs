@@ -1,3 +1,4 @@
+use super::Analyser;
 use crate::{
     com::{
         abt::{self},
@@ -5,8 +6,6 @@ use crate::{
     },
     diagnostics::{self, DiagnosticKind, Note, Severity},
 };
-
-use super::Analyser;
 
 impl<'d> Analyser<'d> {
     pub fn analyse_reference_expression(&mut self, expr: &ast::Expr) -> abt::Expr {

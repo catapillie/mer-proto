@@ -1,3 +1,4 @@
+use super::{Analyser, Declaration};
 use crate::{
     com::{
         abt::{self, VariableInfo, VariableUsage},
@@ -6,8 +7,6 @@ use crate::{
     diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
     utils::{Span, Spanned},
 };
-
-use super::{Analyser, Declaration};
 
 impl<'d> Analyser<'d> {
     pub fn declare_variable_here(&mut self, name: Spanned<String>, ty: abt::Type) -> Declaration {

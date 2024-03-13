@@ -1,3 +1,4 @@
+use super::Analyser;
 use crate::{
     com::{
         abt::{self, FunctionInfo},
@@ -7,8 +8,6 @@ use crate::{
     diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
     utils::{spanned::OptSpanned, Span, Spanned},
 };
-
-use super::Analyser;
 
 impl<'d> Analyser<'d> {
     pub fn declare_function_here(

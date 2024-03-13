@@ -1,9 +1,8 @@
+use super::Analyser;
 use crate::{
     com::{abt, ast},
     diagnostics::{self, DiagnosticKind, Note, Severity},
 };
-
-use super::Analyser;
 
 impl<'d> Analyser<'d> {
     #[rustfmt::skip]

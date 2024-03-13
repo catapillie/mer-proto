@@ -1,10 +1,9 @@
+use super::Analyser;
 use crate::{
     com::abt::{self, LValue},
     diagnostics::{self, DiagnosticKind, Note, Severity},
     utils::Span,
 };
-
-use super::Analyser;
 
 impl<'d> Analyser<'d> {
     // returns whether the provided statement is guaranteed to return

@@ -1,6 +1,5 @@
-use std::collections::HashMap;
-
 use super::Analyser;
+use std::collections::HashMap;
 
 pub struct Scope {
     parent: Option<Box<Scope>>,
