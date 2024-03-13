@@ -37,6 +37,8 @@ pub enum Note {
     KnownIndexTooLarge,
     CanBeImmediateIndex(usize),
     ArrayLength(usize),
+    FieldDeclared(String),
+    FieldDeclaredAgain(String),
     FieldSet(String),
     FieldSetAgain(String),
     FieldType(String, TypeRepr),

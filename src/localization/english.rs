@@ -331,6 +331,10 @@ impl Lang for English {
                 => format!("data structure '{}' is infinite without indirection",
                     name.to_string().bold(),
                 ),
+            K::FieldDeclaredMoreThanOnce(field_name)
+                => format!("field '{}' is declared more than once",
+                    field_name.bold(),
+                ),
             K::InvalidDataStructureExpression
                 => "invalid data structure expression".to_string(),
             K::UnknownDataStructure(name)
@@ -500,6 +504,14 @@ impl Lang for English {
                 ),
             N::ArrayLength(size)
                 => format!("this is an array of length {}", size.to_string().bold()),
+            N::FieldDeclared(field_name)
+                => format!("field '{}' is first declared here",
+                    field_name.bold(),
+                ),
+            N::FieldDeclaredAgain(field_name)
+                => format!("'{}' is declared again here",
+                    field_name.bold(),
+                ),
             N::FieldSet(field_name)
                 => format!("field '{}' is first set here",
                     field_name.bold(),

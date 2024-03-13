@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use super::{Analyser, Declaration};
 use crate::{
@@ -35,7 +35,38 @@ impl<'d> Analyser<'d> {
         let decl = self.declare_data_structure_here(name);
         let id = decl.declared;
 
-        // data structure has already not been declared yet, let's do it now
+        let mut field_spans = HashMap::new();
+        for (field_name, _) in fields.iter() {
+            field_spans
+                .entry(field_name.value.as_str())
+                .and_modify(|prev_span| {
+                    let d = diagnostics::create_diagnostic()
+                        .with_kind(DiagnosticKind::FieldDeclaredMoreThanOnce(
+                            field_name.value.clone(),
+                        ))
+                        .with_span(field_name.span)
+                        .with_severity(Severity::Error)
+                        .annotate_secondary(
+                            Note::FieldDeclared(field_name.value.clone())
+                                .dddot_back()
+                                .num(1),
+                            *prev_span,
+                            NoteSeverity::Annotation,
+                        )
+                        .annotate_primary(
+                            Note::FieldDeclaredAgain(field_name.value.clone())
+                                .then()
+                                .dddot_front()
+                                .num(2),
+                            field_name.span,
+                        )
+                        .highlight(name.span)
+                        .done();
+                    self.diagnostics.push(d);
+                })
+                .or_insert(field_name.span);
+        }
+
         let bound_fields = fields
             .iter()
             .map(|(name, ty)| {

@@ -334,6 +334,10 @@ impl Lang for French {
                 => format!("la structure de données '{}' est infinie sans indirection",
                     name.to_string().bold(),
                 ),
+            K::FieldDeclaredMoreThanOnce(field_name)
+                => format!("le champ '{}' est déclaré plus d'une fois",
+                    field_name.bold(),
+                ),
             K::InvalidDataStructureExpression
                 => "expression de structure de données invalide".to_string(),
             K::UnknownDataStructure(name)
@@ -508,6 +512,14 @@ impl Lang for French {
                 ),
             N::ArrayLength(size)
                 => format!("ceci est un tableau de taille {}", size.to_string().bold()),
+            N::FieldDeclared(field_name)
+                => format!("le champ '{}' est d'abord déclaré ici",
+                    field_name.bold(),
+                ),
+            N::FieldDeclaredAgain(field_name)
+                => format!("'{}' est déclaré à nouveau ici",
+                    field_name.bold(),
+                ),
             N::FieldSet(field_name)
                 => format!("le champ '{}' est d'abord spécifié ici",
                     field_name.bold(),
