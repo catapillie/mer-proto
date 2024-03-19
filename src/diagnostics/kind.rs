@@ -46,6 +46,7 @@ pub enum DiagnosticKind {
         expected: usize,
     },
     InvalidCallee,
+    FunctionRedefinition(String),
 
     UnknownType(String),
     TypeMismatch {
@@ -113,6 +114,7 @@ pub enum DiagnosticKind {
     CaseThenOtherwiseCanBeSimplified,
 
     InfiniteDataStructure(String),
+    DataStructureRedefinition(String),
     FieldDeclaredMoreThanOnce(String),
     InvalidDataStructureExpression,
     UnknownDataStructure(String),

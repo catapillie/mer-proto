@@ -218,6 +218,10 @@ impl Lang for English {
             }
             K::InvalidCallee
                 => "callee is not a function, and cannot be called".to_string(),
+            K::FunctionRedefinition(name)
+                => format!("function '{}' is redefined in the same scope",
+                    name.bold(),
+                ),
             K::UnknownType(id)
                 => format!("unknown type '{}'", id.bold()),
             K::TypeMismatch { found, expected }
@@ -327,6 +331,10 @@ impl Lang for English {
                 => "case-otherwise expression has a unique path and can be simplified".to_string(),
             K::CaseThenOtherwiseCanBeSimplified
                 => "there exists a simpler syntax for case-then-otherwise expressions".to_string(),
+            K::DataStructureRedefinition(name)
+                => format!("data structure '{}' is redefined in the same scope",
+                    name.bold(),
+                ),
             K::InfiniteDataStructure(name)
                 => format!("data structure '{}' is infinite without indirection",
                     name.to_string().bold(),
@@ -402,6 +410,8 @@ impl Lang for English {
                 => format!("but {}", self.note_msg(note)),
             N::So(note)
                 => format!("so {}", self.note_msg(note)),
+            N::And(note)
+                => format!("and {}", self.note_msg(note)),
             N::DDDotFront(note)
                 => format!("...{}", self.note_msg(note)),
             N::DDDotBack(note)
@@ -555,6 +565,18 @@ impl Lang for English {
                 ),
             N::MoreThanOneOtherwisePath
                 => "has more than one otherwise path".to_string(),
+            N::ShadowedFunction(name)
+                => format!("function '{}' is first defined here",
+                    name.bold()
+                ),
+            N::RedefinedFunction
+                => "this is the redefinition".to_string(),
+            N::ShadowedDataStructure(name)
+                => format!("data structure '{}' is first defined here",
+                    name.bold()
+                ),
+            N::RedefinedDataStructure
+                => "this is the redefinition".to_string(),
         }
     }
 }

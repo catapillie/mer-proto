@@ -227,6 +227,10 @@ impl Lang for French {
             }
             K::InvalidCallee
                 => "l'appelé n'est pas une fonction, et ne peut pas être appelé".to_string(),
+            K::FunctionRedefinition(name)
+                => format!("la fonction '{}' est redéfinie dans le même contexte",
+                    name.bold(),
+                ),
             K::UnknownType(id)
                 => format!("type inconnu '{}'", id.bold()),
             K::TypeMismatch { found, expected }
@@ -330,6 +334,10 @@ impl Lang for French {
                 => "l'expression case-otherwise ne contient qu'un unique chemin, et peut être simplifiée".to_string(),
             K::CaseThenOtherwiseCanBeSimplified
                 => "il existe une syntaxe plus simple pour les expressions case-then-otherwise".to_string(),
+            K::DataStructureRedefinition(name)
+                => format!("la structure de données '{}' est redéfinie dans le même contexte",
+                    name.bold(),
+                ),
             K::InfiniteDataStructure(name)
                 => format!("la structure de données '{}' est infinie sans indirection",
                     name.to_string().bold(),
@@ -405,6 +413,8 @@ impl Lang for French {
                 => format!("mais {}", self.note_msg(note)),
             N::So(note)
                 => format!("donc {}", self.note_msg(note)),
+            N::And(note)
+                => format!("et {}", self.note_msg(note)),
             N::DDDotFront(note)
                 => format!("...{}", self.note_msg(note)),
             N::DDDotBack(note)
@@ -563,6 +573,18 @@ impl Lang for French {
                 ),
             N::MoreThanOneOtherwisePath
                 => "contient plus d'un chemin otherwise".to_string(),
+            N::ShadowedFunction(name)
+                => format!("fonction '{}' initialement définie ici",
+                    name.bold()
+                ),
+            N::RedefinedFunction
+                => "ceci est la redéfinition".to_string(),
+            N::ShadowedDataStructure(name)
+                => format!("structure de données '{}' initialement définie ici",
+                    name.bold()
+                ),
+            N::RedefinedDataStructure
+                => "ceci est la redéfinition".to_string(),
         }
     }
 }

@@ -12,4 +12,5 @@ pub struct FunctionInfo {
     pub ty: OptSpanned<Type>,
     pub used_variables: BTreeMap<u64, VariableUsage>,
     pub code: Option<Box<Stmt>>,
+    pub was_analysed: bool,
 }

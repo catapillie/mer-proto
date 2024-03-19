@@ -7,6 +7,7 @@ pub enum Note {
     Then(Box<Note>),
     But(Box<Note>),
     So(Box<Note>),
+    And(Box<Note>),
     DDDotFront(Box<Note>),
     DDDotBack(Box<Note>),
     Quiet,
@@ -52,6 +53,10 @@ pub enum Note {
         inner_right: TypeRepr,
     },
     MoreThanOneOtherwisePath,
+    ShadowedFunction(String),
+    RedefinedFunction,
+    ShadowedDataStructure(String),
+    RedefinedDataStructure,
 }
 
 #[rustfmt::skip]
@@ -70,6 +75,10 @@ impl Note {
 
     pub fn so(self) -> Self {
         Note::So(Box::new(self))
+    }
+
+    pub fn and(self) -> Self {
+        Note::And(Box::new(self))
     }
 
     pub fn dddot_front(self) -> Self {

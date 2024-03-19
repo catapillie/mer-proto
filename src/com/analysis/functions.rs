@@ -2,39 +2,13 @@ use super::Analyser;
 use crate::{
     com::{
         abt::{self, FunctionInfo},
-        analysis::Declaration,
         ast,
     },
     diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
-    utils::{spanned::OptSpanned, Span, Spanned},
+    utils::{Span, Spanned},
 };
 
 impl<'d> Analyser<'d> {
-    pub fn declare_function_here(
-        &mut self,
-        name: OptSpanned<String>,
-        args: Vec<(String, abt::Type)>,
-        ty: OptSpanned<abt::Type>,
-    ) -> Declaration {
-        let declared = self.make_unique_id();
-        let shadowed = self.scope.bindings.insert(name.value.to_string(), declared);
-
-        let info = FunctionInfo {
-            id: declared,
-            name,
-            depth: self.scope.depth,
-            args,
-            arg_ids: Default::default(),
-            ty,
-            used_variables: Default::default(),
-            code: None,
-        };
-        let prev = self.program.functions.insert(declared, info);
-        assert!(prev.is_none(), "ids must be unique");
-
-        Declaration { declared, shadowed }
-    }
-
     pub fn get_function(&self, name: &str) -> Option<&FunctionInfo> {
         self.scope.search(|scope| match scope.bindings.get(name) {
             Some(id) => self.program.functions.get(id),
@@ -53,22 +27,16 @@ impl<'d> Analyser<'d> {
             return abt::StmtKind::Empty;
         };
 
-        let info = match self.get_function(&name.value) {
-            Some(info) => info, // already declared
-            None => {
-                // must be declared now
-                let bound_args = args
-                    .iter()
-                    .map(|(name, ty, _)| (name.clone(), self.analyse_type(ty)))
-                    .collect();
-                let bound_ty = OptSpanned {
-                    value: self.analyse_type(ty),
-                    span: Some(ty.span),
-                };
-                let decl = self.declare_function_here(name.clone().into(), bound_args, bound_ty);
-                self.program.functions.get(&decl.declared).unwrap() // was just declared, cannot be none
-            }
+        let Some(&id) = self.scope.bindings.get(&name.value) else {
+            unreachable!()
         };
+        let info = self.program.functions.get_mut(&id).unwrap();
+
+        // if this is true, then it is an attempt to analyse a function redefinition
+        // which we don't want (an error should have been generated)
+        if info.was_analysed {
+            return abt::StmtKind::Empty;
+        }
 
         assert_eq!(info.args.len(), args.len());
         let bound_args = info.args.clone();
@@ -121,6 +89,7 @@ impl<'d> Analyser<'d> {
             self.diagnostics.push(d);
         }
 
+        self.program.functions.get_mut(&id).unwrap().was_analysed = true;
         abt::StmtKind::Empty
     }
 

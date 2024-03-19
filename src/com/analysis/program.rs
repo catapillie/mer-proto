@@ -28,6 +28,7 @@ impl<'d> Analyser<'d> {
                 },
                 used_variables: Default::default(),
                 code: None,
+                was_analysed: true,
             },
         );
 
