@@ -339,7 +339,7 @@ impl Lang for French {
                     name.bold(),
                 ),
             K::InfiniteDataStructure(name)
-                => format!("la structure de données '{}' est infinie sans indirection",
+                => format!("la structure de données '{}' est de taille infinie (elle se contient elle-même ou un de ses champs est de taille infinie)",
                     name.to_string().bold(),
                 ),
             K::FieldDeclaredMoreThanOnce(field_name)
@@ -555,7 +555,7 @@ impl Lang for French {
                 }
             }
             N::DataInfiniteSize(name)
-                => format!("le type '{}' se contient lui-même sans indirection, et a une taille infinie",
+                => format!("le type '{}' est de taille infinie (dû à un cycle parmis ses champs)",
                     name.to_string().bold(),
                 ),
             N::NotDataStructure(ty)

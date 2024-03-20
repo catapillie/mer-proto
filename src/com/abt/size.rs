@@ -1,4 +1,3 @@
-use itertools::Itertools;
 use std::{
     iter::Sum,
     ops::{Add, Mul},
@@ -67,15 +66,13 @@ impl Mul<usize> for Size {
 
 impl Sum for Size {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-        match iter
-            .filter_map(|size| match size {
-                Self::Known(size) => Some(size),
-                Self::Infinite => None,
-            })
-            .sum1()
-        {
-            Some(size) => Self::Known(size),
-            None => Self::Infinite,
+        let mut size = 0;
+        for s in iter {
+            match s {
+                Size::Known(s) => size += s,
+                Size::Infinite => return Size::Infinite,
+            }
         }
+        Size::Known(size)
     }
 }

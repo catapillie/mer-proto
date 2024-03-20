@@ -5,7 +5,7 @@ use crate::{
         ast,
     },
     diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
-    utils::{Span, Spanned},
+    utils::{OptSpanned, Span, Spanned},
 };
 
 impl<'d> Analyser<'d> {
@@ -16,7 +16,76 @@ impl<'d> Analyser<'d> {
         })
     }
 
+    pub fn analyse_function_header(
+        &mut self,
+        name: &Spanned<String>,
+        ty: &ast::Type,
+    ) -> Option<u64> {
+        if let Some(shadowed) = self.scope.bindings.get(&name.value) {
+            if let Some(info) = self.program.functions.get(shadowed) {
+                let shadowed_span = info.name.span.unwrap();
+                let d = diagnostics::create_diagnostic()
+                    .with_kind(DiagnosticKind::FunctionRedefinition(name.value.clone()))
+                    .with_span(name.span)
+                    .with_severity(Severity::Error)
+                    .annotate_secondary(
+                        Note::ShadowedFunction(name.value.clone())
+                            .dddot_back()
+                            .num(1),
+                        shadowed_span,
+                        NoteSeverity::Annotation,
+                    )
+                    .annotate_primary(
+                        Note::RedefinedFunction.and().dddot_front().num(2),
+                        name.span,
+                    )
+                    .done();
+                self.diagnostics.push(d);
+                return None;
+            }
+        }
+
+        let id = self.make_unique_id();
+        self.scope.bindings.insert(name.value.clone(), id);
+        self.program.functions.insert(
+            id,
+            FunctionInfo {
+                id,
+                name: name.clone().into(),
+                depth: self.scope.depth,
+                args: Vec::new(),
+                arg_ids: Vec::new(),
+                ty: OptSpanned {
+                    value: abt::Type::Unknown,
+                    span: Some(ty.span),
+                },
+                used_variables: Default::default(),
+                code: None,
+                was_analysed: false,
+            },
+        );
+
+        Some(id)
+    }
+
     pub fn analyse_function_definition(
+        &mut self,
+        args: &[(String, ast::Type, Span)],
+        ty: &ast::Type,
+        id: u64,
+    ) {
+        let bound_args = args
+            .iter()
+            .map(|(name, ty, _)| (name.clone(), self.analyse_type(ty)))
+            .collect();
+        let bound_ty = self.analyse_type(ty);
+
+        let info = self.program.functions.get_mut(&id).unwrap();
+        info.args = bound_args;
+        info.ty.value = bound_ty;
+    }
+
+    pub fn analyse_function_body(
         &mut self,
         name: &Option<Spanned<String>>,
         args: &[(String, ast::Type, Span)],

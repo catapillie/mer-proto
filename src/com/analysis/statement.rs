@@ -1,13 +1,10 @@
-use std::collections::HashMap;
-
 use super::Analyser;
 use crate::{
     com::{
-        abt::{self, DataInfo, FunctionInfo, Size},
+        abt::{self},
         ast,
     },
-    diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
-    utils::{OptSpanned, Spanned},
+    diagnostics::{self, DiagnosticKind, Note, Severity},
 };
 
 impl<'d> Analyser<'d> {
@@ -19,7 +16,7 @@ impl<'d> Analyser<'d> {
             ast::StmtKind::DataDef(_, _)
                 => abt::StmtKind::Empty,
             ast::StmtKind::Func(name, args, body, ty)
-                => self.analyse_function_definition(name, args, body, ty),
+                => self.analyse_function_body(name, args, body, ty),
             ast::StmtKind::VarDef(name, value)
                 => self.analyse_variable_definition(name, value),
             ast::StmtKind::Expr(expr)
@@ -74,91 +71,15 @@ impl<'d> Analyser<'d> {
         for stmt in stmts {
             match &stmt.value {
                 ast::StmtKind::Func(Some(name), _, _, ty) => {
-                    if let Some(shadowed) = self.scope.bindings.get(&name.value) {
-                        if let Some(info) = self.program.functions.get(shadowed) {
-                            let shadowed_span = info.name.span.unwrap();
-                            let d = diagnostics::create_diagnostic()
-                                .with_kind(DiagnosticKind::FunctionRedefinition(name.value.clone()))
-                                .with_span(name.span)
-                                .with_severity(Severity::Error)
-                                .annotate_secondary(
-                                    Note::ShadowedFunction(name.value.clone())
-                                        .dddot_back()
-                                        .num(1),
-                                    shadowed_span,
-                                    NoteSeverity::Annotation,
-                                )
-                                .annotate_primary(
-                                    Note::RedefinedFunction.and().dddot_front().num(2),
-                                    name.span,
-                                )
-                                .done();
-                            self.diagnostics.push(d);
-                            continue;
-                        }
+                    match self.analyse_function_header(name, ty) {
+                        None => continue,
+                        Some(id) => funcs.push((id, &stmt.value)),
                     }
-
-                    let id = self.make_unique_id();
-                    self.scope.bindings.insert(name.value.clone(), id);
-                    self.program.functions.insert(
-                        id,
-                        FunctionInfo {
-                            id,
-                            name: name.clone().into(),
-                            depth: self.scope.depth,
-                            args: Vec::new(),
-                            arg_ids: Vec::new(),
-                            ty: OptSpanned {
-                                value: abt::Type::Unknown,
-                                span: Some(ty.span),
-                            },
-                            used_variables: Default::default(),
-                            code: None,
-                            was_analysed: false,
-                        },
-                    );
-                    funcs.push((id, &stmt.value))
                 }
-                ast::StmtKind::DataDef(name, _) => {
-                    if let Some(shadowed) = self.scope.bindings.get(&name.value) {
-                        if let Some(info) = self.program.datas.get(shadowed) {
-                            let shadowed_span = info.name.span;
-                            let d = diagnostics::create_diagnostic()
-                                .with_kind(DiagnosticKind::DataStructureRedefinition(
-                                    name.value.clone(),
-                                ))
-                                .with_span(name.span)
-                                .with_severity(Severity::Error)
-                                .annotate_secondary(
-                                    Note::ShadowedDataStructure(name.value.clone())
-                                        .dddot_back()
-                                        .num(1),
-                                    shadowed_span,
-                                    NoteSeverity::Annotation,
-                                )
-                                .annotate_primary(
-                                    Note::RedefinedDataStructure.and().dddot_front().num(2),
-                                    name.span,
-                                )
-                                .done();
-                            self.diagnostics.push(d);
-                            continue;
-                        }
-                    }
-
-                    let id = self.make_unique_id();
-                    self.scope.bindings.insert(name.value.clone(), id);
-                    self.program.datas.insert(
-                        id,
-                        DataInfo {
-                            name: name.clone(),
-                            id,
-                            fields: Vec::new(),
-                            size: Size::Infinite,
-                        },
-                    );
-                    datas.push((id, &stmt.value))
-                }
+                ast::StmtKind::DataDef(name, _) => match self.analyse_data_structure_header(name) {
+                    None => continue,
+                    Some(id) => datas.push((id, &stmt.value)),
+                },
                 _ => (),
             }
         }
@@ -167,70 +88,17 @@ impl<'d> Analyser<'d> {
             let ast::StmtKind::DataDef(name, fields) = stmt else {
                 unreachable!();
             };
-
-            let mut field_spans = HashMap::new();
-            for (field_name, _) in fields.iter() {
-                field_spans
-                    .entry(field_name.value.as_str())
-                    .and_modify(|prev_span| {
-                        let d = diagnostics::create_diagnostic()
-                            .with_kind(DiagnosticKind::FieldDeclaredMoreThanOnce(
-                                field_name.value.clone(),
-                            ))
-                            .with_span(field_name.span)
-                            .with_severity(Severity::Error)
-                            .annotate_secondary(
-                                Note::FieldDeclared(field_name.value.clone())
-                                    .dddot_back()
-                                    .num(1),
-                                *prev_span,
-                                NoteSeverity::Annotation,
-                            )
-                            .annotate_primary(
-                                Note::FieldDeclaredAgain(field_name.value.clone())
-                                    .then()
-                                    .dddot_front()
-                                    .num(2),
-                                field_name.span,
-                            )
-                            .highlight(name.span)
-                            .done();
-                        self.diagnostics.push(d);
-                    })
-                    .or_insert(field_name.span);
-            }
-
-            let bound_fields = fields
-                .iter()
-                .map(|(name, ty)| {
-                    (
-                        name.clone(),
-                        Spanned {
-                            value: self.analyse_type(ty),
-                            span: ty.span,
-                        },
-                    )
-                })
-                .collect::<Vec<_>>();
-
-            let info = self.program.datas.get_mut(id).unwrap();
-            info.fields = bound_fields;
+            self.analyse_data_structure_definition(name, fields, *id);
         }
+
+        let data_ids = datas.iter().map(|(id, _)| *id).collect::<Box<_>>();
+        self.analyse_data_structure_sizes(&data_ids);
 
         for (id, stmt) in &funcs {
             let ast::StmtKind::Func(Some(_), args, _, ty) = stmt else {
                 unreachable!()
             };
-
-            let bound_args = args
-                .iter()
-                .map(|(name, ty, _)| (name.clone(), self.analyse_type(ty)))
-                .collect();
-            let bound_ty = self.analyse_type(ty);
-
-            let info = self.program.functions.get_mut(id).unwrap();
-            info.args = bound_args;
-            info.ty.value = bound_ty;
+            self.analyse_function_definition(args, ty, *id);
         }
     }
 

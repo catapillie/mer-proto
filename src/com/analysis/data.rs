@@ -1,10 +1,10 @@
 use itertools::Itertools;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use super::Analyser;
 use crate::{
     com::{
-        abt::{self, DataInfo},
+        abt::{self, DataInfo, Size},
         ast,
     },
     diagnostics::{self, DiagnosticKind, DiagnosticList, Note, NoteSeverity, Severity},
@@ -17,6 +17,151 @@ impl<'d> Analyser<'d> {
             Some(id) => self.program.datas.get(id),
             None => None,
         })
+    }
+
+    pub fn analyse_data_structure_header(&mut self, name: &Spanned<String>) -> Option<u64> {
+        if let Some(shadowed) = self.scope.bindings.get(&name.value) {
+            if let Some(info) = self.program.datas.get(shadowed) {
+                let shadowed_span = info.name.span;
+                let d = diagnostics::create_diagnostic()
+                    .with_kind(DiagnosticKind::DataStructureRedefinition(
+                        name.value.clone(),
+                    ))
+                    .with_span(name.span)
+                    .with_severity(Severity::Error)
+                    .annotate_secondary(
+                        Note::ShadowedDataStructure(name.value.clone())
+                            .dddot_back()
+                            .num(1),
+                        shadowed_span,
+                        NoteSeverity::Annotation,
+                    )
+                    .annotate_primary(
+                        Note::RedefinedDataStructure.and().dddot_front().num(2),
+                        name.span,
+                    )
+                    .done();
+                self.diagnostics.push(d);
+                return None;
+            }
+        }
+
+        let id = self.make_unique_id();
+        self.scope.bindings.insert(name.value.clone(), id);
+        self.program.datas.insert(
+            id,
+            DataInfo {
+                name: name.clone(),
+                id,
+                fields: Vec::new(),
+                size: Size::Infinite,
+            },
+        );
+
+        Some(id)
+    }
+
+    pub fn analyse_data_structure_definition(
+        &mut self,
+        name: &Spanned<String>,
+        fields: &[(Spanned<String>, ast::Type)],
+        id: u64,
+    ) {
+        let mut field_spans = HashMap::new();
+        for (field_name, _) in fields.iter() {
+            field_spans
+                .entry(field_name.value.as_str())
+                .and_modify(|prev_span| {
+                    let d = diagnostics::create_diagnostic()
+                        .with_kind(DiagnosticKind::FieldDeclaredMoreThanOnce(
+                            field_name.value.clone(),
+                        ))
+                        .with_span(field_name.span)
+                        .with_severity(Severity::Error)
+                        .annotate_secondary(
+                            Note::FieldDeclared(field_name.value.clone())
+                                .dddot_back()
+                                .num(1),
+                            *prev_span,
+                            NoteSeverity::Annotation,
+                        )
+                        .annotate_primary(
+                            Note::FieldDeclaredAgain(field_name.value.clone())
+                                .then()
+                                .dddot_front()
+                                .num(2),
+                            field_name.span,
+                        )
+                        .highlight(name.span)
+                        .done();
+                    self.diagnostics.push(d);
+                })
+                .or_insert(field_name.span);
+        }
+
+        let bound_fields = fields
+            .iter()
+            .map(|(name, ty)| {
+                (
+                    name.clone(),
+                    Spanned {
+                        value: self.analyse_type(ty),
+                        span: ty.span,
+                    },
+                )
+            })
+            .collect::<Vec<_>>();
+
+        let info = self.program.datas.get_mut(&id).unwrap();
+        info.fields = bound_fields;
+    }
+
+    pub fn analyse_data_structure_sizes(&mut self, data_ids: &[u64]) {
+        let mut map = HashMap::new();
+
+        for &id in data_ids.iter() {
+            let size = self.calculate_ty_size(&mut map, &abt::Type::Data(id));
+            let info = self.program.datas.get_mut(&id).unwrap();
+            match size {
+                Size::Known(_) => info.size = size,
+                Size::Infinite => {
+                    let d = diagnostics::create_diagnostic()
+                        .with_kind(DiagnosticKind::InfiniteDataStructure(
+                            info.name.value.clone(),
+                        ))
+                        .with_span(info.name.span)
+                        .with_severity(Severity::Error)
+                        .annotate_primary(
+                            Note::DataInfiniteSize(info.name.value.clone()),
+                            info.name.span,
+                        )
+                        .done();
+                    self.diagnostics.push(d);
+                }
+            }
+        }
+    }
+
+    fn calculate_ty_size(&self, map: &mut HashMap<u64, Option<Size>>, ty: &abt::Type) -> Size {
+        let abt::Type::Data(id) = ty else {
+            return self.program.size_of(ty);
+        };
+
+        match map.get(id) {
+            Some(Some(size)) => *size,
+            Some(None) => Size::Infinite,
+            None => {
+                map.insert(*id, None);
+                let info = self.program.datas.get(id).unwrap();
+                let size = info
+                    .fields
+                    .iter()
+                    .map(|(_, ty)| self.calculate_ty_size(map, &ty.value))
+                    .sum::<Size>();
+                map.insert(*id, Some(size));
+                size
+            }
+        }
     }
 
     pub fn analyse_data_init_expression(
