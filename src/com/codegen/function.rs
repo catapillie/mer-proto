@@ -12,12 +12,12 @@ impl Codegen {
         let param_count: u8 = info
             .arg_ids
             .iter()
-            .map(|id| abt.size_of(&abt.variables.get(id).unwrap().ty) as u8)
+            .map(|id| abt.size_of(&abt.variables.get(id).unwrap().ty).unwrap() as u8)
             .sum();
         let local_count: u8 = info
             .used_variables
             .keys()
-            .map(|id| abt.size_of(&abt.variables.get(id).unwrap().ty) as u8)
+            .map(|id| abt.size_of(&abt.variables.get(id).unwrap().ty).unwrap() as u8)
             .sum();
         let opcode = Opcode::function(info.name.value.clone(), param_count, local_count);
         binary::write_opcode(&mut self.cursor, &opcode)?;
@@ -25,7 +25,7 @@ impl Codegen {
         self.current_locals.clear();
         for (&id, _) in info.used_variables.iter() {
             let storage = Self::size_of_var_storage(id, abt) as u8;
-            let param_size = abt.size_of(&abt.variables.get(&id).unwrap().ty) as u8;
+            let param_size = abt.size_of(&abt.variables.get(&id).unwrap().ty).unwrap() as u8;
             self.current_locals.insert(
                 id,
                 Loc {
@@ -46,7 +46,7 @@ impl Codegen {
         for arg_id in &info.arg_ids {
             let is_on_heap = abt.variables[arg_id].is_on_heap;
             if is_on_heap {
-                let size = abt.size_of(&abt.variables.get(arg_id).unwrap().ty) as u8;
+                let size = abt.size_of(&abt.variables.get(arg_id).unwrap().ty).unwrap() as u8;
                 if size == 1 {
                     binary::write_opcode(
                         &mut self.cursor,

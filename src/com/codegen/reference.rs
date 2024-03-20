@@ -46,9 +46,9 @@ impl Codegen {
                 let offset = if *index == 0 {
                     0
                 } else {
-                    let mut offset = abt.size_of(head) as u8;
+                    let mut offset = abt.size_of(head).unwrap() as u8;
                     for ty in &tail[..(index - 1)] {
-                        offset += abt.size_of(ty) as u8;
+                        offset += abt.size_of(ty).unwrap() as u8;
                     }
                     offset
                 };
@@ -64,7 +64,7 @@ impl Codegen {
                 let Type::Array(inner_ty, _) = array_ty else {
                     unreachable!()
                 };
-                let offset = abt.size_of(inner_ty) * index;
+                let offset = abt.size_of(inner_ty).unwrap() * index;
 
                 self.gen_lvalue_address(inner, var_id, abt)?;
                 if offset != 0 {
@@ -80,7 +80,7 @@ impl Codegen {
 
                 self.gen_lvalue_address(a, var_id, abt)?;
                 self.gen_expression(index_expr, abt)?;
-                let inner_size = abt.size_of(inner_ty);
+                let inner_size = abt.size_of(inner_ty).unwrap();
                 if inner_size > 1 {
                     binary::write_opcode(&mut self.cursor, &Opcode::ld_u64(inner_size as u64))?;
                     binary::write_opcode(&mut self.cursor, &Opcode::mul(NativeType::u64))?;
@@ -98,7 +98,7 @@ impl Codegen {
 
                 self.gen_lvalue_address(inner, var_id, abt)?;
                 binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?;
-                let inner_size = abt.size_of(inner_ty);
+                let inner_size = abt.size_of(inner_ty).unwrap();
                 self.gen_expression(index_expr, abt)?;
                 binary::write_opcode(&mut self.cursor, &Opcode::ld_u64(8 * inner_size as u64))?;
                 binary::write_opcode(&mut self.cursor, &Opcode::mul(NativeType::u64))?;
@@ -112,7 +112,7 @@ impl Codegen {
                     .fields
                     .iter()
                     .take(*field_id)
-                    .map(|(_, ty)| abt.size_of(&ty.value))
+                    .map(|(_, ty)| abt.size_of(&ty.value).unwrap())
                     .sum::<usize>();
                 self.gen_lvalue_address(inner, var_id, abt)?;
                 binary::write_opcode(&mut self.cursor, &Opcode::ld_u64(8 * field_offset as u64))?;

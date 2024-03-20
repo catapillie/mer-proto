@@ -1,7 +1,7 @@
 use super::Analyser;
 use crate::{
     com::{
-        abt::{self, FunctionInfo},
+        abt::{self, FunctionInfo, Size},
         ast,
     },
     diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
@@ -75,18 +75,19 @@ impl<'d> Analyser<'d> {
         let info = self.program.functions.get_mut(&id).unwrap();
         info.code = Some(Box::new(bound_body));
 
-        let var_count = self.count_all_variable_sizes(id);
-        if var_count > 255 {
-            let d = diagnostics::create_diagnostic()
-                .with_kind(DiagnosticKind::TooManyVariables(
-                    name.value.clone(),
-                    var_count,
-                ))
-                .with_severity(Severity::Error)
-                .with_span(name.span)
-                .annotate_primary(Note::FunctionVariableCount(var_count), name.span)
-                .done();
-            self.diagnostics.push(d);
+        if let Size::Known(var_count) = self.count_all_variable_sizes(id) {
+            if var_count > 255 {
+                let d = diagnostics::create_diagnostic()
+                    .with_kind(DiagnosticKind::TooManyVariables(
+                        name.value.clone(),
+                        var_count,
+                    ))
+                    .with_severity(Severity::Error)
+                    .with_span(name.span)
+                    .annotate_primary(Note::FunctionVariableCount(var_count), name.span)
+                    .done();
+                self.diagnostics.push(d);
+            }
         }
 
         self.program.functions.get_mut(&id).unwrap().was_analysed = true;
@@ -391,7 +392,7 @@ impl<'d> Analyser<'d> {
         }
     }
 
-    pub fn count_all_variable_sizes(&mut self, func_id: u64) -> usize {
+    pub fn count_all_variable_sizes(&mut self, func_id: u64) -> Size {
         self.program
             .functions
             .get(&func_id)
@@ -400,6 +401,6 @@ impl<'d> Analyser<'d> {
             .keys()
             .map(|var_id| self.program.variables.get(var_id).unwrap())
             .map(|var_info| self.program.size_of(&var_info.ty))
-            .sum::<usize>()
+            .sum::<Size>()
     }
 }

@@ -23,7 +23,7 @@ impl Codegen {
         abt: &Program,
     ) -> io::Result<Value> {
         // write right-hand side
-        let size = abt.size_of(&abt.type_of(expr)) as u8;
+        let size = abt.size_of(&abt.type_of(expr)).unwrap() as u8;
         self.gen_expression(expr, abt)?;
         match size {
             1 => binary::write_opcode(&mut self.cursor, &Opcode::dup)?,
@@ -89,9 +89,9 @@ impl Codegen {
                 let offset = if *index == 0 {
                     0
                 } else {
-                    let mut offset = abt.size_of(head) as u8;
+                    let mut offset = abt.size_of(head).unwrap() as u8;
                     for ty in &tail[..(index - 1)] {
-                        offset += abt.size_of(ty) as u8;
+                        offset += abt.size_of(ty).unwrap() as u8;
                     }
                     offset
                 };
@@ -120,7 +120,7 @@ impl Codegen {
                 let Type::Array(inner, _) = ty else {
                     unreachable!()
                 };
-                let offset = abt.size_of(inner) * index;
+                let offset = abt.size_of(inner).unwrap() * index;
                 match assignment {
                     Lhs::Local(loc) => Ok(Lhs::Local(loc + offset as u8)),
                     Lhs::UnknownLocal => {
@@ -148,7 +148,7 @@ impl Codegen {
 
                 // gen index
                 self.gen_expression(index_expr, abt)?;
-                let inner_size = abt.size_of(inner);
+                let inner_size = abt.size_of(inner).unwrap();
                 if inner_size > 1 {
                     binary::write_opcode(&mut self.cursor, &Opcode::ld_u64(inner_size as u64))?;
                     binary::write_opcode(&mut self.cursor, &Opcode::mul(NativeType::u64))?;
@@ -189,7 +189,7 @@ impl Codegen {
                 }
 
                 // gen index
-                let inner_size = abt.size_of(inner);
+                let inner_size = abt.size_of(inner).unwrap();
                 self.gen_expression(index_expr, abt)?;
                 binary::write_opcode(&mut self.cursor, &Opcode::ld_u64(8 * inner_size as u64))?;
                 binary::write_opcode(&mut self.cursor, &Opcode::mul(NativeType::u64))?;
@@ -205,7 +205,7 @@ impl Codegen {
                     .fields
                     .iter()
                     .take(*field_id)
-                    .map(|(_, ty)| abt.size_of(&ty.value))
+                    .map(|(_, ty)| abt.size_of(&ty.value).unwrap())
                     .sum::<usize>();
 
                 match assignment {

@@ -43,7 +43,7 @@ impl Codegen {
     }
 
     fn gen_expression_statement(&mut self, expr: &Expr, abt: &Program) -> io::Result<()> {
-        let size = abt.size_of(&abt.type_of(expr)) as u8;
+        let size = abt.size_of(&abt.type_of(expr)).unwrap() as u8;
         self.gen_expression(expr, abt)?;
         match size {
             1 => binary::write_opcode(&mut self.cursor, &Opcode::pop)?,
@@ -61,7 +61,7 @@ impl Codegen {
 
         // if variable is heap-allocated, allocate the value on the heap, keep the address
         if info.is_on_heap {
-            let size = abt.size_of(&info.ty) as u8;
+            let size = abt.size_of(&info.ty).unwrap() as u8;
             match size {
                 1 => binary::write_opcode(&mut self.cursor, &Opcode::alloc)?,
                 _ => binary::write_opcode(&mut self.cursor, &Opcode::alloc_n(size))?,

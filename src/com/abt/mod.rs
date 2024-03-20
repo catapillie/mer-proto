@@ -4,6 +4,7 @@ pub mod expr;
 pub mod function;
 pub mod lvalue;
 pub mod program;
+pub mod size;
 pub mod stmt;
 pub mod types;
 pub mod un_op;
@@ -13,6 +14,7 @@ pub use program::Program;
 
 pub use expr::Expr;
 pub use lvalue::LValue;
+pub use size::Size;
 pub use stmt::{Stmt, StmtKind};
 pub use types::Type;
 

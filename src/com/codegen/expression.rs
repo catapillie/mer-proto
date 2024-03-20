@@ -20,7 +20,7 @@ pub enum Value {
 impl Codegen {
     pub fn gen_expression(&mut self, expr: &Expr, abt: &Program) -> io::Result<()> {
         let ty = abt.type_of(expr);
-        let size = abt.size_of(&ty);
+        let size = abt.size_of(&ty).unwrap();
         match self.gen_value(expr, abt)? {
             Value::Done => Ok(()),
             Value::Local(loc) => match size {
@@ -162,19 +162,19 @@ impl Codegen {
         abt: &Program,
     ) -> io::Result<Value> {
         let tuple_ty = abt.type_of(tuple);
-        let total_size = abt.size_of(&tuple_ty) as u8;
+        let total_size = abt.size_of(&tuple_ty).unwrap() as u8;
         let Type::Tuple(head, tail) = tuple_ty else {
             unreachable!()
         };
 
         let (offset, size) = match index {
-            0 => (0, abt.size_of(&head) as u8),
+            0 => (0, abt.size_of(&head).unwrap() as u8),
             _ => {
-                let mut offset = abt.size_of(&head) as u8;
+                let mut offset = abt.size_of(&head).unwrap() as u8;
                 for ty in &tail[..(index - 1)] {
-                    offset += abt.size_of(ty) as u8;
+                    offset += abt.size_of(ty).unwrap() as u8;
                 }
-                (offset, abt.size_of(&tail[index - 1]) as u8)
+                (offset, abt.size_of(&tail[index - 1]).unwrap() as u8)
             }
         };
 
@@ -214,12 +214,12 @@ impl Codegen {
         abt: &Program,
     ) -> io::Result<Value> {
         let array_ty = abt.type_of(array);
-        let total_size = abt.size_of(&array_ty) as u8;
+        let total_size = abt.size_of(&array_ty).unwrap() as u8;
         let Type::Array(inner_ty, _) = array_ty else {
             unreachable!()
         };
 
-        let size = abt.size_of(&inner_ty) as u8;
+        let size = abt.size_of(&inner_ty).unwrap() as u8;
         let offset = *index as u8 * size;
 
         let value = self.gen_value(array, abt)?;
@@ -251,12 +251,12 @@ impl Codegen {
         abt: &Program,
     ) -> io::Result<Value> {
         let array_ty = abt.type_of(array);
-        let total_size = abt.size_of(&array_ty) as u8;
+        let total_size = abt.size_of(&array_ty).unwrap() as u8;
         let Type::Array(inner_ty, _) = array_ty else {
             unreachable!()
         };
 
-        let size = abt.size_of(&inner_ty) as u8;
+        let size = abt.size_of(&inner_ty).unwrap() as u8;
         let value = self.gen_value(array, abt)?;
 
         self.gen_expression(index, abt)?;
@@ -309,7 +309,7 @@ impl Codegen {
             Value::Address => binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?,
         }
 
-        let size = abt.size_of(&inner_ty) as u8;
+        let size = abt.size_of(&inner_ty).unwrap() as u8;
         self.gen_expression(index, abt)?;
         binary::write_opcode(&mut self.cursor, &Opcode::ld_u64(8 * size as u64))?;
         binary::write_opcode(&mut self.cursor, &Opcode::mul(NativeType::u64))?;
@@ -351,7 +351,7 @@ impl Codegen {
 
     fn gen_heap_expression(&mut self, expr: &Expr, abt: &Program) -> io::Result<Value> {
         self.gen_expression(expr, abt)?;
-        let size = abt.size_of(&abt.type_of(expr)) as u8;
+        let size = abt.size_of(&abt.type_of(expr)).unwrap() as u8;
         match size {
             1 => binary::write_opcode(&mut self.cursor, &Opcode::alloc)?,
             _ => binary::write_opcode(&mut self.cursor, &Opcode::alloc_n(size))?,
@@ -379,7 +379,7 @@ impl Codegen {
         abt: &Program,
     ) -> io::Result<Value> {
         let data_ty = abt.type_of(expr);
-        let total_size = abt.size_of(&data_ty);
+        let total_size = abt.size_of(&data_ty).unwrap();
         let data_info = abt.datas.get(&data_id).unwrap();
 
         self.gen_expression(expr, abt)?;
@@ -388,11 +388,11 @@ impl Codegen {
         let mut field_index = 0;
         for (field_id, field_expr) in fields.iter() {
             while field_index < *field_id {
-                offset += abt.size_of(&data_info.fields[field_index].1.value);
+                offset += abt.size_of(&data_info.fields[field_index].1.value).unwrap();
                 field_index += 1;
             }
             let field_ty = &data_info.fields[*field_id].1.value;
-            let field_size = abt.size_of(field_ty);
+            let field_size = abt.size_of(field_ty).unwrap();
 
             self.gen_expression(field_expr, abt)?;
             binary::write_opcode(
@@ -415,13 +415,13 @@ impl Codegen {
         abt: &Program,
     ) -> io::Result<Value> {
         let info = abt.datas.get(&data_id).unwrap();
-        let data_size = abt.size_of(&abt.type_of(expr));
-        let field_size = abt.size_of(&info.fields[field_id].1.value);
+        let data_size = abt.size_of(&abt.type_of(expr)).unwrap();
+        let field_size = abt.size_of(&info.fields[field_id].1.value).unwrap();
         let field_offset = info
             .fields
             .iter()
             .take(field_id)
-            .map(|(_, ty)| abt.size_of(&ty.value))
+            .map(|(_, ty)| abt.size_of(&ty.value).unwrap())
             .sum::<usize>();
 
         let value = self.gen_value(expr, abt)?;
@@ -544,7 +544,7 @@ impl Codegen {
         self.gen_expression(size_expr, abt)?;
         binary::write_opcode(&mut self.cursor, &Opcode::dup)?;
 
-        let size = abt.size_of(ty);
+        let size = abt.size_of(ty).unwrap();
         if size != 1 {
             binary::write_opcode(&mut self.cursor, &Opcode::ld_u64(size as u64))?;
             binary::write_opcode(&mut self.cursor, &Opcode::mul(NativeType::u64))?;

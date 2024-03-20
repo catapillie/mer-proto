@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use super::{DataInfo, Expr, FunctionInfo, Type, VariableInfo};
+use super::{DataInfo, Expr, FunctionInfo, Size, Type, VariableInfo};
 use crate::diagnostics::TypeRepr;
 
 pub struct Program {
@@ -133,30 +133,30 @@ impl Program {
     }
 
     #[rustfmt::skip]
-    pub fn size_of(&self, ty: &Type) -> usize {
+    pub fn size_of(&self, ty: &Type) -> Size {
         use Type as Ty;
         match ty {
-            Ty::Unknown => 1,
-            Ty::Never => 1,
-            Ty::Unit => 1,
-            Ty::U8 => 1,
-            Ty::U16 => 1,
-            Ty::U32 => 1,
-            Ty::U64 => 1,
-            Ty::I8 => 1,
-            Ty::I16 => 1,
-            Ty::I32 => 1,
-            Ty::I64 => 1,
-            Ty::F32 => 1,
-            Ty::F64 => 1,
-            Ty::Bool => 1,
-            Ty::Ref(_) => 1,
-            Ty::Func(_, _) => 1,
-            Ty::Pointer(_) => 2,
+            Ty::Unknown => Size::Known(1),
+            Ty::Never => Size::Known(1),
+            Ty::Unit => Size::Known(1),
+            Ty::U8 => Size::Known(1),
+            Ty::U16 => Size::Known(1),
+            Ty::U32 => Size::Known(1),
+            Ty::U64 => Size::Known(1),
+            Ty::I8 => Size::Known(1),
+            Ty::I16 => Size::Known(1),
+            Ty::I32 => Size::Known(1),
+            Ty::I64 => Size::Known(1),
+            Ty::F32 => Size::Known(1),
+            Ty::F64 => Size::Known(1),
+            Ty::Bool => Size::Known(1),
+            Ty::Ref(_) => Size::Known(1),
+            Ty::Func(_, _) => Size::Known(1),
+            Ty::Pointer(_) => Size::Known(2),
             Ty::Tuple(head, tail)
-                => self.size_of(head) + tail.iter().map(|ty| self.size_of(ty)).sum::<usize>(),
+                => self.size_of(head) + tail.iter().map(|ty| self.size_of(ty)).sum::<Size>(),
             Ty::Array(ty, size)
-                => self.size_of(ty) * size,
+                => self.size_of(ty) * *size,
             Ty::Data(id)
                 => self.datas.get(id).unwrap().size,
         }

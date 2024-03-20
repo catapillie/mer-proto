@@ -1,7 +1,7 @@
 use super::Analyser;
 use crate::{
     com::{
-        abt::{self, FunctionInfo},
+        abt::{self, FunctionInfo, Size},
         ast,
     },
     diagnostics::{self, DiagnosticKind, Severity},
@@ -45,14 +45,15 @@ impl<'d> Analyser<'d> {
         let info = self.program.functions.get_mut(&main_fn_id).unwrap();
         info.code = Some(Box::new(abt));
 
-        let var_count = self.count_all_variable_sizes(main_fn_id);
-        if var_count > 255 {
-            let d = diagnostics::create_diagnostic()
-                .with_kind(DiagnosticKind::TooManyTopLevelVariables(var_count))
-                .with_severity(Severity::Error)
-                .without_span()
-                .done();
-            self.diagnostics.push(d);
+        if let Size::Known(var_count) = self.count_all_variable_sizes(main_fn_id) {
+            if var_count > 255 {
+                let d = diagnostics::create_diagnostic()
+                    .with_kind(DiagnosticKind::TooManyTopLevelVariables(var_count))
+                    .with_severity(Severity::Error)
+                    .without_span()
+                    .done();
+                self.diagnostics.push(d);
+            }
         }
 
         self.analyse_function_variable_usage();

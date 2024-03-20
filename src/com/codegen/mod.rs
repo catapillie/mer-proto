@@ -65,7 +65,7 @@ impl Codegen {
         if info.is_on_heap {
             1
         } else {
-            abt.size_of(&info.ty)
+            abt.size_of(&info.ty).unwrap()
         }
     }
 

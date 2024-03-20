@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use super::Analyser;
 use crate::{
     com::{
-        abt::{self, DataInfo, FunctionInfo},
+        abt::{self, DataInfo, FunctionInfo, Size},
         ast,
     },
     diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
@@ -154,7 +154,7 @@ impl<'d> Analyser<'d> {
                             name: name.clone(),
                             id,
                             fields: Vec::new(),
-                            size: 0,
+                            size: Size::Infinite,
                         },
                     );
                     datas.push((id, &stmt.value))
