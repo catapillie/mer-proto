@@ -1,9 +1,9 @@
-data Inner
+type Inner
 {
     x: bool
     y: &[5]i64
 }
-data Struct
+type Struct
 {
     a: i64
     b: (f64, f64)

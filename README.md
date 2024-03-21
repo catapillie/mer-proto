@@ -147,7 +147,7 @@ return
 
 #### Data structures
 ```swift
-data Person {
+type Person {
     name: [&]u8
     age: i64
     height: f64
@@ -751,7 +751,7 @@ The type of a field access is the type of the field declared in the data structu
 #### Data structure with-expression
 `with`-expressions allow you to copy a data structure and to re-specify a set of given fields. This is essentially sugar syntax, and is very similar to the one for [data structure initialization](#data-structure-initialization).
 ```cs
-data Abc {
+type Abc {
     a: i64
     b: (bool, bool)
     c: f64
@@ -1114,14 +1114,13 @@ func okay() -> i64
 Note that the program itself acts like a function body, and must return unit. This way, `return` statements are valid anywhere, even in the top scope of the program (which is the "main" function is disguise).
 
 #### Data structure definition
-Data structure allow you to pack together values of various type into a single structure with a proper name. The general syntax uses the `data` keyword, and goes like so:
+Data structure allow you to pack together values of various type into a single structure with a proper name. The general syntax uses the `type` keyword, and goes like so:
 ```swift
-data StructName
+type StructName
 {
     field_1: ty_1
     field_2: ty_2
     ...
-    
     field_n: ty_n
 }
 ```

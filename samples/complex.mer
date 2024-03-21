@@ -1,4 +1,4 @@
-data Complex {
+type Complex {
     re: f64
     im: f64
 }

@@ -1,4 +1,4 @@
-data List
+type List
 {
     ptr: [&]i64
     len: i64

@@ -1,4 +1,4 @@
-data Xyz {
+type Xyz {
     x: (f64, f64)
     y: bool
     z: [4]u8

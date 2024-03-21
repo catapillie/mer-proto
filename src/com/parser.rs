@@ -75,7 +75,7 @@ impl<'a> Parser<'a> {
 
     fn is_start_of_statement(&self) -> bool {
         match self.look_ahead() {
-            Token::DataKw(_, _)
+            Token::TypeKw(_, _)
             | Token::VarKw(_, _)
             | Token::LeftBrace(_, _)
             | Token::IfKw(_, _)
@@ -119,7 +119,7 @@ impl<'a> Parser<'a> {
 
     fn parse_data_definition(&mut self) -> Option<Stmt> {
         let (stmt, span) = take_span!(self => {
-            self.try_match_token::<DataKw>()?;
+            self.try_match_token::<TypeKw>()?;
 
             let name = self.match_token::<Identifier>().map(|id| Spanned {
                 value: id.0,
@@ -1384,7 +1384,7 @@ impl<'a> Parser<'a> {
                     "xor" => XorKw.wrap(span),
                     "not" => NotKw.wrap(span),
                     "case" => CaseKw.wrap(span),
-                    "data" => DataKw.wrap(span),
+                    "type" => TypeKw.wrap(span),
                     "otherwise" => OtherwiseKw.wrap(span),
                     "with" => WithKw.wrap(span),
                     "alloc" => AllocKw.wrap(span),

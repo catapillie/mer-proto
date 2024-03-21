@@ -1,4 +1,4 @@
-data Abc {
+type Abc {
     a: i64
     b: f64
     c: bool
