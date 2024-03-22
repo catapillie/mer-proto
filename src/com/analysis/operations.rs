@@ -74,7 +74,7 @@ impl<'d> Analyser<'d> {
 
         if ty_left == ty_right {
             use abt::Type as Ty;
-            let ty = ty_left.clone();
+            let ty = self.program.dealias_type(&ty_left).clone();
             let bound_op = match ty {
                 Ty::U8 => Self::integer_binary_operation(op, ty),
                 Ty::U16 => Self::integer_binary_operation(op, ty),
