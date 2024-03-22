@@ -2,7 +2,7 @@ use super::Analyser;
 use crate::{
     com::{
         abt::{self, FunctionInfo, Size},
-        ast,
+        ast::{self, stmt::FuncDef},
     },
     diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
     utils::{OptSpanned, Span, Spanned},
@@ -85,14 +85,8 @@ impl<'d> Analyser<'d> {
         info.ty.value = bound_ty;
     }
 
-    pub fn analyse_function_body(
-        &mut self,
-        name: &Option<Spanned<String>>,
-        args: &[(String, ast::Type, Span)],
-        body: &ast::Stmt,
-        ty: &ast::Type,
-    ) -> abt::StmtKind {
-        let Some(name) = name else {
+    pub fn analyse_function_body(&mut self, ast: &FuncDef) -> abt::StmtKind {
+        let Some(name) = &ast.name else {
             return abt::StmtKind::Empty;
         };
 
@@ -107,9 +101,11 @@ impl<'d> Analyser<'d> {
             return abt::StmtKind::Empty;
         }
 
-        assert_eq!(info.args.len(), args.len());
+        assert_eq!(info.args.len(), ast.args.len());
         let bound_args = info.args.clone();
-        let bound_spanned_args = bound_args.iter().zip(args.iter().map(|(_, _, span)| span));
+        let bound_spanned_args = bound_args
+            .iter()
+            .zip(ast.args.iter().map(|(_, _, span)| span));
         let id = info.id;
 
         self.open_scope();
@@ -128,13 +124,13 @@ impl<'d> Analyser<'d> {
                 .arg_ids
                 .push(decl.declared)
         }
-        let bound_body = self.analyse_statement(body);
+        let bound_body = self.analyse_statement(&ast.body);
         if !self.analyse_control_flow(&bound_body) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::NotAllPathsReturn)
                 .with_severity(Severity::Error)
-                .with_span(ty.span)
-                .annotate_primary(Note::Quiet, ty.span)
+                .with_span(ast.ty.span)
+                .annotate_primary(Note::Quiet, ast.ty.span)
                 .done();
             self.diagnostics.push(d);
         }

@@ -1,4 +1,4 @@
-use self::stmt::{DataDef, VarDef};
+use self::stmt::{DataDef, FuncDef, VarDef};
 
 use super::{ast::*, tokens::*};
 use crate::{
@@ -326,7 +326,12 @@ impl<'a> Parser<'a> {
                 let span = expr.span;
                 let body = StmtKind::ReturnWith(Box::new(expr)).wrap(span);
 
-                return Some(StmtKind::Func(name, params.into(), Box::new(body), Box::new(ty)));
+                return Some(StmtKind::FuncDef(FuncDef {
+                    name,
+                    args: params.into(),
+                    ty: Box::new(ty),
+                    body: Box::new(body),
+                }));
             }
 
             let stmt = match self.parse_block_statement() {
@@ -343,7 +348,12 @@ impl<'a> Parser<'a> {
                 }
             };
 
-            Some(StmtKind::Func(name, params.into(), Box::new(stmt), Box::new(ty)))
+            Some(StmtKind::FuncDef(FuncDef {
+                name,
+                args: params.into(),
+                ty: Box::new(ty),
+                body: Box::new(stmt),
+            }))
         });
 
         stmt.map(|s| s.wrap(span))

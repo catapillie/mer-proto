@@ -1,8 +1,8 @@
 use super::Analyser;
 use crate::{
     com::{
-        abt::{self},
-        ast,
+        abt,
+        ast::{self, stmt::FuncDef},
     },
     diagnostics::{self, DiagnosticKind, Note, Severity},
 };
@@ -15,8 +15,8 @@ impl<'d> Analyser<'d> {
                 => abt::StmtKind::Empty,
             ast::StmtKind::DataDef(_)
                 => abt::StmtKind::Empty,
-            ast::StmtKind::Func(name, args, body, ty)
-                => self.analyse_function_body(name, args, body, ty),
+            ast::StmtKind::FuncDef(ast)
+                => self.analyse_function_body(ast),
             ast::StmtKind::VarDef(ast)
                 => self.analyse_variable_definition(ast),
             ast::StmtKind::Expr(expr)
@@ -70,12 +70,17 @@ impl<'d> Analyser<'d> {
 
         for stmt in stmts {
             match &stmt.value {
-                ast::StmtKind::Func(Some(name), _, _, ty) => {
-                    match self.analyse_function_header(name, ty) {
-                        None => continue,
-                        Some(id) => funcs.push((id, &stmt.value)),
-                    }
-                }
+                ast::StmtKind::FuncDef(
+                    ast @ FuncDef {
+                        name: Some(name),
+                        args: _,
+                        ty,
+                        body: _,
+                    },
+                ) => match self.analyse_function_header(name, ty) {
+                    None => continue,
+                    Some(id) => funcs.push((id, ast)),
+                },
                 ast::StmtKind::DataDef(ast) => {
                     match self.analyse_data_structure_header(&ast.name) {
                         None => continue,
@@ -93,11 +98,8 @@ impl<'d> Analyser<'d> {
         let data_ids = datas.iter().map(|(id, _)| *id).collect::<Box<_>>();
         self.analyse_data_structure_sizes(&data_ids);
 
-        for (id, stmt) in &funcs {
-            let ast::StmtKind::Func(Some(_), args, _, ty) = stmt else {
-                unreachable!()
-            };
-            self.analyse_function_definition(args, ty, *id);
+        for (id, ast) in &funcs {
+            self.analyse_function_definition(&ast.args, &ast.ty, *id);
         }
     }
 
