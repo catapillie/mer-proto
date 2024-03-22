@@ -1,4 +1,4 @@
-use self::stmt::{DataDef, FuncDef, VarDef};
+use self::stmt::{AliasDef, DataDef, FuncDef, VarDef};
 
 use super::{ast::*, tokens::*};
 use crate::{
@@ -129,6 +129,15 @@ impl<'a> Parser<'a> {
             }).unwrap_or_default();
 
             self.skip_newlines();
+            if self.try_match_token::<Equal>().is_some() {
+                self.skip_newlines();
+                let ty = self.expect_type_expression();
+                return Some(StmtKind::AliasDef(AliasDef {
+                    name,
+                    ty: Box::new(ty),
+                }))
+            }
+
             self.match_token::<LeftBrace>();
             self.skip_newlines();
 

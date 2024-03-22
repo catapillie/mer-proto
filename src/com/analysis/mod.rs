@@ -6,6 +6,7 @@ use crate::diagnostics::DiagnosticList;
 
 mod scope;
 
+mod alias;
 mod control_flow;
 mod data;
 mod expression;

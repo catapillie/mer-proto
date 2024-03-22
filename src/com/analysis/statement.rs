@@ -15,6 +15,8 @@ impl<'d> Analyser<'d> {
                 => abt::StmtKind::Empty,
             ast::StmtKind::DataDef(_)
                 => abt::StmtKind::Empty,
+            ast::StmtKind::AliasDef(ast)
+                => self.analyse_alias_def(ast),
             ast::StmtKind::FuncDef(ast)
                 => self.analyse_function_body(ast),
             ast::StmtKind::VarDef(ast)

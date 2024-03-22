@@ -7,6 +7,7 @@ pub type Stmt = Spanned<StmtKind>;
 pub enum StmtKind {
     Empty,
     DataDef(DataDef),
+    AliasDef(AliasDef),
     FuncDef(FuncDef),
     VarDef(VarDef),
     Expr(Box<Expr>),
@@ -18,7 +19,6 @@ pub enum StmtKind {
     WhileDo(Box<Expr>, Box<Stmt>),
     DoWhile(Box<Stmt>, Box<Expr>),
     Do(Box<Stmt>),
-
     Return,
     ReturnWith(Box<Expr>),
     Print(Box<Expr>),
@@ -34,6 +34,12 @@ impl StmtKind {
 pub struct DataDef {
     pub name: Spanned<String>,
     pub fields: Box<[(Spanned<String>, Type)]>,
+}
+
+#[derive(Debug)]
+pub struct AliasDef {
+    pub name: Spanned<String>,
+    pub ty: Box<Type>,
 }
 
 #[derive(Debug)]
