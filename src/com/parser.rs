@@ -1,4 +1,4 @@
-use self::stmt::DataDef;
+use self::stmt::{DataDef, VarDef};
 
 use super::{ast::*, tokens::*};
 use crate::{
@@ -167,7 +167,10 @@ impl<'a> Parser<'a> {
             });
             self.match_token::<Equal>();
             let expr = self.expect_expression();
-            Some(StmtKind::VarDef(id, Box::new(expr)))
+            Some(StmtKind::VarDef(VarDef {
+                name: id,
+                expr: Box::new(expr),
+            }))
         });
 
         stmt.map(|s| s.wrap(span))

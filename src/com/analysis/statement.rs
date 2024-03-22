@@ -17,8 +17,8 @@ impl<'d> Analyser<'d> {
                 => abt::StmtKind::Empty,
             ast::StmtKind::Func(name, args, body, ty)
                 => self.analyse_function_body(name, args, body, ty),
-            ast::StmtKind::VarDef(name, value)
-                => self.analyse_variable_definition(name, value),
+            ast::StmtKind::VarDef(ast)
+                => self.analyse_variable_definition(ast),
             ast::StmtKind::Expr(expr)
                 => abt::StmtKind::Expr(Box::new(self.analyse_expression(expr))),
             ast::StmtKind::Block(stmts)

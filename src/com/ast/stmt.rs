@@ -7,7 +7,7 @@ pub type Stmt = Spanned<StmtKind>;
 pub enum StmtKind {
     Empty,
     DataDef(DataDef),
-    VarDef(Option<Spanned<String>>, Box<Expr>),
+    VarDef(VarDef),
     Expr(Box<Expr>),
     Block(Box<[Stmt]>),
     IfThen(Box<Expr>, Box<Stmt>),
@@ -38,4 +38,10 @@ impl StmtKind {
 pub struct DataDef {
     pub name: Spanned<String>,
     pub fields: Box<[(Spanned<String>, Type)]>,
+}
+
+#[derive(Debug)]
+pub struct VarDef {
+    pub name: Option<Spanned<String>>,
+    pub expr: Box<Expr>,
 }
