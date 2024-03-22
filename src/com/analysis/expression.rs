@@ -69,7 +69,7 @@ impl<'d> Analyser<'d> {
         let ty = self.program.type_of(&inner);
 
         use abt::Type as Ty;
-        match ty {
+        match self.program.dealias_type(&ty) {
             Ty::U8
             | Ty::U16
             | Ty::U32

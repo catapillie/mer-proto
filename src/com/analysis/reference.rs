@@ -29,7 +29,7 @@ impl<'d> Analyser<'d> {
             return abt::Expr::Unknown;
         }
 
-        match ty {
+        match self.program.dealias_type(&ty) {
             abt::Type::Ref(_) => abt::Expr::Deref(Box::new(bound_expr)),
             _ => {
                 let d = diagnostics::create_diagnostic()

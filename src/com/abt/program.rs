@@ -12,6 +12,13 @@ pub struct Program {
 }
 
 impl Program {
+    pub fn dealias_type<'a>(&'a self, mut ty: &'a Type) -> &'a Type {
+        while let Type::Alias(id) = ty {
+            ty = &self.aliases.get(id).unwrap().ty;
+        }
+        ty
+    }
+
     pub fn type_of(&self, expr: &Expr) -> Type {
         use Expr as E;
         use Type as Ty;
@@ -29,12 +36,12 @@ impl Program {
             ),
             E::TupleImmediateIndex(tuple, index) => {
                 let ty = self.type_of(tuple);
-                let Ty::Tuple(head, tail) = ty else {
+                let Ty::Tuple(head, tail) = self.dealias_type(&ty) else {
                     unreachable!()
                 };
 
                 if *index == 0 {
-                    *head
+                    *head.clone()
                 } else {
                     tail[*index - 1].clone()
                 }
@@ -45,25 +52,25 @@ impl Program {
             }
             E::ArrayImmediateIndex(array, _) => {
                 let ty = self.type_of(array);
-                let Ty::Array(inner_ty, _) = ty else {
+                let Ty::Array(inner_ty, _) = self.dealias_type(&ty) else {
                     unreachable!()
                 };
-                *inner_ty
+                *inner_ty.clone()
             }
             E::ArrayIndex(array, _) => {
                 let ty = self.type_of(array);
-                let Ty::Array(inner_ty, _) = ty else {
+                let Ty::Array(inner_ty, _) = self.dealias_type(&ty) else {
                     unreachable!()
                 };
-                *inner_ty
+                *inner_ty.clone()
             }
 
             E::PointerIndex(pointer, _) => {
                 let ty = self.type_of(pointer);
-                let Ty::Pointer(inner_ty) = ty else {
+                let Ty::Pointer(inner_ty) = self.dealias_type(&ty) else {
                     unreachable!()
                 };
-                *inner_ty
+                *inner_ty.clone()
             }
 
             E::Variable(var_id) => self.variables.get(var_id).unwrap().ty.clone(),
@@ -92,10 +99,13 @@ impl Program {
 
             E::Heap(inner) => Ty::Ref(Box::new(self.type_of(inner))),
             E::Ref(_, _, ty) => Ty::Ref(ty.clone()),
-            E::Deref(inner) => match self.type_of(inner) {
-                Ty::Ref(ty) => *ty,
-                _ => unreachable!(),
-            },
+            E::Deref(inner) => {
+                let ty = self.type_of(inner);
+                match self.dealias_type(&ty) {
+                    Ty::Ref(ty) => *ty.clone(),
+                    _ => unreachable!(),
+                }
+            }
 
             E::Todo => Ty::Never,
             E::Unreachable => Ty::Never,

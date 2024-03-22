@@ -464,13 +464,15 @@ impl<'d> Analyser<'d> {
     }
 
     fn try_coerce_data_structure(&self, expr: &mut abt::Expr) -> Option<u64> {
-        let mut ty = self.program.type_of(expr);
+        let mut ty = &self.program.type_of(expr);
+        ty = self.program.dealias_type(ty);
+
         let mut deref_count = 0;
         let id = loop {
             match ty {
                 abt::Type::Data(id) => break id,
                 abt::Type::Ref(inner) => {
-                    ty = *inner;
+                    ty = &*inner;
                     deref_count += 1;
                 }
                 _ => return None,
@@ -482,7 +484,7 @@ impl<'d> Analyser<'d> {
             *expr = abt::Expr::Deref(Box::new(inner));
         }
 
-        Some(id)
+        Some(*id)
     }
 
     pub fn analyse_data_field_access(

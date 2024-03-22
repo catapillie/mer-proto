@@ -62,16 +62,9 @@ impl<'d> Analyser<'d> {
     }
 
     #[rustfmt::skip]
-    pub fn type_check<'a>(&'a self, mut left: &'a abt::Type, mut right: &'a abt::Type) -> bool {
-        while let abt::Type::Alias(id) = left {
-            left = &self.program.aliases.get(id).unwrap().ty;
-        }
-        while let abt::Type::Alias(id) = right {
-            right = &self.program.aliases.get(id).unwrap().ty;
-        }
-
+    pub fn type_check<'a>(&'a self, left: &'a abt::Type, right: &'a abt::Type) -> bool {
         use abt::Type::*;
-        match (left, right) {
+        match (self.program.dealias_type(left), self.program.dealias_type(right)) {
             (_, Unknown) => true,
             (Unknown, _) => true,
             (Never, _) => true,
@@ -114,11 +107,7 @@ impl<'d> Analyser<'d> {
 
     pub fn type_check_coerce<'a>(&'a self, expr: &mut abt::Expr, mut ty: &'a abt::Type) -> bool {
         let expr_ty = self.program.type_of(expr);
-
-        while let abt::Type::Alias(id) = ty {
-            ty = &self.program.aliases.get(id).unwrap().ty;
-        }
-
+        ty = self.program.dealias_type(ty);
         if let (abt::Type::Ref(ref_inner), abt::Type::Pointer(pointer_ty)) = (&expr_ty, ty) {
             if let abt::Type::Array(inner_ty, _) = &**ref_inner {
                 if self.type_check(inner_ty, pointer_ty) {

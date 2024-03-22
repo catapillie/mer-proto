@@ -1,6 +1,5 @@
-use std::io;
-
 use byteorder::WriteBytesExt;
+use std::io;
 
 use super::Codegen;
 use crate::{
@@ -123,7 +122,7 @@ impl Codegen {
 
     fn gen_debug_expression(&mut self, expr: &Expr, ty: &Type, abt: &Program) -> io::Result<Value> {
         self.gen_expression(expr, abt)?;
-        let ty = match ty {
+        let ty = match abt.dealias_type(ty) {
             Type::Unit => NativeType::unit,
             Type::U8 => NativeType::u8,
             Type::U16 => NativeType::u16,
@@ -163,7 +162,7 @@ impl Codegen {
     ) -> io::Result<Value> {
         let tuple_ty = abt.type_of(tuple);
         let total_size = abt.size_of(&tuple_ty).unwrap() as u8;
-        let Type::Tuple(head, tail) = tuple_ty else {
+        let Type::Tuple(head, tail) = abt.dealias_type(&tuple_ty) else {
             unreachable!()
         };
 
@@ -215,7 +214,7 @@ impl Codegen {
     ) -> io::Result<Value> {
         let array_ty = abt.type_of(array);
         let total_size = abt.size_of(&array_ty).unwrap() as u8;
-        let Type::Array(inner_ty, _) = array_ty else {
+        let Type::Array(inner_ty, _) = abt.dealias_type(&array_ty) else {
             unreachable!()
         };
 
@@ -252,7 +251,7 @@ impl Codegen {
     ) -> io::Result<Value> {
         let array_ty = abt.type_of(array);
         let total_size = abt.size_of(&array_ty).unwrap() as u8;
-        let Type::Array(inner_ty, _) = array_ty else {
+        let Type::Array(inner_ty, _) = abt.dealias_type(&array_ty) else {
             unreachable!()
         };
 
@@ -297,7 +296,7 @@ impl Codegen {
         abt: &Program,
     ) -> io::Result<Value> {
         let pointer_ty = abt.type_of(pointer);
-        let Type::Pointer(inner_ty) = pointer_ty else {
+        let Type::Pointer(inner_ty) = abt.dealias_type(&pointer_ty) else {
             unreachable!()
         };
 
