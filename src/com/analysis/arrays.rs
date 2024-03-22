@@ -42,7 +42,7 @@ impl<'d> Analyser<'d> {
             .find(|ty| !matches!(ty, abt::Type::Never))
             .unwrap_or(tys.first().expect("empty arrays are not handled properly"));
 
-        let all_types_match = tys.iter().all(|ty| ty.is(first_ty));
+        let all_types_match = tys.iter().all(|ty| self.type_check(ty, &first_ty));
         if !all_types_match {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::ArrayMismatchingTypes)
@@ -86,7 +86,7 @@ impl<'d> Analyser<'d> {
         let bound_ty = self.analyse_type(ty);
         let bound_size = self.analyse_expression(size);
         let size_ty = self.program.type_of(&bound_size);
-        if !size_ty.is(&abt::Type::I64) {
+        if !self.type_check(&size_ty, &abt::Type::I64) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::NonIntegerSize)
                 .with_severity(Severity::Error)

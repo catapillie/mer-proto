@@ -355,7 +355,7 @@ impl<'d> Analyser<'d> {
             (&info.ty, &info.name)
         };
 
-        if !ty.is(&return_ty.value) {
+        if !self.type_check(&ty, &return_ty.value) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::CannotReturnUnit {
                     expected: self.program.type_repr(&return_ty.value),

@@ -61,12 +61,56 @@ impl<'d> Analyser<'d> {
         }
     }
 
+    #[rustfmt::skip]
+    pub fn type_check(&self, left: &abt::Type, right: &abt::Type) -> bool {
+        use abt::Type::*;
+        match (left, right) {
+            (_, Unknown) => true,
+            (Unknown, _) => true,
+            (Never, _) => true,
+            (Unit, Unit) => true,
+            (U8, U8) => true,
+            (U16, U16) => true,
+            (U32, U32) => true,
+            (U64, U64) => true,
+            (I8, I8) => true,
+            (I16, I16) => true,
+            (I32, I32) => true,
+            (I64, I64) => true,
+            (F32, F32) => true,
+            (F64, F64) => true,
+            (Bool, Bool) => true,
+            (Data(id_left), Data(id_right))
+                => id_left == id_right,
+            (Alias(id_left), Alias(id_right))
+                => id_left == id_right,
+            (Tuple(head_left, tail_left), Tuple(head_right, tail_right))
+                => self.type_check(head_left, head_right)
+                && tail_left.len() == tail_right.len()
+                && tail_left.iter().zip(tail_right.iter())
+                    .all(|(left, right)| self.type_check(left, right)),
+            (Array(ty_left, size_left), Array(ty_right, size_right))
+                => self.type_check(ty_left, ty_right)
+                && size_left == size_right,
+            (Pointer(ty_left), Pointer(ty_right))
+                => self.type_check(ty_left, ty_right),
+            (Ref(ty_left), Ref(ty_right))
+                => self.type_check(ty_left, ty_right),
+            (Func(args_left, ty_left), Func(args_right, ty_right))
+                => self.type_check(ty_left, ty_right)
+                && args_left.len() == args_right.len()
+                && args_left.iter().zip(args_right.iter())
+                    .all(|(left, right)| self.type_check(right, left)),
+            _ => false,
+        }
+    }
+
     pub fn type_check_coerce(&self, expr: &mut abt::Expr, ty: &abt::Type) -> bool {
         let expr_ty = self.program.type_of(expr);
 
         if let (abt::Type::Ref(ref_inner), abt::Type::Pointer(pointer_ty)) = (&expr_ty, ty) {
             if let abt::Type::Array(inner_ty, _) = &**ref_inner {
-                if inner_ty.is(pointer_ty) {
+                if self.type_check(inner_ty, pointer_ty) {
                     let prev_expr = std::mem::replace(expr, abt::Expr::Unknown);
                     *expr = abt::Expr::ToPointer(Box::new(prev_expr));
                     return true;
@@ -74,6 +118,6 @@ impl<'d> Analyser<'d> {
             }
         }
 
-        expr_ty.is(ty)
+        self.type_check(&expr_ty, ty)
     }
 }

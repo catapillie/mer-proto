@@ -18,16 +18,6 @@ pub enum Type {
 }
 
 impl Type {
-    /// Determines whether [`self`] is of the specified type.
-    /// If [`self`] is [`TypeAbt::Unknown`], then the check is true.
-    pub fn is(&self, ty: &Self) -> bool {
-        if !self.is_known() || !ty.is_known() {
-            true
-        } else {
-            matches!(self, Self::Never) || self == ty
-        }
-    }
-
     pub fn is_known(&self) -> bool {
         match self {
             Type::Unknown => false,
