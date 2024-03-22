@@ -50,6 +50,7 @@ impl<'d> Analyser<'d> {
                 variables: HashMap::default(),
                 functions: HashMap::default(),
                 datas: HashMap::default(),
+                aliases: HashMap::default(),
             },
             uid: 0,
         }

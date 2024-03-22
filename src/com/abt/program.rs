@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use super::{DataInfo, Expr, FunctionInfo, Size, Type, VariableInfo};
+use super::{AliasInfo, DataInfo, Expr, FunctionInfo, Size, Type, VariableInfo};
 use crate::diagnostics::TypeRepr;
 
 pub struct Program {
@@ -8,6 +8,7 @@ pub struct Program {
     pub functions: HashMap<u64, FunctionInfo>,
     pub variables: HashMap<u64, VariableInfo>,
     pub datas: HashMap<u64, DataInfo>,
+    pub aliases: HashMap<u64, AliasInfo>,
 }
 
 impl Program {

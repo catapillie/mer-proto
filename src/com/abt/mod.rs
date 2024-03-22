@@ -1,3 +1,4 @@
+pub mod alias;
 pub mod bin_op;
 pub mod data;
 pub mod expr;
@@ -12,6 +13,7 @@ pub mod variable;
 
 pub use program::Program;
 
+pub use alias::AliasInfo;
 pub use expr::Expr;
 pub use lvalue::LValue;
 pub use size::Size;

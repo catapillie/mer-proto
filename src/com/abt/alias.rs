@@ -1,0 +1,7 @@
+use super::Type;
+use crate::utils::Spanned;
+
+pub struct AliasInfo {
+    pub name: Spanned<String>,
+    pub ty: Type,
+}
