@@ -147,8 +147,9 @@ return
 
 #### Data structures
 ```swift
+type string = [&]u8
 type Person {
-    name: [&]u8
+    name: string
     age: i64
     height: f64
 }
