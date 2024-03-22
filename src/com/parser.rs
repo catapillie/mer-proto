@@ -1,3 +1,5 @@
+use self::stmt::DataDef;
+
 use super::{ast::*, tokens::*};
 use crate::{
     com::ast::types::TypeKind,
@@ -149,7 +151,7 @@ impl<'a> Parser<'a> {
             self.match_token::<RightBrace>();
             self.skip_newlines();
 
-            Some(StmtKind::DataDef(name, fields.into_boxed_slice()))
+            Some(StmtKind::DataDef(DataDef { name, fields: fields.into() }))
         });
 
         Some(stmt?.wrap(span))

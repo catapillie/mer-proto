@@ -6,7 +6,7 @@ pub type Stmt = Spanned<StmtKind>;
 #[derive(Debug)]
 pub enum StmtKind {
     Empty,
-    DataDef(Spanned<String>, Box<[(Spanned<String>, Type)]>),
+    DataDef(DataDef),
     VarDef(Option<Spanned<String>>, Box<Expr>),
     Expr(Box<Expr>),
     Block(Box<[Stmt]>),
@@ -32,4 +32,10 @@ impl StmtKind {
     pub fn wrap(self, span: Span) -> Stmt {
         Spanned { value: self, span }
     }
+}
+
+#[derive(Debug)]
+pub struct DataDef {
+    pub name: Spanned<String>,
+    pub fields: Box<[(Spanned<String>, Type)]>,
 }

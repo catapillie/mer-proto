@@ -13,7 +13,7 @@ impl<'d> Analyser<'d> {
         match &stmt.value {
             ast::StmtKind::Empty
                 => abt::StmtKind::Empty,
-            ast::StmtKind::DataDef(_, _)
+            ast::StmtKind::DataDef(_)
                 => abt::StmtKind::Empty,
             ast::StmtKind::Func(name, args, body, ty)
                 => self.analyse_function_body(name, args, body, ty),
@@ -76,19 +76,18 @@ impl<'d> Analyser<'d> {
                         Some(id) => funcs.push((id, &stmt.value)),
                     }
                 }
-                ast::StmtKind::DataDef(name, _) => match self.analyse_data_structure_header(name) {
-                    None => continue,
-                    Some(id) => datas.push((id, &stmt.value)),
-                },
+                ast::StmtKind::DataDef(ast) => {
+                    match self.analyse_data_structure_header(&ast.name) {
+                        None => continue,
+                        Some(id) => datas.push((id, ast)),
+                    }
+                }
                 _ => (),
             }
         }
 
-        for (id, stmt) in &datas {
-            let ast::StmtKind::DataDef(name, fields) = stmt else {
-                unreachable!();
-            };
-            self.analyse_data_structure_definition(name, fields, *id);
+        for (id, ast) in &datas {
+            self.analyse_data_structure_definition(ast, *id);
         }
 
         let data_ids = datas.iter().map(|(id, _)| *id).collect::<Box<_>>();

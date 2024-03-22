@@ -5,7 +5,7 @@ use super::Analyser;
 use crate::{
     com::{
         abt::{self, DataInfo, Size},
-        ast,
+        ast::{self, stmt::DataDef},
     },
     diagnostics::{self, DiagnosticKind, DiagnosticList, Note, NoteSeverity, Severity},
     utils::{Span, Spanned},
@@ -61,14 +61,9 @@ impl<'d> Analyser<'d> {
         Some(id)
     }
 
-    pub fn analyse_data_structure_definition(
-        &mut self,
-        name: &Spanned<String>,
-        fields: &[(Spanned<String>, ast::Type)],
-        id: u64,
-    ) {
+    pub fn analyse_data_structure_definition(&mut self, ast: &DataDef, id: u64) {
         let mut field_spans = HashMap::new();
-        for (field_name, _) in fields.iter() {
+        for (field_name, _) in ast.fields.iter() {
             field_spans
                 .entry(field_name.value.as_str())
                 .and_modify(|prev_span| {
@@ -92,14 +87,15 @@ impl<'d> Analyser<'d> {
                                 .num(2),
                             field_name.span,
                         )
-                        .highlight(name.span)
+                        .highlight(ast.name.span)
                         .done();
                     self.diagnostics.push(d);
                 })
                 .or_insert(field_name.span);
         }
 
-        let bound_fields = fields
+        let bound_fields = ast
+            .fields
             .iter()
             .map(|(name, ty)| {
                 (
