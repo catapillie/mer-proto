@@ -160,6 +160,8 @@ impl Program {
                 => self.size_of(ty) * *size,
             Ty::Data(id)
                 => self.datas.get(id).unwrap().size,
+            Ty::Alias(id)
+                => self.size_of(&self.aliases.get(id).unwrap().ty),
         }
     }
 
@@ -184,6 +186,8 @@ impl Program {
             Ty::Bool => Re::Bool,
             Ty::Data(id)
                 => Re::Data(self.datas.get(id).unwrap().name.value.clone()),
+            Ty::Alias(id)
+                => Re::Data(self.aliases.get(id).unwrap().name.value.clone()),
             Ty::Tuple(head, tail)
                 => Re::Tuple(
                     Box::new(self.type_repr(head)),

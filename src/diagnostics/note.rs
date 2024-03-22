@@ -57,6 +57,8 @@ pub enum Note {
     RedefinedFunction,
     ShadowedDataStructure(String),
     RedefinedDataStructure,
+    ShadowedAlias(String),
+    RedefinedAlias,
 }
 
 #[rustfmt::skip]

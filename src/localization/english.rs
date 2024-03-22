@@ -387,6 +387,10 @@ impl Lang for English {
                 => format!("with-expression replaces no fields in data structure '{}'",
                     ty.to_string().bold(),
                 ),
+            K::AliasRedefinition(name)
+                => format!("type alias '{}' is redefined in the same scope",
+                    name.bold(),
+                ),
             K::NonIntegerSize
                 => "non-integer size".to_string(),
             K::InvalidPrint(ty)
@@ -576,6 +580,12 @@ impl Lang for English {
                     name.bold()
                 ),
             N::RedefinedDataStructure
+                => "this is the redefinition".to_string(),
+            N::ShadowedAlias(name)
+                => format!("type alias '{}' is first defined here",
+                    name.bold()
+                ),
+            N::RedefinedAlias
                 => "this is the redefinition".to_string(),
         }
     }

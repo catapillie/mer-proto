@@ -47,6 +47,10 @@ impl Scope {
 
         None
     }
+
+    pub fn search_id(&self, name: &str) -> Option<u64> {
+        self.search(|scope| scope.bindings.get(name).copied())
+    }
 }
 
 impl<'d> Analyser<'d> {

@@ -18,8 +18,8 @@ impl<'d> Analyser<'d> {
             }
             ast::TypeKind::Pointer(inner) => abt::Type::Pointer(Box::new(self.analyse_type(inner))),
             ast::TypeKind::Ref(ty) => abt::Type::Ref(Box::new(self.analyse_type(ty))),
-            ast::TypeKind::Declared(id) => {
-                match id.as_str() {
+            ast::TypeKind::Declared(name) => {
+                match name.as_str() {
                     "u8" => return abt::Type::U8,
                     "u16" => return abt::Type::U16,
                     "u32" => return abt::Type::U32,
@@ -34,18 +34,24 @@ impl<'d> Analyser<'d> {
                     _ => {}
                 };
 
-                if let Some(info) = self.get_data_structure(id) {
-                    return abt::Type::Data(info.id);
-                }
+                let Some(id) = self.scope.search_id(name) else {
+                    let d = diagnostics::create_diagnostic()
+                        .with_kind(DiagnosticKind::UnknownType(name.clone()))
+                        .with_severity(Severity::Error)
+                        .with_span(ty.span)
+                        .annotate_primary(Note::Unknown, ty.span)
+                        .done();
+                    self.diagnostics.push(d);
+                    return abt::Type::Unknown;
+                };
 
-                let d = diagnostics::create_diagnostic()
-                    .with_kind(DiagnosticKind::UnknownType(id.clone()))
-                    .with_severity(Severity::Error)
-                    .with_span(ty.span)
-                    .annotate_primary(Note::Unknown, ty.span)
-                    .done();
-                self.diagnostics.push(d);
-                abt::Type::Unknown
+                if self.program.datas.contains_key(&id) {
+                    abt::Type::Data(id)
+                } else if self.program.aliases.contains_key(&id) {
+                    abt::Type::Alias(id)
+                } else {
+                    unreachable!()
+                }
             }
             ast::TypeKind::Func(arg_tys, ret_ty) => {
                 let bound_arg_tys = arg_tys.iter().map(|ty| self.analyse_type(ty)).collect();

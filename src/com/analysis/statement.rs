@@ -15,8 +15,8 @@ impl<'d> Analyser<'d> {
                 => abt::StmtKind::Empty,
             ast::StmtKind::DataDef(_)
                 => abt::StmtKind::Empty,
-            ast::StmtKind::AliasDef(ast)
-                => self.analyse_alias_def(ast),
+            ast::StmtKind::AliasDef(_)
+                => abt::StmtKind::Empty,
             ast::StmtKind::FuncDef(ast)
                 => self.analyse_function_body(ast),
             ast::StmtKind::VarDef(ast)
@@ -69,6 +69,7 @@ impl<'d> Analyser<'d> {
     fn reach_definitions(&mut self, stmts: &[ast::Stmt]) {
         let mut funcs = Vec::new();
         let mut datas = Vec::new();
+        let mut alias = Vec::new();
 
         for stmt in stmts {
             match &stmt.value {
@@ -89,12 +90,20 @@ impl<'d> Analyser<'d> {
                         Some(id) => datas.push((id, ast)),
                     }
                 }
+                ast::StmtKind::AliasDef(ast) => match self.analyse_alias_header(ast) {
+                    None => continue,
+                    Some(id) => alias.push((id, ast)),
+                },
                 _ => (),
             }
         }
 
         for (id, ast) in &datas {
             self.analyse_data_structure_definition(ast, *id);
+        }
+
+        for (id, ast) in &alias {
+            self.analyse_alias_definition(ast, *id);
         }
 
         let data_ids = datas.iter().map(|(id, _)| *id).collect::<Box<_>>();

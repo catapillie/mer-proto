@@ -9,6 +9,7 @@ pub enum Type {
     F32, F64,
     Bool,
     Data(u64),
+    Alias(u64),
     Tuple(Box<Type>, Box<[Type]>), // non-empty
     Array(Box<Type>, usize),
     Pointer(Box<Type>),

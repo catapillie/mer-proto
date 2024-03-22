@@ -390,6 +390,10 @@ impl Lang for French {
                 => format!("l'expression with ne remplace aucun champ dans la structure de données '{}'",
                     ty.to_string().bold(),
                 ),
+            K::AliasRedefinition(name)
+                => format!("l'alias '{}' est redéfini dans le même contexte",
+                    name.bold(),
+                ),
             K::NonIntegerSize
                 => "taille non-entière".to_string(),
             K::InvalidPrint(ty)
@@ -584,6 +588,12 @@ impl Lang for French {
                     name.bold()
                 ),
             N::RedefinedDataStructure
+                => "ceci est la redéfinition".to_string(),
+            N::ShadowedAlias(name)
+                => format!("alias '{}' initialement défini ici",
+                    name.bold()
+                ),
+            N::RedefinedAlias
                 => "ceci est la redéfinition".to_string(),
         }
     }
