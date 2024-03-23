@@ -350,7 +350,7 @@ impl Lang for French {
                 ),
             K::InfiniteDataStructure(name)
                 => format!("la structure de données '{}' est de taille infinie (elle se contient elle-même ou un de ses champs est de taille infinie)",
-                    name.to_string().bold(),
+                    name.bold(),
                 ),
             K::FieldDeclaredMoreThanOnce(field_name)
                 => format!("le champ '{}' est déclaré plus d'une fois",
@@ -360,7 +360,7 @@ impl Lang for French {
                 => "expression de structure de données invalide".to_string(),
             K::UnknownDataStructure(name)
                 => format!("structure de données '{}' inconnue",
-                    name.to_string().bold(),
+                    name.bold(),
                 ),
             K::UnknownFieldInDataStructure { field_name, data_name }
                 => format!("le champ '{}' n'existe pas dans la structure de données '{}'",
@@ -570,7 +570,7 @@ impl Lang for French {
             }
             N::DataInfiniteSize(name)
                 => format!("le type '{}' est de taille infinie (dû à un cycle parmis ses champs)",
-                    name.to_string().bold(),
+                    name.bold(),
                 ),
             N::NotDataStructure(ty)
                 => format!("ceci n'est pas une structure de données, et est de type {}",

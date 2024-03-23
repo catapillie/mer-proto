@@ -347,7 +347,7 @@ impl Lang for English {
                 ),
             K::InfiniteDataStructure(name)
                 => format!("data structure '{}' is of infinite size (it contains itself without indirection or one of its fields is of infinite size)",
-                    name.to_string().bold(),
+                    name.bold(),
                 ),
             K::FieldDeclaredMoreThanOnce(field_name)
                 => format!("field '{}' is declared more than once",
@@ -357,7 +357,7 @@ impl Lang for English {
                 => "invalid data structure expression".to_string(),
             K::UnknownDataStructure(name)
                 => format!("unknown data structure '{}'",
-                    name.to_string().bold(),
+                    name.bold(),
                 ),
             K::UnknownFieldInDataStructure { field_name, data_name }
                 => format!("field '{}' does not exist in data structure '{}'",
@@ -562,7 +562,7 @@ impl Lang for English {
             }
             N::DataInfiniteSize(name)
                 => format!("type '{}' is of infinite size (due to a cycle among one of its fields)",
-                    name.to_string().bold(),
+                    name.bold(),
                 ),
             N::NotDataStructure(ty)
                 => format!("this is not a data structure, and is of type {}",
