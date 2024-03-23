@@ -236,7 +236,7 @@ impl Codegen {
 
         use Type as Ty;
         use UnOpKind as K;
-        let opcode = match (&op.ty, &op.kind) {
+        let opcode = match (abt.dealias_type(&op.ty), &op.kind) {
             (Ty::U8, K::Pos)
             | (Ty::U16, K::Pos)
             | (Ty::U32, K::Pos)

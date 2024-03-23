@@ -72,7 +72,7 @@ impl<'d> Analyser<'d> {
             }
         }
 
-        if ty_left == ty_right {
+        if self.type_check(&ty_left, &ty_right) && self.type_check(&ty_right, &ty_left) {
             use abt::Type as Ty;
             let ty = self.program.dealias_type(&ty_left).clone();
             let bound_op = match ty {
@@ -237,7 +237,7 @@ impl<'d> Analyser<'d> {
             return abt::Expr::Unknown;
         }
 
-        let bound_op = match ty {
+        let bound_op = match self.program.dealias_type(&ty) {
             abt::Type::U8 | abt::Type::U16 | abt::Type::U32 | abt::Type::U64 => {
                 Self::number_unary_operation(false, op, ty.clone())
             }
