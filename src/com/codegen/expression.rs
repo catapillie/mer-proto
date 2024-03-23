@@ -167,9 +167,9 @@ impl Codegen {
         };
 
         let (offset, size) = match index {
-            0 => (0, abt.size_of(&head).unwrap() as u8),
+            0 => (0, abt.size_of(head).unwrap() as u8),
             _ => {
-                let mut offset = abt.size_of(&head).unwrap() as u8;
+                let mut offset = abt.size_of(head).unwrap() as u8;
                 for ty in &tail[..(index - 1)] {
                     offset += abt.size_of(ty).unwrap() as u8;
                 }
@@ -218,7 +218,7 @@ impl Codegen {
             unreachable!()
         };
 
-        let size = abt.size_of(&inner_ty).unwrap() as u8;
+        let size = abt.size_of(inner_ty).unwrap() as u8;
         let offset = *index as u8 * size;
 
         let value = self.gen_value(array, abt)?;
@@ -255,7 +255,7 @@ impl Codegen {
             unreachable!()
         };
 
-        let size = abt.size_of(&inner_ty).unwrap() as u8;
+        let size = abt.size_of(inner_ty).unwrap() as u8;
         let value = self.gen_value(array, abt)?;
 
         self.gen_expression(index, abt)?;
@@ -308,7 +308,7 @@ impl Codegen {
             Value::Address => binary::write_opcode(&mut self.cursor, &Opcode::ld_heap)?,
         }
 
-        let size = abt.size_of(&inner_ty).unwrap() as u8;
+        let size = abt.size_of(inner_ty).unwrap() as u8;
         self.gen_expression(index, abt)?;
         binary::write_opcode(&mut self.cursor, &Opcode::ld_u64(8 * size as u64))?;
         binary::write_opcode(&mut self.cursor, &Opcode::mul(NativeType::u64))?;

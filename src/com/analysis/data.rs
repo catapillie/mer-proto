@@ -472,7 +472,7 @@ impl<'d> Analyser<'d> {
             match ty {
                 abt::Type::Data(id) => break id,
                 abt::Type::Ref(inner) => {
-                    ty = &*inner;
+                    ty = &**inner;
                     deref_count += 1;
                 }
                 _ => return None,

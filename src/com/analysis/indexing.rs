@@ -8,7 +8,7 @@ use crate::{
 impl<'d> Analyser<'d> {
     fn try_coerce_indexable(&self, expr: &mut abt::Expr) -> Option<abt::Type> {
         let mut ty = &self.program.type_of(expr);
-        ty = self.program.dealias_type(&ty);
+        ty = self.program.dealias_type(ty);
 
         let mut deref_count = 0;
         let final_ty = loop {
@@ -16,7 +16,7 @@ impl<'d> Analyser<'d> {
                 abt::Type::Array(_, _) => break ty,
                 abt::Type::Pointer(_) => break ty,
                 abt::Type::Ref(inner) => {
-                    ty = &*inner;
+                    ty = &**inner;
                     deref_count += 1;
                 }
                 _ => return None,
@@ -33,7 +33,7 @@ impl<'d> Analyser<'d> {
 
     fn try_coerce_immediate_indexable(&self, expr: &mut abt::Expr) -> Option<abt::Type> {
         let mut ty = &self.program.type_of(expr);
-        ty = self.program.dealias_type(&ty);
+        ty = self.program.dealias_type(ty);
         
         let mut deref_count = 0;
         let final_ty = loop {
@@ -41,7 +41,7 @@ impl<'d> Analyser<'d> {
                 abt::Type::Tuple(_, _) => break ty,
                 abt::Type::Array(_, _) => break ty,
                 abt::Type::Ref(inner) => {
-                    ty = &*inner;
+                    ty = &**inner;
                     deref_count += 1;
                 }
                 _ => return None,

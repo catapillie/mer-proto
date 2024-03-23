@@ -42,7 +42,7 @@ impl<'d> Analyser<'d> {
             .find(|ty| !matches!(ty, abt::Type::Never))
             .unwrap_or(tys.first().expect("empty arrays are not handled properly"));
 
-        let all_types_match = tys.iter().all(|ty| self.type_check(ty, &first_ty));
+        let all_types_match = tys.iter().all(|ty| self.type_check(ty, first_ty));
         if !all_types_match {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::ArrayMismatchingTypes)
