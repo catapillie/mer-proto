@@ -121,7 +121,11 @@ impl<'a> Parser<'a> {
 
     fn parse_data_definition(&mut self) -> Option<Stmt> {
         let (stmt, span) = take_span!(self => {
-            self.try_match_token::<TypeKw>()?;
+            let opaque_kw = self.try_match_token::<OpaqueKw>();
+            match opaque_kw {
+                Some(_) => self.match_token::<TypeKw>(),
+                None => Some(self.try_match_token::<TypeKw>()?),
+            };
 
             let name = self.match_token::<Identifier>().map(|id| Spanned {
                 value: id.0,
@@ -135,6 +139,7 @@ impl<'a> Parser<'a> {
                 return Some(StmtKind::AliasDef(AliasDef {
                     name,
                     ty: Box::new(ty),
+                    is_opaque: opaque_kw.is_some(),
                 }))
             }
 
@@ -142,7 +147,6 @@ impl<'a> Parser<'a> {
             self.skip_newlines();
 
             let mut fields = Vec::new();
-
             while let Some(id) = self.try_match_token::<Identifier>() {
                 let field_name = Spanned {
                     value: id.0,
@@ -160,7 +164,11 @@ impl<'a> Parser<'a> {
             self.match_token::<RightBrace>();
             self.skip_newlines();
 
-            Some(StmtKind::DataDef(DataDef { name, fields: fields.into() }))
+            Some(StmtKind::DataDef(DataDef {
+                name,
+                fields: fields.into(),
+                is_opaque: opaque_kw.is_some(),
+            }))
         });
 
         Some(stmt?.wrap(span))
@@ -1408,8 +1416,9 @@ impl<'a> Parser<'a> {
                     "xor" => XorKw.wrap(span),
                     "not" => NotKw.wrap(span),
                     "case" => CaseKw.wrap(span),
-                    "type" => TypeKw.wrap(span),
                     "otherwise" => OtherwiseKw.wrap(span),
+                    "type" => TypeKw.wrap(span),
+                    "opaque" => OpaqueKw.wrap(span),
                     "with" => WithKw.wrap(span),
                     "alloc" => AllocKw.wrap(span),
                     "todo" => TodoKw.wrap(span),

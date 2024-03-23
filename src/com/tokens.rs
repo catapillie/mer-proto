@@ -54,8 +54,9 @@ gen_tokens! {
     XorKw
     NotKw
     CaseKw
-    TypeKw
     OtherwiseKw
+    TypeKw
+    OpaqueKw
     WithKw
     AllocKw
     TodoKw

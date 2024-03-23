@@ -34,12 +34,14 @@ impl StmtKind {
 pub struct DataDef {
     pub name: Spanned<String>,
     pub fields: Box<[(Spanned<String>, Type)]>,
+    pub is_opaque: bool,
 }
 
 #[derive(Debug)]
 pub struct AliasDef {
     pub name: Spanned<String>,
     pub ty: Box<Type>,
+    pub is_opaque: bool,
 }
 
 #[derive(Debug)]
