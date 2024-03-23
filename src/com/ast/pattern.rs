@@ -5,6 +5,7 @@ pub type Pattern = Spanned<PatternKind>;
 #[derive(Debug)]
 pub enum PatternKind {
     Bad,
+    Discard,
     Binding(String),
 }
 

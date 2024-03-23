@@ -1016,7 +1016,11 @@ impl<'a> Parser<'a> {
 
     fn parse_pattern(&mut self) -> Option<Pattern> {
         if let Some(id) = self.try_match_token::<Identifier>() {
-            return Some(PatternKind::Binding(id.0).wrap(self.last_span()))
+            return Some(PatternKind::Binding(id.0).wrap(self.last_span()));
+        }
+
+        if self.try_match_token::<Underscore>().is_some() {
+            return Some(PatternKind::Discard.wrap(self.last_span()));
         }
 
         None
@@ -1433,6 +1437,7 @@ impl<'a> Parser<'a> {
                     "unreachable" => UnreachableKw.wrap(span),
                     "debug" => DebugKw.wrap(span),
                     "print" => PrintKw.wrap(span),
+                    "_" => Underscore.wrap(span),
                     _ => Identifier(id).wrap(span),
                 };
             }

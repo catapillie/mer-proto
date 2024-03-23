@@ -22,6 +22,7 @@ gen_tokens! {
     Comma
     Colon
 
+    Underscore
     Equal
     Plus
     PlusPlus
