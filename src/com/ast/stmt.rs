@@ -1,4 +1,4 @@
-use super::{Expr, Type};
+use super::{Expr, Pattern, Type};
 use crate::utils::{Span, Spanned};
 
 pub type Stmt = Spanned<StmtKind>;
@@ -54,6 +54,6 @@ pub struct FuncDef {
 
 #[derive(Debug)]
 pub struct VarDef {
-    pub name: Option<Spanned<String>>,
+    pub pattern: Box<Pattern>,
     pub expr: Box<Expr>,
 }

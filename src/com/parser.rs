@@ -178,14 +178,11 @@ impl<'a> Parser<'a> {
         let (stmt, span) = take_span!(self => {
             self.try_match_token::<VarKw>()?;
 
-            let id = self.match_token::<Identifier>().map(|tok| Spanned {
-                value: tok.0,
-                span: self.last_span()
-            });
+            let pat = self.expect_pattern();
             self.match_token::<Equal>();
             let expr = self.expect_expression();
             Some(StmtKind::VarDef(VarDef {
-                name: id,
+                pattern: Box::new(pat),
                 expr: Box::new(expr),
             }))
         });

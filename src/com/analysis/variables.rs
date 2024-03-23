@@ -2,7 +2,7 @@ use super::{Analyser, Declaration};
 use crate::{
     com::{
         abt::{self, VariableInfo, VariableUsage},
-        ast::stmt::VarDef,
+        ast::{self, stmt::VarDef},
     },
     diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
     utils::{Span, Spanned},
@@ -39,11 +39,16 @@ impl<'d> Analyser<'d> {
     pub fn analyse_variable_definition(&mut self, ast: &VarDef) -> abt::StmtKind {
         let bound_expr = self.analyse_expression(&ast.expr);
 
-        let Some(name) = &ast.name else {
+        let ast::PatternKind::Binding(name) = &ast.pattern.value else {
             return abt::StmtKind::Empty;
         };
 
-        let decl = self.declare_variable_here(name.clone(), self.program.type_of(&bound_expr));
+        let name = Spanned {
+            span: ast.pattern.span,
+            value: name.clone(),
+        };
+
+        let decl = self.declare_variable_here(name, self.program.type_of(&bound_expr));
         abt::StmtKind::VarInit(decl.declared, Box::new(bound_expr))
     }
 
