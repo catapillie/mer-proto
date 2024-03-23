@@ -9,13 +9,6 @@ use crate::{
 };
 
 impl<'d> Analyser<'d> {
-    pub fn get_function(&self, name: &str) -> Option<&FunctionInfo> {
-        self.scope.search(|scope| match scope.bindings.get(name) {
-            Some(id) => self.program.functions.get(id),
-            None => None,
-        })
-    }
-
     pub fn analyse_function_header(
         &mut self,
         name: &Spanned<String>,

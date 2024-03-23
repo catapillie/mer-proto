@@ -60,6 +60,8 @@ pub enum Note {
     DataStructureMarkedOpaque(String),
     ShadowedAlias(String),
     RedefinedAlias,
+    MarkedAsOpaque(String),
+    DoesNotHaveConstructor(String),
 }
 
 #[rustfmt::skip]

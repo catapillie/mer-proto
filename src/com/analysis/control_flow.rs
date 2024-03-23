@@ -69,6 +69,7 @@ impl<'d> Analyser<'d> {
             E::StringLiteral(_) => false,
             E::Variable(_) => false,
             E::Function(_) => false,
+            E::OpaqueConstructor(_) => false,
             E::Tuple(head, tail) => Self::is_never(head) || tail.iter().any(Self::is_never),
             E::TupleImmediateIndex(tuple, _) => Self::is_never(tuple),
             E::Array(exprs) => exprs.iter().any(Self::is_never),

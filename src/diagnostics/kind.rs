@@ -36,6 +36,7 @@ pub enum DiagnosticKind {
     DoWithoutWhile,
 
     UnknownVariable(String),
+    NotVariable(String),
     AssigneeMustBeVariable,
     TooManyVariables(String, usize),
     TooManyTopLevelVariables(usize),
@@ -116,6 +117,7 @@ pub enum DiagnosticKind {
     InfiniteDataStructure(String),
     DataStructureRedefinition(String),
     CannotMarkAsOpaque,
+    NonOpaqueTypeConstructor(String),
     FieldDeclaredMoreThanOnce(String),
     InvalidDataStructureExpression,
     UnknownDataStructure(String),

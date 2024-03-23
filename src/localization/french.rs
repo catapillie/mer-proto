@@ -199,6 +199,8 @@ impl Lang for French {
                 => "instruction do sans while".to_string(),
             K::UnknownVariable(name)
                 => format!("variable inconnue '{}'", name.bold()),
+            K::NotVariable(name)
+                => format!("l'identificateur '{}' ne désigne ni une variable, ni une fonction, ni un type opaque", name.bold()),
             K::AssigneeMustBeVariable
                 => "le membre de gauche d'une affectation doit être une variable".to_string(),
             K::TooManyVariables(name, count)
@@ -342,6 +344,10 @@ impl Lang for French {
                 ),
             K::CannotMarkAsOpaque
                 => "les structures de données ne peuvent pas être rendues opaques".to_string(),
+            K::NonOpaqueTypeConstructor(name)
+                => format!("le type '{}' n'est pas opaque, et n'a donc pas de constructeur",
+                    name.bold(),
+                ),
             K::InfiniteDataStructure(name)
                 => format!("la structure de données '{}' est de taille infinie (elle se contient elle-même ou un de ses champs est de taille infinie)",
                     name.to_string().bold(),
@@ -603,6 +609,14 @@ impl Lang for French {
                 ),
             N::RedefinedAlias
                 => "ceci est la redéfinition".to_string(),
+            N::MarkedAsOpaque(name)
+                => format!("le type '{}' n'est pas opaque",
+                    name.bold()
+                ),
+            N::DoesNotHaveConstructor(name)
+                => format!("le constructeur '{}' n'existe pas",
+                    name.bold()
+                ),
         }
     }
 }

@@ -36,13 +36,6 @@ impl<'d> Analyser<'d> {
         Declaration { declared, shadowed }
     }
 
-    pub fn get_variable(&self, name: &str) -> Option<&VariableInfo> {
-        self.scope.search(|scope| match scope.bindings.get(name) {
-            Some(id) => self.program.variables.get(id),
-            None => None,
-        })
-    }
-
     pub fn analyse_variable_definition(&mut self, ast: &VarDef) -> abt::StmtKind {
         let bound_expr = self.analyse_expression(&ast.expr);
 
@@ -55,13 +48,49 @@ impl<'d> Analyser<'d> {
     }
 
     pub fn analyse_variable_expression(&mut self, name: &str, span: Span) -> abt::Expr {
-        if let Some(expr) = self.get_function_as_variable(name) {
-            return expr;
-        }
-
-        let Some(info) = self.get_variable(name) else {
+        let Some(id) = self.scope.search_id(name) else {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::UnknownVariable(name.to_string()))
+                .with_severity(Severity::Error)
+                .with_span(span)
+                .annotate_primary(Note::Unknown, span)
+                .done();
+            self.diagnostics.push(d);
+            return abt::Expr::Unknown;
+        };
+
+        if let Some(info) = self.program.aliases.get(&id) {
+            if !info.is_opaque {
+                let d = diagnostics::create_diagnostic()
+                    .with_kind(DiagnosticKind::NonOpaqueTypeConstructor(name.to_string()))
+                    .with_severity(Severity::Error)
+                    .with_span(span)
+                    .annotate_secondary(
+                        Note::MarkedAsOpaque(name.to_string()).dddot_back().num(1),
+                        info.name.span,
+                        NoteSeverity::Annotation,
+                    )
+                    .annotate_primary(
+                        Note::DoesNotHaveConstructor(name.to_string())
+                            .so()
+                            .dddot_front()
+                            .num(2),
+                        span,
+                    )
+                    .done();
+                self.diagnostics.push(d);
+                return abt::Expr::Unknown;
+            }
+            return abt::Expr::OpaqueConstructor(id)
+        }
+
+        if self.program.functions.contains_key(&id) {
+            return abt::Expr::Function(id);
+        }
+
+        let Some(info) = self.program.variables.get(&id) else {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::NotVariable(name.to_string()))
                 .with_severity(Severity::Error)
                 .with_span(span)
                 .annotate_primary(Note::Unknown, span)
@@ -126,10 +155,5 @@ impl<'d> Analyser<'d> {
         }
 
         abt::Expr::Variable(id)
-    }
-
-    fn get_function_as_variable(&mut self, name: &str) -> Option<abt::Expr> {
-        let func_info = self.get_function(name)?;
-        Some(abt::Expr::Function(func_info.id))
     }
 }

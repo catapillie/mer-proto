@@ -34,6 +34,11 @@ impl Program {
             E::Boolean(_) => Ty::Bool,
             E::StringLiteral(s) => Ty::Array(Box::new(Ty::U8), s.len()),
 
+            E::OpaqueConstructor(id) => {
+                let ty = &self.aliases.get(id).unwrap().ty;
+                Ty::Func(Box::new([ty.clone()]), Box::new(Ty::Alias(*id)))
+            }
+
             E::Tuple(head, tail) => Ty::Tuple(
                 Box::new(self.type_of(head)),
                 tail.iter().map(|e| self.type_of(e)).collect(),

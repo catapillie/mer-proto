@@ -190,6 +190,8 @@ impl Lang for English {
                 => "do statement without while".to_string(),
             K::UnknownVariable(name)
                 => format!("unknown variable '{}'", name.bold()),
+            K::NotVariable(name)
+                => format!("the name '{}' does not refer to a variable, a function or an opaque type", name.bold()),
             K::AssigneeMustBeVariable
                 => "assignee must be a variable".to_string(),
             K::TooManyVariables(name, count)
@@ -339,6 +341,10 @@ impl Lang for English {
                 ),
             K::CannotMarkAsOpaque
                 => "data structures cannot be marked as opaque".to_string(),
+            K::NonOpaqueTypeConstructor(name)
+                => format!("type '{}' is not opaque, so it does not have a constructor",
+                    name.bold(),
+                ),
             K::InfiniteDataStructure(name)
                 => format!("data structure '{}' is of infinite size (it contains itself without indirection or one of its fields is of infinite size)",
                     name.to_string().bold(),
@@ -595,6 +601,14 @@ impl Lang for English {
                 ),
             N::RedefinedAlias
                 => "this is the redefinition".to_string(),
+            N::MarkedAsOpaque(name)
+                => format!("type '{}' is not opaque",
+                    name.bold()
+                ),
+            N::DoesNotHaveConstructor(name)
+                => format!("type constructor '{}' does not exist",
+                    name.bold()
+                ),
         }
     }
 }
