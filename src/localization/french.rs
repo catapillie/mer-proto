@@ -177,6 +177,8 @@ impl Lang for French {
                 => "instruction attendue".to_string(),
             K::ExpectedType
                 => "type attendu".to_string(),
+            K::ExpectedPattern
+                => "motif attendu".to_string(),
             K::SingletonTypeSyntax
                 => "les tuples singletons sont interprétés comme le type intérieur, donc les parenthèses ne sont pas nécéssaires".to_string(),
             K::ExpectedArraySizeOrAmpersand

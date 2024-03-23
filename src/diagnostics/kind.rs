@@ -20,6 +20,7 @@ pub enum DiagnosticKind {
     ExpectedExpression,
     ExpectedStatement,
     ExpectedType,
+    ExpectedPattern,
     SingletonTypeSyntax,
     ExpectedArraySizeOrAmpersand,
     ExpectedAccess,

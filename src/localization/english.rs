@@ -168,6 +168,8 @@ impl Lang for English {
                 => "expected a statement".to_string(),
             K::ExpectedType
                 => "expected a type expression".to_string(),
+            K::ExpectedPattern
+                => "expected a pattern".to_string(),
             K::SingletonTypeSyntax
                 => "singleton tuple are read as their inner type, so parentheses are unnecessary".to_string(),
             K::ExpectedArraySizeOrAmpersand

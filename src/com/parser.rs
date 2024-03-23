@@ -1014,6 +1014,22 @@ impl<'a> Parser<'a> {
         Some(ty?.wrap(span))
     }
 
+    fn expect_pattern(&mut self) -> Pattern {
+        match self.parse_pattern() {
+            Some(p) => p,
+            None => {
+                let d = diagnostics::create_diagnostic()
+                    .with_kind(DiagnosticKind::ExpectedPattern)
+                    .with_severity(Severity::Error)
+                    .with_pos(self.last_boundary())
+                    .annotate_primary(Note::Here, Span::at(self.last_boundary()))
+                    .done();
+                self.diagnostics.push(d);
+                PatternKind::Bad.wrap(Span::at(self.last_boundary()))
+            }
+        }
+    }
+
     fn parse_pattern(&mut self) -> Option<Pattern> {
         if let Some(id) = self.try_match_token::<Identifier>() {
             return Some(PatternKind::Binding(id.0).wrap(self.last_span()));
