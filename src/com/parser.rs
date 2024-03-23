@@ -1014,6 +1014,14 @@ impl<'a> Parser<'a> {
         Some(ty?.wrap(span))
     }
 
+    fn parse_pattern(&mut self) -> Option<Pattern> {
+        if let Some(id) = self.try_match_token::<Identifier>() {
+            return Some(PatternKind::Binding(id.0).wrap(self.last_span()))
+        }
+
+        None
+    }
+
     fn parse_delimited_sequence<Left, Right, Sep, T, F>(&mut self, parser: F) -> Option<Vec<T>>
     where
         Left: TokenValue,
