@@ -81,7 +81,8 @@ impl<'d> Analyser<'d> {
                 self.diagnostics.push(d);
                 return abt::Expr::Unknown;
             }
-            return abt::Expr::OpaqueConstructor(id)
+            let constructor = self.get_opaque_constructor_func_id(id);
+            return abt::Expr::Function(constructor);
         }
 
         if self.program.functions.contains_key(&id) {
