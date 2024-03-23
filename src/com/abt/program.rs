@@ -14,7 +14,11 @@ pub struct Program {
 impl Program {
     pub fn dealias_type<'a>(&'a self, mut ty: &'a Type) -> &'a Type {
         while let Type::Alias(id) = ty {
-            ty = &self.aliases.get(id).unwrap().ty;
+            let info = self.aliases.get(id).unwrap();
+            if info.is_opaque {
+                break;
+            }
+            ty = &info.ty;
         }
         ty
     }

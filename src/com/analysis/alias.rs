@@ -40,6 +40,7 @@ impl<'d> Analyser<'d> {
             AliasInfo {
                 name: ast.name.clone(),
                 ty: abt::Type::Unknown,
+                is_opaque: ast.is_opaque,
             },
         );
 
