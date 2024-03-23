@@ -337,6 +337,8 @@ impl Lang for English {
                 => format!("data structure '{}' is redefined in the same scope",
                     name.bold(),
                 ),
+            K::CannotMarkAsOpaque
+                => "data structures cannot be marked as opaque".to_string(),
             K::InfiniteDataStructure(name)
                 => format!("data structure '{}' is of infinite size (it contains itself without indirection or one of its fields is of infinite size)",
                     name.to_string().bold(),
@@ -583,6 +585,10 @@ impl Lang for English {
                 ),
             N::RedefinedDataStructure
                 => "this is the redefinition".to_string(),
+            N::DataStructureMarkedOpaque(name)
+                => format!("cannot mark data structure '{}' as opaque",
+                    name.bold(),
+                ),
             N::ShadowedAlias(name)
                 => format!("type alias '{}' is first defined here",
                     name.bold()

@@ -19,18 +19,28 @@ impl<'d> Analyser<'d> {
         })
     }
 
-    pub fn analyse_data_structure_header(&mut self, name: &Spanned<String>) -> Option<u64> {
-        if let Some(shadowed) = self.scope.bindings.get(&name.value) {
+    pub fn analyse_data_structure_header(&mut self, ast: &DataDef) -> Option<u64> {
+        if ast.is_opaque {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::CannotMarkAsOpaque)
+                .with_severity(Severity::Error)
+                .with_span(ast.name.span)
+                .annotate_primary(Note::DataStructureMarkedOpaque(ast.name.value.clone()), ast.name.span)
+                .done();
+            self.diagnostics.push(d);
+        }
+
+        if let Some(shadowed) = self.scope.bindings.get(&ast.name.value) {
             if let Some(info) = self.program.datas.get(shadowed) {
                 let shadowed_span = info.name.span;
                 let d = diagnostics::create_diagnostic()
                     .with_kind(DiagnosticKind::DataStructureRedefinition(
-                        name.value.clone(),
+                        ast.name.value.clone(),
                     ))
-                    .with_span(name.span)
+                    .with_span(ast.name.span)
                     .with_severity(Severity::Error)
                     .annotate_secondary(
-                        Note::ShadowedDataStructure(name.value.clone())
+                        Note::ShadowedDataStructure(ast.name.value.clone())
                             .dddot_back()
                             .num(1),
                         shadowed_span,
@@ -38,7 +48,7 @@ impl<'d> Analyser<'d> {
                     )
                     .annotate_primary(
                         Note::RedefinedDataStructure.and().dddot_front().num(2),
-                        name.span,
+                        ast.name.span,
                     )
                     .done();
                 self.diagnostics.push(d);
@@ -47,11 +57,11 @@ impl<'d> Analyser<'d> {
         }
 
         let id = self.make_unique_id();
-        self.scope.bindings.insert(name.value.clone(), id);
+        self.scope.bindings.insert(ast.name.value.clone(), id);
         self.program.datas.insert(
             id,
             DataInfo {
-                name: name.clone(),
+                name: ast.name.clone(),
                 id,
                 fields: Vec::new(),
                 size: Size::Infinite,

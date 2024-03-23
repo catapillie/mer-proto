@@ -85,7 +85,7 @@ impl<'d> Analyser<'d> {
                     Some(id) => funcs.push((id, ast)),
                 },
                 ast::StmtKind::DataDef(ast) => {
-                    match self.analyse_data_structure_header(&ast.name) {
+                    match self.analyse_data_structure_header(ast) {
                         None => continue,
                         Some(id) => datas.push((id, ast)),
                     }

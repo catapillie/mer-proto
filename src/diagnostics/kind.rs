@@ -115,6 +115,7 @@ pub enum DiagnosticKind {
 
     InfiniteDataStructure(String),
     DataStructureRedefinition(String),
+    CannotMarkAsOpaque,
     FieldDeclaredMoreThanOnce(String),
     InvalidDataStructureExpression,
     UnknownDataStructure(String),

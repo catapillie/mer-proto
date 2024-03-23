@@ -57,6 +57,7 @@ pub enum Note {
     RedefinedFunction,
     ShadowedDataStructure(String),
     RedefinedDataStructure,
+    DataStructureMarkedOpaque(String),
     ShadowedAlias(String),
     RedefinedAlias,
 }

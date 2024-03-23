@@ -340,6 +340,8 @@ impl Lang for French {
                 => format!("la structure de données '{}' est redéfinie dans le même contexte",
                     name.bold(),
                 ),
+            K::CannotMarkAsOpaque
+                => "les structures de données ne peuvent pas être rendues opaques".to_string(),
             K::InfiniteDataStructure(name)
                 => format!("la structure de données '{}' est de taille infinie (elle se contient elle-même ou un de ses champs est de taille infinie)",
                     name.to_string().bold(),
@@ -591,6 +593,10 @@ impl Lang for French {
                 ),
             N::RedefinedDataStructure
                 => "ceci est la redéfinition".to_string(),
+            N::DataStructureMarkedOpaque(name)
+                => format!("impossible de traiter la structure de données '{}' comme opaque",
+                    name.bold(),
+                ),
             N::ShadowedAlias(name)
                 => format!("alias '{}' initialement défini ici",
                     name.bold()
