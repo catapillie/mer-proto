@@ -17,7 +17,7 @@ pub use program::Program;
 pub use alias::AliasInfo;
 pub use expr::Expr;
 pub use lvalue::LValue;
-pub use pattern::{Pattern, PatternKind};
+pub use pattern::{BoundPattern, Pattern, PatternKind};
 pub use size::Size;
 pub use stmt::{Stmt, StmtKind};
 pub use types::Type;

@@ -20,6 +20,8 @@ impl Codegen {
                 => self.gen_expression_statement(expr, abt),
             S::VarInit(var_id, expr)
                 => self.gen_variable_init(*var_id, expr, abt),
+            S::Deconstruct(pat, expr)
+                => self.gen_deconstruction(pat, expr, abt),
             S::IfThen(guard, body)
                 => self.gen_if_then_statement(guard, body, abt),
             S::IfThenElse(guard, body_then, body_else)

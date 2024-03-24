@@ -13,6 +13,7 @@ mod function;
 mod operation;
 mod reference;
 mod statement;
+mod deconstruction;
 
 struct Loc {
     offset: u8,

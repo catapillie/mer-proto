@@ -1,6 +1,9 @@
 use super::Analyser;
 use crate::{
-    com::{abt, ast},
+    com::{
+        abt::{self, BoundPattern},
+        ast,
+    },
     diagnostics::{self, DiagnosticKind, Note, Severity},
     utils::Spanned,
 };
@@ -30,26 +33,38 @@ impl<'d> Analyser<'d> {
         }
     }
 
-    pub fn declare_pattern_bindings(&mut self, pattern: &abt::Pattern, ty: &abt::Type) {
+    pub fn declare_pattern_bindings(
+        &mut self,
+        pattern: &abt::Pattern,
+        ty: &abt::Type,
+    ) -> BoundPattern {
+        use abt::BoundPattern as B;
         use abt::PatternKind as Pat;
         use abt::Type as Ty;
         match (&pattern.value, ty) {
-            (Pat::Discard, _) => (),
-            (Pat::Binding(name), ty) => {
-                self.declare_variable_here(
+            (Pat::Discard, _) => B::Discard {
+                len: self.program.size_of(ty),
+            },
+            (Pat::Binding(name), _) => {
+                let decl = self.declare_variable_here(
                     Spanned {
                         span: pattern.span,
                         value: name.clone(),
                     },
                     ty.clone(),
                 );
+                B::Loc { id: decl.declared }
             }
-            (Pat::Unit, Ty::Unit) => (),
+            (Pat::Unit, Ty::Unit) => B::Discard {
+                len: self.program.size_of(&Ty::Unit),
+            },
             (Pat::Tuple(pat_hd, pat_tl), Ty::Tuple(ty_hd, ty_tl)) => {
-                self.declare_pattern_bindings(pat_hd, ty_hd);
+                let mut bound_patterns = Vec::new();
+                bound_patterns.push(self.declare_pattern_bindings(pat_hd, ty_hd));
                 for (pat, ty) in pat_tl.iter().zip(ty_tl.iter()) {
-                    self.declare_pattern_bindings(pat, ty);
+                    bound_patterns.push(self.declare_pattern_bindings(pat, ty));
                 }
+
                 if pat_tl.len() != ty_tl.len() {
                     let pat_repr = self.program.pat_repr(&pattern.value);
                     let ty_repr = self.program.type_repr(ty);
@@ -64,11 +79,15 @@ impl<'d> Analyser<'d> {
                         .done();
                     self.diagnostics.push(d);
                 }
+
+                B::Seq(bound_patterns.into())
             }
             (Pat::Array(pats), Ty::Array(inner, size)) => {
-                for pat in pats.iter() {
-                    self.declare_pattern_bindings(pat, inner)
-                }
+                let bound_patterns = pats
+                    .iter()
+                    .map(|p| self.declare_pattern_bindings(p, inner))
+                    .collect();
+
                 if pats.len() != *size {
                     let pat_repr = self.program.pat_repr(&pattern.value);
                     let ty_repr = self.program.type_repr(ty);
@@ -80,8 +99,13 @@ impl<'d> Analyser<'d> {
                         .done();
                     self.diagnostics.push(d);
                 }
+
+                B::Seq(bound_patterns)
             }
-            (Pat::Ref(pat), Ty::Ref(inner)) => self.declare_pattern_bindings(pat, inner),
+            (Pat::Ref(pat), Ty::Ref(inner)) => B::Ref {
+                pat: Box::new(self.declare_pattern_bindings(pat, inner)),
+                len: self.program.size_of(inner),
+            },
             _ => {
                 let pat_repr = self.program.pat_repr(&pattern.value);
                 let ty_repr = self.program.type_repr(ty);
@@ -92,6 +116,7 @@ impl<'d> Analyser<'d> {
                     .annotate_primary(Note::PatternMustDescribe(ty_repr), pattern.span)
                     .done();
                 self.diagnostics.push(d);
+                B::Bad
             }
         }
     }

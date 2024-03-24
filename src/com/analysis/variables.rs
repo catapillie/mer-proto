@@ -40,9 +40,8 @@ impl<'d> Analyser<'d> {
         let bound_expr = self.analyse_expression(&ast.expr);
         let bound_ty = self.program.type_of(&bound_expr);
         let pat = self.analyse_pattern(&ast.pattern);
-
-        self.declare_pattern_bindings(&pat, &bound_ty);
-        abt::StmtKind::Empty
+        let bound_pat = self.declare_pattern_bindings(&pat, &bound_ty);
+        abt::StmtKind::Deconstruct(Box::new(bound_pat), Box::new(bound_expr))
     }
 
     pub fn analyse_variable_expression(&mut self, name: &str, span: Span) -> abt::Expr {
