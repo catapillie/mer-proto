@@ -83,7 +83,7 @@ impl<'d> Analyser<'d> {
         use abt::BoundPattern as B;
         use abt::PatternKind as Pat;
         use abt::Type as Ty;
-        match (&pattern.value, ty) {
+        match (&pattern.value, self.program.dealias_type(ty).clone()) {
             (Pat::Discard, _) => B::Discard {
                 len: self.program.size_of(ty),
             },
@@ -102,7 +102,7 @@ impl<'d> Analyser<'d> {
             },
             (Pat::Tuple(pat_hd, pat_tl), Ty::Tuple(ty_hd, ty_tl)) => {
                 let mut bound_patterns = Vec::new();
-                bound_patterns.push(self.declare_pattern_bindings(pat_hd, ty_hd));
+                bound_patterns.push(self.declare_pattern_bindings(pat_hd, &ty_hd));
                 for (pat, ty) in pat_tl.iter().zip(ty_tl.iter()) {
                     bound_patterns.push(self.declare_pattern_bindings(pat, ty));
                 }
@@ -127,14 +127,14 @@ impl<'d> Analyser<'d> {
             (Pat::Array(pats), Ty::Array(inner, size)) => {
                 let bound_patterns = pats
                     .iter()
-                    .map(|p| self.declare_pattern_bindings(p, inner))
+                    .map(|p| self.declare_pattern_bindings(p, &inner))
                     .collect();
 
-                if pats.len() != *size {
+                if pats.len() != size {
                     let pat_repr = self.program.pat_repr(&pattern.value);
                     let ty_repr = self.program.type_repr(ty);
                     let d = diagnostics::create_diagnostic()
-                        .with_kind(DiagnosticKind::ArrayPatternMismatch(pat_repr, *size))
+                        .with_kind(DiagnosticKind::ArrayPatternMismatch(pat_repr, size))
                         .with_severity(Severity::Error)
                         .with_span(pattern.span)
                         .annotate_primary(Note::PatternMustDescribe(ty_repr), pattern.span)
@@ -145,18 +145,18 @@ impl<'d> Analyser<'d> {
                 B::Seq(bound_patterns)
             }
             (Pat::Ref(pat), Ty::Ref(inner)) => B::Ref {
-                pat: Box::new(self.declare_pattern_bindings(pat, inner)),
-                len: self.program.size_of(inner),
+                pat: Box::new(self.declare_pattern_bindings(pat, &inner)),
+                len: self.program.size_of(&inner),
             },
             (Pat::OpaqueTypeConstructor(ctor_id, pats), Ty::Alias(alias_id)) => {
                 let ctor_info = self.program.aliases.get(ctor_id).unwrap();
                 let ctor_name = &ctor_info.name;
 
-                let alias_info = self.program.aliases.get(alias_id).unwrap();
+                let alias_info = self.program.aliases.get(&alias_id).unwrap();
                 let alias_inner = alias_info.ty.clone();
                 let alias_name = &alias_info.name;
 
-                if ctor_id != alias_id {
+                if *ctor_id != alias_id {
                     let type_repr = self.program.type_repr(ty);
                     let d = diagnostics::create_diagnostic()
                         .with_kind(DiagnosticKind::OpaqueTypeConstructorPatternMismatch(
