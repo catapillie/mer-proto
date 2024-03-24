@@ -62,6 +62,7 @@ pub enum Note {
     RedefinedAlias,
     MarkedAsOpaque(String),
     DoesNotHaveConstructor(String),
+    PatternMustDescribe(TypeRepr),
 }
 
 #[rustfmt::skip]

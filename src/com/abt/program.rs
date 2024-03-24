@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use super::{AliasInfo, DataInfo, Expr, FunctionInfo, Size, Type, VariableInfo};
-use crate::diagnostics::TypeRepr;
+use super::{AliasInfo, DataInfo, Expr, FunctionInfo, PatternKind, Size, Type, VariableInfo};
+use crate::diagnostics::{PatRepr, TypeRepr};
 
 pub struct Program {
     pub main_fn_id: u64,
@@ -222,6 +222,19 @@ impl Program {
                     args.iter().map(|ty| self.type_repr(ty)).collect(),
                     Box::new(self.type_repr(ty))
                 ),
+        }
+    }
+
+    #[allow(clippy::only_used_in_recursion)]
+    pub fn pat_repr(&self, pat: &PatternKind) -> PatRepr {
+        match pat {
+            PatternKind::Discard => PatRepr::Discard,
+            PatternKind::Binding(name) => PatRepr::Binding(name.clone()),
+            PatternKind::Unit => PatRepr::Unit,
+            PatternKind::Tuple(head, tail) => PatRepr::Tuple(
+                Box::new(self.pat_repr(&head.value)),
+                tail.iter().map(|p| self.pat_repr(&p.value)).collect(),
+            ),
         }
     }
 }

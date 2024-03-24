@@ -413,7 +413,17 @@ impl Lang for French {
             K::InvalidPrint(ty)
                 => format!("impossible d'afficher une valeur de type {}",
                     ty.to_string().bold(),
-                )
+                ),
+            K::PatternMismatch(pat, ty)
+                => format!("le motif {} ne correspond pas au type {}",
+                    pat.to_string().bold(),
+                    ty.to_string().bold(),
+                ),
+            K::TuplePatternMismatch(pat, len)
+                => format!("le motif {} ne correspond pas aux tuples de taille {}",
+                    pat.to_string().bold(),
+                    len.to_string().bold(),
+                ),
         }
     }
 
@@ -620,6 +630,10 @@ impl Lang for French {
             N::DoesNotHaveConstructor(name)
                 => format!("le constructeur '{}' n'existe pas",
                     name.bold()
+                ),
+            N::PatternMustDescribe(ty)
+                => format!("ce motif doit décrire le type {}",
+                    ty.to_string().bold(),
                 ),
         }
     }

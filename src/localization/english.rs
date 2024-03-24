@@ -410,7 +410,17 @@ impl Lang for English {
             K::InvalidPrint(ty)
                 => format!("cannot print a value of type {}",
                     ty.to_string().bold(),
-                )
+                ),
+            K::PatternMismatch(pat, ty)
+                => format!("pattern {} does not match type {}",
+                    pat.to_string().bold(),
+                    ty.to_string().bold(),
+                ),
+            K::TuplePatternMismatch(pat, len)
+                => format!("pattern {} does not match a tuple of length {}",
+                    pat.to_string().bold(),
+                    len.to_string().bold(),
+                ),
         }
     }
 
@@ -612,6 +622,10 @@ impl Lang for English {
             N::DoesNotHaveConstructor(name)
                 => format!("type constructor '{}' does not exist",
                     name.bold()
+                ),
+            N::PatternMustDescribe(ty)
+                => format!("this pattern must describe type {}",
+                    ty.to_string().bold(),
                 ),
         }
     }

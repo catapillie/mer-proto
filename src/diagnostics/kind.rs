@@ -1,6 +1,6 @@
 use std::num::ParseIntError;
 
-use super::TypeRepr;
+use super::{PatRepr, TypeRepr};
 use crate::com::{
     ast,
     tokens::{Token, TokenKind},
@@ -137,4 +137,7 @@ pub enum DiagnosticKind {
     NonIntegerSize,
 
     InvalidPrint(TypeRepr),
+
+    PatternMismatch(PatRepr, TypeRepr),
+    TuplePatternMismatch(PatRepr, usize),
 }

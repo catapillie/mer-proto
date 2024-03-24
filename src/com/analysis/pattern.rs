@@ -1,6 +1,7 @@
 use super::Analyser;
 use crate::{
     com::{abt, ast},
+    diagnostics::{self, DiagnosticKind, Note, Severity},
     utils::Spanned,
 };
 
@@ -43,9 +44,32 @@ impl<'d> Analyser<'d> {
                 for (pat, ty) in pat_tl.iter().zip(ty_tl.iter()) {
                     self.declare_pattern_bindings(pat, ty);
                 }
-                assert_eq!(pat_tl.len(), ty_tl.len());
+                if pat_tl.len() != ty_tl.len() {
+                    let pat_repr = self.program.pat_repr(&pattern.value);
+                    let ty_repr = self.program.type_repr(ty);
+                    let d = diagnostics::create_diagnostic()
+                        .with_kind(DiagnosticKind::TuplePatternMismatch(
+                            pat_repr,
+                            1 + ty_tl.len(),
+                        ))
+                        .with_severity(Severity::Error)
+                        .with_span(pattern.span)
+                        .annotate_primary(Note::PatternMustDescribe(ty_repr), pattern.span)
+                        .done();
+                    self.diagnostics.push(d);
+                }
             }
-            _ => panic!("invalid pattern matching"),
+            _ => {
+                let pat_repr = self.program.pat_repr(&pattern.value);
+                let ty_repr = self.program.type_repr(ty);
+                let d = diagnostics::create_diagnostic()
+                    .with_kind(DiagnosticKind::PatternMismatch(pat_repr, ty_repr.clone()))
+                    .with_severity(Severity::Error)
+                    .with_span(pattern.span)
+                    .annotate_primary(Note::PatternMustDescribe(ty_repr), pattern.span)
+                    .done();
+                self.diagnostics.push(d);
+            }
         }
     }
 }
