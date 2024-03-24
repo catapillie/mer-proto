@@ -6,6 +6,7 @@ pub type Pattern = Spanned<PatternKind>;
 pub enum PatternKind {
     Discard,
     Binding(String),
+    OpaqueTypeConstructor(u64, Box<[Pattern]>),
     Unit,
     Tuple(Box<Pattern>, Box<[Pattern]>),
     Array(Box<[Pattern]>),

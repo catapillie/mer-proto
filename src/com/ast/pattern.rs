@@ -7,6 +7,7 @@ pub enum PatternKind {
     Bad,
     Discard,
     Binding(String),
+    Constructor(Spanned<String>, Box<[Pattern]>),
     Unit,
     Parenthesized(Box<Pattern>),
     Tuple(Box<Pattern>, Box<[Pattern]>),

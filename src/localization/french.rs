@@ -408,6 +408,10 @@ impl Lang for French {
                 => format!("l'alias '{}' est redéfini dans le même contexte",
                     name.bold(),
                 ),
+            K::UnknownTypeConstructor(name)
+                => format!("constructeur de type inconnu '{}'",
+                    name.bold(),
+                ),
             K::NonIntegerSize
                 => "taille non-entière".to_string(),
             K::InvalidPrint(ty)

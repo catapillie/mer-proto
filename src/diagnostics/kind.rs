@@ -133,6 +133,7 @@ pub enum DiagnosticKind {
     EmptyWithExpression(TypeRepr),
     
     AliasRedefinition(String),
+    UnknownTypeConstructor(String),
 
     NonIntegerSize,
 

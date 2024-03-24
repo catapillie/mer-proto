@@ -405,6 +405,10 @@ impl Lang for English {
                 => format!("type alias '{}' is redefined in the same scope",
                     name.bold(),
                 ),
+            K::UnknownTypeConstructor(name)
+                => format!("unknown type constructor '{}'",
+                    name.bold(),
+                ),
             K::NonIntegerSize
                 => "non-integer size".to_string(),
             K::InvalidPrint(ty)

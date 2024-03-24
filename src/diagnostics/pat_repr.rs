@@ -4,6 +4,7 @@ use std::fmt::Display;
 pub enum PatRepr {
     Discard,
     Binding(String),
+    OpaqueTypeConstructor(String, Box<[PatRepr]>),
     Unit,
     Tuple(Box<PatRepr>, Box<[PatRepr]>),
     Array(Box<[PatRepr]>),
@@ -19,8 +20,7 @@ impl Display for PatRepr {
             PatRepr::Tuple(head, tail) => {
                 write!(f, "({head}")?;
                 for ty in tail.iter() {
-                    write!(f, ", ")?;
-                    ty.fmt(f)?;
+                    write!(f, ", {ty}")?;
                 }
                 write!(f, ")")?;
                 Ok(())
@@ -29,8 +29,7 @@ impl Display for PatRepr {
                 Some((head, tail)) => {
                     write!(f, "[{head}")?;
                     for ty in tail.iter() {
-                        write!(f, ", ")?;
-                        ty.fmt(f)?;
+                        write!(f, ", {ty}")?;
                     }
                     write!(f, "]")?;
                     Ok(())
@@ -38,6 +37,17 @@ impl Display for PatRepr {
                 None => write!(f, "[]"),
             },
             PatRepr::Ref(pat) => write!(f, "&{pat}"),
+            PatRepr::OpaqueTypeConstructor(name, pats) => match pats.split_first() {
+                Some((head, tail)) => {
+                    write!(f, "{name}({head}")?;
+                    for ty in tail.iter() {
+                        write!(f, ", {ty}")?;
+                    }
+                    write!(f, ")")?;
+                    Ok(())
+                }
+                None => write!(f, "{name}()"),
+            },
         }
     }
 }

@@ -4,7 +4,7 @@ use crate::{
         abt::{self, BoundPattern},
         ast,
     },
-    diagnostics::{self, DiagnosticKind, Note, Severity},
+    diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
     utils::Spanned,
 };
 
@@ -18,6 +18,48 @@ impl<'d> Analyser<'d> {
             ast::PatternKind::Bad => abt::PatternKind::Discard,
             ast::PatternKind::Discard => abt::PatternKind::Discard,
             ast::PatternKind::Binding(name) => abt::PatternKind::Binding(name.clone()),
+            ast::PatternKind::Constructor(name, patterns) => {
+                let bound_patterns = patterns.iter().map(|p| self.analyse_pattern(p)).collect();
+
+                let Some(info) = self.get_type_alias(&name.value) else {
+                    let d = diagnostics::create_diagnostic()
+                        .with_kind(DiagnosticKind::UnknownTypeConstructor(name.value.clone()))
+                        .with_severity(Severity::Error)
+                        .with_span(name.span)
+                        .annotate_primary(Note::Unknown, name.span)
+                        .done();
+                    self.diagnostics.push(d);
+                    return abt::PatternKind::Discard;
+                };
+
+                if !info.is_opaque {
+                    let d = diagnostics::create_diagnostic()
+                        .with_kind(DiagnosticKind::NonOpaqueTypeConstructor(
+                            name.value.to_string(),
+                        ))
+                        .with_severity(Severity::Error)
+                        .with_span(name.span)
+                        .annotate_secondary(
+                            Note::MarkedAsOpaque(name.value.to_string())
+                                .dddot_back()
+                                .num(1),
+                            info.name.span,
+                            NoteSeverity::Annotation,
+                        )
+                        .annotate_primary(
+                            Note::DoesNotHaveConstructor(name.value.to_string())
+                                .so()
+                                .dddot_front()
+                                .num(2),
+                            name.span,
+                        )
+                        .done();
+                    self.diagnostics.push(d);
+                    return abt::PatternKind::Discard;
+                }
+
+                abt::PatternKind::OpaqueTypeConstructor(info.id, bound_patterns)
+            }
             ast::PatternKind::Unit => abt::PatternKind::Unit,
             ast::PatternKind::Parenthesized(pat) => self.analyse_pattern_kind(pat),
             ast::PatternKind::Tuple(head, tail) => abt::PatternKind::Tuple(
@@ -106,6 +148,20 @@ impl<'d> Analyser<'d> {
                 pat: Box::new(self.declare_pattern_bindings(pat, inner)),
                 len: self.program.size_of(inner),
             },
+            (Pat::OpaqueTypeConstructor(ctor_id, pats), Ty::Alias(alias_id)) => {
+                assert_eq!(ctor_id, alias_id, "matching against different opaque types");
+
+                let Some((head, tail)) = pats.split_first() else {
+                    todo!("missing pattern in constructor")
+                };
+
+                if !tail.is_empty() {
+                    todo!("more than one pattern in opaque type constructor")
+                }
+
+                let inner = self.program.aliases.get(alias_id).unwrap().ty.clone();
+                self.declare_pattern_bindings(head, &inner)
+            }
             _ => {
                 let pat_repr = self.program.pat_repr(&pattern.value);
                 let ty_repr = self.program.type_repr(ty);

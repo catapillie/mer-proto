@@ -9,6 +9,13 @@ use crate::{
 };
 
 impl<'d> Analyser<'d> {
+    pub fn get_type_alias(&self, name: &str) -> Option<&AliasInfo> {
+        self.scope.search(|scope| match scope.bindings.get(name) {
+            Some(id) => self.program.aliases.get(id),
+            None => None,
+        })
+    }
+
     pub fn analyse_alias_header(&mut self, ast: &AliasDef) -> Option<u64> {
         if let Some(shadowed) = self.scope.bindings.get(&ast.name.value) {
             if let Some(info) = self.program.aliases.get(shadowed) {
@@ -39,6 +46,7 @@ impl<'d> Analyser<'d> {
         self.program.aliases.insert(
             id,
             AliasInfo {
+                id,
                 name: ast.name.clone(),
                 ty: abt::Type::Unknown,
                 is_opaque: ast.is_opaque,

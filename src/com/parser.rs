@@ -1049,7 +1049,12 @@ impl<'a> Parser<'a> {
             }
 
             if let Some(id) = self.try_match_token::<Identifier>() {
-                return Some(PatternKind::Binding(id.0));
+                let name = Spanned { span: self.last_span(), value: id.0 };
+                let seq = self.parse_delimited_sequence::<LeftParen, RightParen, Comma, _, _>(Self::parse_pattern);
+                return Some(match seq {
+                    Some(patterns) => PatternKind::Constructor(name, patterns.into()),
+                    None => PatternKind::Binding(name.value),
+                });
             }
 
             if self.try_match_token::<Underscore>().is_some() {
