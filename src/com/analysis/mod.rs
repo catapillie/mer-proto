@@ -11,6 +11,7 @@ mod control_flow;
 mod data;
 mod expression;
 mod lvalue;
+mod pattern;
 mod program;
 mod statement;
 mod types;
