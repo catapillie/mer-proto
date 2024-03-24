@@ -1028,15 +1028,33 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_pattern(&mut self) -> Option<Pattern> {
-        if let Some(id) = self.try_match_token::<Identifier>() {
-            return Some(PatternKind::Binding(id.0).wrap(self.last_span()));
-        }
+        let (pat, span) = take_span!(self => {
+            let seq = self.parse_delimited_sequence::<LeftParen, RightParen, Comma, _, _>(Self::parse_pattern);
+            if let Some(mut patterns) = seq {
+                if patterns.is_empty() {
+                    return Some(PatternKind::Unit);
+                }
 
-        if self.try_match_token::<Underscore>().is_some() {
-            return Some(PatternKind::Discard.wrap(self.last_span()));
-        }
+                let head = patterns.remove(0);
+                return if patterns.is_empty() {
+                    Some(PatternKind::Parenthesized(Box::new(head)))
+                } else {
+                    Some(PatternKind::Tuple(Box::new(head), patterns.into()))
+                };
+            }
 
-        None
+            if let Some(id) = self.try_match_token::<Identifier>() {
+                return Some(PatternKind::Binding(id.0));
+            }
+
+            if self.try_match_token::<Underscore>().is_some() {
+                return Some(PatternKind::Discard);
+            }
+
+            None
+        });
+
+        Some(pat?.wrap(span))
     }
 
     fn parse_delimited_sequence<Left, Right, Sep, T, F>(&mut self, parser: F) -> Option<Vec<T>>

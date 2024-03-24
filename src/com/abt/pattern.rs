@@ -5,6 +5,8 @@ pub type Pattern = Spanned<PatternKind>;
 pub enum PatternKind {
     Discard,
     Binding(String),
+    Unit,
+    Tuple(Box<Pattern>, Box<[Pattern]>),
 }
 
 impl PatternKind {
