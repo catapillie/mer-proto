@@ -24,6 +24,9 @@ impl<'d> Analyser<'d> {
             ast::PatternKind::Array(pats) => {
                 abt::PatternKind::Array(pats.iter().map(|p| self.analyse_pattern(p)).collect())
             }
+            ast::PatternKind::Ref(pat) => {
+                abt::PatternKind::Ref(Box::new(self.analyse_pattern(pat)))
+            }
         }
     }
 
@@ -78,6 +81,7 @@ impl<'d> Analyser<'d> {
                     self.diagnostics.push(d);
                 }
             }
+            (Pat::Ref(pat), Ty::Ref(inner)) => self.declare_pattern_bindings(pat, inner),
             _ => {
                 let pat_repr = self.program.pat_repr(&pattern.value);
                 let ty_repr = self.program.type_repr(ty);

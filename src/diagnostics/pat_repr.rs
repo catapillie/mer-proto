@@ -7,6 +7,7 @@ pub enum PatRepr {
     Unit,
     Tuple(Box<PatRepr>, Box<[PatRepr]>),
     Array(Box<[PatRepr]>),
+    Ref(Box<PatRepr>),
 }
 
 impl Display for PatRepr {
@@ -36,6 +37,7 @@ impl Display for PatRepr {
                 }
                 None => write!(f, "[]"),
             },
+            PatRepr::Ref(pat) => write!(f, "&{pat}"),
         }
     }
 }

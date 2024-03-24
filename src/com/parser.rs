@@ -1056,6 +1056,11 @@ impl<'a> Parser<'a> {
                 return Some(PatternKind::Discard);
             }
 
+            if self.try_match_token::<Ampersand>().is_some() {
+                let pat = self.expect_pattern();
+                return Some(PatternKind::Ref(Box::new(pat)))
+            }
+
             None
         });
 

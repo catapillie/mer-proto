@@ -238,6 +238,7 @@ impl Program {
             PatternKind::Array(pats) => PatRepr::Array(
                 pats.iter().map(|p| self.pat_repr(&p.value)).collect(),
             ),
+            PatternKind::Ref(pat) => PatRepr::Ref(Box::new(self.pat_repr(&pat.value))),
         }
     }
 }

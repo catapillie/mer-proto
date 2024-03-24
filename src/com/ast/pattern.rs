@@ -10,7 +10,8 @@ pub enum PatternKind {
     Unit,
     Parenthesized(Box<Pattern>),
     Tuple(Box<Pattern>, Box<[Pattern]>),
-    Array(Box<[Pattern]>)
+    Array(Box<[Pattern]>),
+    Ref(Box<Pattern>),
 }
 
 impl PatternKind {
