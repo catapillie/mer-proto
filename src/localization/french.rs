@@ -433,6 +433,21 @@ impl Lang for French {
                     pat.to_string().bold(),
                     len.to_string().bold(),
                 ),
+            K::OpaqueTypeConstructorPatternMismatch(ctor, alias)
+                => format!("les motifs pour les types opaques {} et {} ne peuvent pas correspondre",
+                    ctor.bold(),
+                    alias.bold(),
+                ),
+            K::MissingPatternInOpaqueTypeConstructorPattern(pat, alias)
+                => format!("le motif {} est vide et ne peut pas correspondre au type opaque {}",
+                    pat.to_string().bold(),
+                    alias.bold(),
+                ),
+            K::MoreThanOnePatternInOpaqueTypeConstructorPattern(pat, alias)
+                => format!("le motif {} ne correspond pas au type opaque {}",
+                    pat.to_string().bold(),
+                    alias.bold(),
+                ),
         }
     }
 

@@ -142,4 +142,7 @@ pub enum DiagnosticKind {
     PatternMismatch(PatRepr, TypeRepr),
     TuplePatternMismatch(PatRepr, usize),
     ArrayPatternMismatch(PatRepr, usize),
+    OpaqueTypeConstructorPatternMismatch(String, String),
+    MissingPatternInOpaqueTypeConstructorPattern(PatRepr, String),
+    MoreThanOnePatternInOpaqueTypeConstructorPattern(PatRepr, String),
 }

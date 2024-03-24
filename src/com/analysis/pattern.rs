@@ -149,18 +149,70 @@ impl<'d> Analyser<'d> {
                 len: self.program.size_of(inner),
             },
             (Pat::OpaqueTypeConstructor(ctor_id, pats), Ty::Alias(alias_id)) => {
-                assert_eq!(ctor_id, alias_id, "matching against different opaque types");
+                let ctor_info = self.program.aliases.get(ctor_id).unwrap();
+                let ctor_name = &ctor_info.name;
 
-                let Some((head, tail)) = pats.split_first() else {
-                    todo!("missing pattern in constructor")
-                };
+                let alias_info = self.program.aliases.get(alias_id).unwrap();
+                let alias_inner = alias_info.ty.clone();
+                let alias_name = &alias_info.name;
 
-                if !tail.is_empty() {
-                    todo!("more than one pattern in opaque type constructor")
+                if ctor_id != alias_id {
+                    let type_repr = self.program.type_repr(ty);
+                    let d = diagnostics::create_diagnostic()
+                        .with_kind(DiagnosticKind::OpaqueTypeConstructorPatternMismatch(
+                            ctor_name.value.clone(),
+                            alias_name.value.clone(),
+                        ))
+                        .with_severity(Severity::Error)
+                        .with_span(pattern.span)
+                        .annotate_primary(Note::PatternMustDescribe(type_repr), pattern.span)
+                        .done();
+                    self.diagnostics.push(d);
+                    return B::Bad;
                 }
 
-                let inner = self.program.aliases.get(alias_id).unwrap().ty.clone();
-                self.declare_pattern_bindings(head, &inner)
+                let Some((head, tail)) = pats.split_first() else {
+                    let pat_repr = self.program.pat_repr(&pattern.value);
+                    let d = diagnostics::create_diagnostic()
+                        .with_kind(
+                            DiagnosticKind::MissingPatternInOpaqueTypeConstructorPattern(
+                                pat_repr,
+                                alias_name.value.clone(),
+                            ),
+                        )
+                        .with_severity(Severity::Error)
+                        .with_span(pattern.span)
+                        .annotate_primary(Note::Here, pattern.span)
+                        .done();
+                    self.diagnostics.push(d);
+                    return B::Bad;
+                };
+
+                let is_error = if !tail.is_empty() {
+                    let pat_repr = self.program.pat_repr(&pattern.value);
+                    let d = diagnostics::create_diagnostic()
+                        .with_kind(
+                            DiagnosticKind::MoreThanOnePatternInOpaqueTypeConstructorPattern(
+                                pat_repr,
+                                alias_name.value.clone(),
+                            ),
+                        )
+                        .with_severity(Severity::Error)
+                        .with_span(pattern.span)
+                        .annotate_primary(Note::Here, pattern.span)
+                        .done();
+                    self.diagnostics.push(d);
+                    true
+                } else {
+                    false
+                };
+
+                let b = self.declare_pattern_bindings(head, &alias_inner);
+                if is_error {
+                    B::Bad
+                } else {
+                    b
+                }
             }
             _ => {
                 let pat_repr = self.program.pat_repr(&pattern.value);

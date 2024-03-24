@@ -430,6 +430,21 @@ impl Lang for English {
                     pat.to_string().bold(),
                     len.to_string().bold(),
                 ),
+            K::OpaqueTypeConstructorPatternMismatch(ctor, alias)
+                => format!("patterns for opaque types {} and {} cannot match",
+                    ctor.bold(),
+                    alias.bold(),
+                ),
+            K::MissingPatternInOpaqueTypeConstructorPattern(pat, alias)
+                => format!("pattern {} is empty and cannot match opaque type {}",
+                    pat.to_string().bold(),
+                    alias.bold(),
+                ),
+            K::MoreThanOnePatternInOpaqueTypeConstructorPattern(pat, alias)
+                => format!("pattern {} does not match the opaque type {}",
+                    pat.to_string().bold(),
+                    alias.bold(),
+                ),
         }
     }
 
