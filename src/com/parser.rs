@@ -1043,6 +1043,11 @@ impl<'a> Parser<'a> {
                 };
             }
 
+            let seq = self.parse_delimited_sequence::<LeftBracket, RightBracket, Comma, _, _>(Self::parse_pattern);
+            if let Some(patterns) = seq {
+                return Some(PatternKind::Array(patterns.into()))
+            }
+
             if let Some(id) = self.try_match_token::<Identifier>() {
                 return Some(PatternKind::Binding(id.0));
             }

@@ -424,6 +424,11 @@ impl Lang for French {
                     pat.to_string().bold(),
                     len.to_string().bold(),
                 ),
+            K::ArrayPatternMismatch(pat, len)
+                => format!("le motif {} ne correspond pas aux tableaux de taille {}",
+                    pat.to_string().bold(),
+                    len.to_string().bold(),
+                ),
         }
     }
 

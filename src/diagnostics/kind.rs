@@ -140,4 +140,5 @@ pub enum DiagnosticKind {
 
     PatternMismatch(PatRepr, TypeRepr),
     TuplePatternMismatch(PatRepr, usize),
+    ArrayPatternMismatch(PatRepr, usize),
 }

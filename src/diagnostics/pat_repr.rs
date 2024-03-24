@@ -6,6 +6,7 @@ pub enum PatRepr {
     Binding(String),
     Unit,
     Tuple(Box<PatRepr>, Box<[PatRepr]>),
+    Array(Box<[PatRepr]>),
 }
 
 impl Display for PatRepr {
@@ -23,6 +24,18 @@ impl Display for PatRepr {
                 write!(f, ")")?;
                 Ok(())
             }
+            PatRepr::Array(pats) => match pats.split_first() {
+                Some((head, tail)) => {
+                    write!(f, "[{head}")?;
+                    for ty in tail.iter() {
+                        write!(f, ", ")?;
+                        ty.fmt(f)?;
+                    }
+                    write!(f, "]")?;
+                    Ok(())
+                }
+                None => write!(f, "[]"),
+            },
         }
     }
 }

@@ -7,6 +7,7 @@ pub enum PatternKind {
     Binding(String),
     Unit,
     Tuple(Box<Pattern>, Box<[Pattern]>),
+    Array(Box<[Pattern]>),
 }
 
 impl PatternKind {

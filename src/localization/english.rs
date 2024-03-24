@@ -421,6 +421,11 @@ impl Lang for English {
                     pat.to_string().bold(),
                     len.to_string().bold(),
                 ),
+            K::ArrayPatternMismatch(pat, len)
+                => format!("pattern {} does not match an array of length {}",
+                    pat.to_string().bold(),
+                    len.to_string().bold(),
+                ),
         }
     }
 

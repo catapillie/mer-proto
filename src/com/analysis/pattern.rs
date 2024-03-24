@@ -21,6 +21,9 @@ impl<'d> Analyser<'d> {
                 Box::new(self.analyse_pattern(head)),
                 tail.iter().map(|p| self.analyse_pattern(p)).collect(),
             ),
+            ast::PatternKind::Array(pats) => {
+                abt::PatternKind::Array(pats.iter().map(|p| self.analyse_pattern(p)).collect())
+            }
         }
     }
 
@@ -52,6 +55,22 @@ impl<'d> Analyser<'d> {
                             pat_repr,
                             1 + ty_tl.len(),
                         ))
+                        .with_severity(Severity::Error)
+                        .with_span(pattern.span)
+                        .annotate_primary(Note::PatternMustDescribe(ty_repr), pattern.span)
+                        .done();
+                    self.diagnostics.push(d);
+                }
+            }
+            (Pat::Array(pats), Ty::Array(inner, size)) => {
+                for pat in pats.iter() {
+                    self.declare_pattern_bindings(pat, inner)
+                }
+                if pats.len() != *size {
+                    let pat_repr = self.program.pat_repr(&pattern.value);
+                    let ty_repr = self.program.type_repr(ty);
+                    let d = diagnostics::create_diagnostic()
+                        .with_kind(DiagnosticKind::ArrayPatternMismatch(pat_repr, *size))
                         .with_severity(Severity::Error)
                         .with_span(pattern.span)
                         .annotate_primary(Note::PatternMustDescribe(ty_repr), pattern.span)

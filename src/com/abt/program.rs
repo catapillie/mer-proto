@@ -235,6 +235,9 @@ impl Program {
                 Box::new(self.pat_repr(&head.value)),
                 tail.iter().map(|p| self.pat_repr(&p.value)).collect(),
             ),
+            PatternKind::Array(pats) => PatRepr::Array(
+                pats.iter().map(|p| self.pat_repr(&p.value)).collect(),
+            ),
         }
     }
 }
