@@ -13,10 +13,21 @@ use crate::{
 
 impl<'d> Analyser<'d> {
     pub fn get_data_structure(&self, name: &str) -> Option<&DataInfo> {
-        self.scope.search(|scope| match scope.bindings.get(name) {
-            Some(id) => self.program.datas.get(id),
-            None => None,
-        })
+        let id = self.scope.search_id(name)?;
+
+        if let Some(info) = self.program.datas.get(&id) {
+            return Some(info);
+        };
+
+        let alias_info = self.program.aliases.get(&id)?;
+        if alias_info.is_opaque {
+            return None;
+        }
+
+        match self.program.dealias_type(&abt::Type::Alias(id)) {
+            abt::Type::Data(id) => Some(self.program.datas.get(&id)?),
+            _ => None,
+        }
     }
 
     pub fn analyse_data_structure_header(&mut self, ast: &DataDef) -> Option<u64> {
@@ -25,7 +36,10 @@ impl<'d> Analyser<'d> {
                 .with_kind(DiagnosticKind::CannotMarkAsOpaque)
                 .with_severity(Severity::Error)
                 .with_span(ast.name.span)
-                .annotate_primary(Note::DataStructureMarkedOpaque(ast.name.value.clone()), ast.name.span)
+                .annotate_primary(
+                    Note::DataStructureMarkedOpaque(ast.name.value.clone()),
+                    ast.name.span,
+                )
                 .done();
             self.diagnostics.push(d);
         }
