@@ -213,6 +213,21 @@ check_program_output!(lvalue_many_data_deref_one => (bool, Type::Bool) true);
 check_program_output!(lvalue_many_data_deref_two => (bool, Type::Bool) true);
 check_program_output!(lvalue_many_data_deref_three => (bool, Type::Bool) true);
 
+check_program_output!(type_alias_assign => (bool, Type::Bool) true);
+check_program_output!(type_alias_binary => (bool, Type::Bool) true);
+check_program_output!(type_alias_unary => (bool, Type::Bool) true);
+check_program_output!(type_alias_deref => (bool, Type::Bool) true);
+check_program_output!(type_alias_array_index => (bool, Type::Bool) true);
+check_program_output!(type_alias_array_immediate_index => (bool, Type::Bool) true);
+check_program_output!(type_alias_tuple_immediate_index => (bool, Type::Bool) true);
+check_program_output!(type_alias_pointer_index => (bool, Type::Bool) true);
+check_program_output!(type_alias_field_access => (bool, Type::Bool) true);
+check_program_output!(type_alias_data_with => (bool, Type::Bool) true);
+check_program_output!(type_alias_immediate_call => (bool, Type::Bool) true);
+check_program_output!(type_alias_indirect_call => (bool, Type::Bool) true);
+check_program_output!(type_alias_case => (bool, Type::Bool) true);
+check_program_output!(type_alias_case_ternary => (bool, Type::Bool) true);
+
 macro_rules! check_program_output {
     ($name:ident => ($expected_ty:ty, $type_abt:expr) $expected:expr) => {
         #[test]

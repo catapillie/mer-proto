@@ -1,0 +1,18 @@
+type S {
+    a: f64
+    b: i64
+    c: bool
+}
+
+type abc = S
+func id(x: S) -> abc
+    = x
+
+var raw = S {
+    a = 5.6
+    b = 12
+    c = true
+}
+var alias = id(raw)
+
+return raw.a == alias.a and raw.b == alias.b and raw.c == alias.c

@@ -1,0 +1,8 @@
+type point = [3]f64
+func id(x: [3]f64) -> point
+    = x
+
+var raw = [1.0, 2.0, 3.0]
+var alias = id(raw)
+
+return raw.0 == alias.0 and raw.1 == alias.1 and raw.2 == alias.2
