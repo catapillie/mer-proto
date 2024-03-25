@@ -1,0 +1,13 @@
+opaque type float = f64
+func id_in(x: f64) -> float
+    = float(x)
+func id_out(x: float) -> f64
+{
+    var float(dealias) = x
+    return dealias
+}
+
+var raw = 1.0
+var alias = id_in(raw)
+
+return id_out(alias) == raw

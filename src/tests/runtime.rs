@@ -227,6 +227,20 @@ check_program_output!(type_alias_immediate_call => (bool, Type::Bool) true);
 check_program_output!(type_alias_indirect_call => (bool, Type::Bool) true);
 check_program_output!(type_alias_case => (bool, Type::Bool) true);
 check_program_output!(type_alias_case_ternary => (bool, Type::Bool) true);
+check_program_output!(type_opaque_binary => (bool, Type::Bool) true);
+check_program_output!(type_opaque_unary => (bool, Type::Bool) true);
+check_program_output!(type_opaque_deref => (bool, Type::Bool) true);
+check_program_output!(type_opaque_array_index => (bool, Type::Bool) true);
+check_program_output!(type_opaque_array_immediate_index => (bool, Type::Bool) true);
+check_program_output!(type_opaque_tuple_immediate_index => (bool, Type::Bool) true);
+check_program_output!(type_opaque_pointer_index => (bool, Type::Bool) true);
+check_program_output!(type_opaque_field_access => (bool, Type::Bool) true);
+check_program_output!(type_opaque_data_with => (bool, Type::Bool) true);
+check_program_output!(type_opaque_immediate_call => (bool, Type::Bool) true);
+check_program_output!(type_opaque_indirect_call => (bool, Type::Bool) true);
+check_program_output!(type_opaque_case => (bool, Type::Bool) true);
+check_program_output!(type_opaque_case_ternary => (bool, Type::Bool) true);
+
 
 macro_rules! check_program_output {
     ($name:ident => ($expected_ty:ty, $type_abt:expr) $expected:expr) => {

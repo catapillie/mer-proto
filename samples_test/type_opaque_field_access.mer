@@ -1,0 +1,19 @@
+type S {
+    a: f64
+    b: i64
+    c: bool
+}
+
+opaque type abc = S
+func id(x: S) -> abc
+    = abc(x)
+
+var raw = S {
+    a = 5.6
+    b = 12
+    c = true
+}
+var alias = id(raw)
+var abc(dealias) = alias
+
+return raw.a == dealias.a and raw.b == dealias.b and raw.c == dealias.c
