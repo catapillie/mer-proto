@@ -1,0 +1,3 @@
+opaque type float = f64
+var float(_) = float(1.4)
+return true

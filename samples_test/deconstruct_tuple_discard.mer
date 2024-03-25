@@ -1,0 +1,2 @@
+var (_, _, _) = (true, 1.5, 16)
+return true
