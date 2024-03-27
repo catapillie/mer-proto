@@ -8,7 +8,6 @@ pub enum StmtKind {
     Empty,
     Block(Box<[Stmt]>),
     Expr(Box<Expr>),
-    VarInit(u64, Box<Expr>),
     Deconstruct(Box<BoundPattern>, Box<Expr>),
     IfThen(Box<Expr>, Box<Stmt>),
     IfThenElse(Box<Expr>, Box<Stmt>, Box<Stmt>),

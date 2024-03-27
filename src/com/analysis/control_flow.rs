@@ -37,7 +37,6 @@ impl<'d> Analyser<'d> {
             }
             S::Empty => false,
             S::Expr(expr) => Self::is_never(expr),
-            S::VarInit(_, expr) => Self::is_never(expr),
             S::Deconstruct(_, expr) => Self::is_never(expr),
             S::IfThen(guard, body) => {
                 self.analyse_control_flow(body); // analyse but discard
