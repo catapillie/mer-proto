@@ -106,6 +106,7 @@ impl<'d> Analyser<'d> {
         let used_variables = [(arg_id, arg_usage)].into_iter().collect();
 
         let id = self.make_unique_id();
+        self.program.aliases.get_mut(&alias_id).unwrap().constructor = Some(id);
         self.program.functions.insert(
             id,
             abt::FunctionInfo {
