@@ -659,6 +659,15 @@ impl Lang for French {
                 => format!("ce motif doit décrire le type {}",
                     ty.to_string().bold(),
                 ),
+            N::OpaqueAliasType(name, ty)
+                => format!("'{}' est un type opaque encapsulant le type {}",
+                    name.bold(),
+                    ty.to_string().bold(),
+                ),
+            N::OpaqueTypeArgCount(name)
+                => format!("le constructeur du type opaque '{}' ne prend qu'un seul argument",
+                    name.bold(),
+                ),
         }
     }
 }

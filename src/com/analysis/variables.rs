@@ -45,7 +45,7 @@ impl<'d> Analyser<'d> {
     }
 
     pub fn analyse_variable_expression(&mut self, name: &str, span: Span) -> abt::Expr {
-        let Some(id) = self.scope.search_id(name) else {
+        let Some(alias_id) = self.scope.search_id(name) else {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::UnknownVariable(name.to_string()))
                 .with_severity(Severity::Error)
@@ -56,7 +56,7 @@ impl<'d> Analyser<'d> {
             return abt::Expr::Unknown;
         };
 
-        if let Some(info) = self.program.aliases.get(&id) {
+        if let Some(info) = self.program.aliases.get(&alias_id) {
             if !info.is_opaque {
                 let d = diagnostics::create_diagnostic()
                     .with_kind(DiagnosticKind::NonOpaqueTypeConstructor(name.to_string()))
@@ -78,15 +78,15 @@ impl<'d> Analyser<'d> {
                 self.diagnostics.push(d);
                 return abt::Expr::Unknown;
             }
-            let constructor = self.get_opaque_constructor_func_id(id);
-            return abt::Expr::OpaqueConstructor(constructor);
+            let ctor_id = self.get_opaque_constructor_func_id(alias_id);
+            return abt::Expr::OpaqueConstructor { ctor_id, alias_id };
         }
 
-        if self.program.functions.contains_key(&id) {
-            return abt::Expr::Function(id);
+        if self.program.functions.contains_key(&alias_id) {
+            return abt::Expr::Function(alias_id);
         }
 
-        let Some(info) = self.program.variables.get(&id) else {
+        let Some(info) = self.program.variables.get(&alias_id) else {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::NotVariable(name.to_string()))
                 .with_severity(Severity::Error)

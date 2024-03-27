@@ -34,7 +34,10 @@ impl Program {
             E::Boolean(_) => Ty::Bool,
             E::StringLiteral(s) => Ty::Array(Box::new(Ty::U8), s.len()),
 
-            E::OpaqueConstructor(id) => self.type_of(&Expr::Function(*id)),
+            E::OpaqueConstructor {
+                ctor_id,
+                alias_id: _,
+            } => self.type_of(&Expr::Function(*ctor_id)),
 
             E::Tuple(head, tail) => Ty::Tuple(
                 Box::new(self.type_of(head)),

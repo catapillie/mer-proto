@@ -85,7 +85,10 @@ impl Codegen {
             } => self.gen_assignment_expression(assignee, *var_id, expr, abt),
             E::Variable(var_id) => self.gen_variable_expression(*var_id, abt),
             E::Function(func_id) => self.gen_function_expression(*func_id),
-            E::OpaqueConstructor(ctor_id) => self.gen_function_expression(*ctor_id),
+            E::OpaqueConstructor {
+                ctor_id,
+                alias_id: _,
+            } => self.gen_function_expression(*ctor_id),
             E::Tuple(head, tail) => self.gen_tuple_expression(head, tail, abt),
             E::TupleImmediateIndex(tuple, index) => {
                 self.gen_tuple_immediate_index_expression(tuple, index, abt)
