@@ -79,7 +79,7 @@ impl<'d> Analyser<'d> {
                 return abt::Expr::Unknown;
             }
             let constructor = self.get_opaque_constructor_func_id(id);
-            return abt::Expr::Function(constructor);
+            return abt::Expr::OpaqueConstructor(constructor);
         }
 
         if self.program.functions.contains_key(&id) {
