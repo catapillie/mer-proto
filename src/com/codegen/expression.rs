@@ -344,11 +344,22 @@ impl Codegen {
         params: &[Expr],
         abt: &Program,
     ) -> io::Result<Value> {
+        // captured variables passed first
+        let info = abt.functions.get(&id).unwrap();
+        for &captured_id in info.captured_variables.iter() {
+            let loc = self.current_locals.get(&captured_id).unwrap();
+            binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(loc.offset))?;
+        }
+
+        // arguments
         for param in params.iter() {
             self.gen_expression(param, abt)?;
         }
+        
+        // call opcode
         self.cursor.write_u8(opcode::call)?;
         self.add_fn_addr_placeholder(id)?;
+        
         Ok(Value::Done)
     }
 
