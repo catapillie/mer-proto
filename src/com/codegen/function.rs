@@ -37,14 +37,28 @@ impl Codegen {
         // reset the map from variable ids to offsets and storage sizes
         self.current_locals.clear();
 
-        // register all local variables
+        // register arguments and captured variables
         let mut loc = 0;
-        let ids = info
-            .captured_variables
-            .iter()
-            .chain(info.local_variables.iter());
-
+        let ids = info.arg_ids.iter().chain(info.captured_variables.iter());
         for &id in ids {
+            let storage = Self::size_of_var_storage(id, abt) as u8;
+            let param_size = abt.size_of(&abt.variables.get(&id).unwrap().ty).unwrap() as u8;
+            self.current_locals.insert(
+                id,
+                Loc {
+                    offset: loc,
+                    size: storage,
+                },
+            );
+            loc += param_size;
+        }
+
+        // register local variables that aren't arguments or captures
+        for &id in info.local_variables.iter() {
+            if self.current_locals.contains_key(&id) {
+                continue;
+            }
+
             let storage = Self::size_of_var_storage(id, abt) as u8;
             let param_size = abt.size_of(&abt.variables.get(&id).unwrap().ty).unwrap() as u8;
             self.current_locals.insert(
