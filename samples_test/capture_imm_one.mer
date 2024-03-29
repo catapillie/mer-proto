@@ -1,0 +1,12 @@
+var x = 0
+func capture() -> ()
+{
+    x = x + 1
+    return
+}
+
+var x0 = x
+capture()
+var x1 = x
+
+return x0 == 0 and x1 == 1

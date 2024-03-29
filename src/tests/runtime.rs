@@ -270,6 +270,11 @@ check_program_output!(deconstruct_tuple_yz => (bool, Type::Bool) true);
 check_program_output!(deconstruct_tuple_z => (bool, Type::Bool) true);
 check_program_output!(deconstruct_unit => (bool, Type::Bool) true);
 
+check_program_output!(capture_imm_one => (bool, Type::Bool) true);
+check_program_output!(capture_imm_two => (bool, Type::Bool) true);
+check_program_output!(capture_closure_one => (bool, Type::Bool) true);
+check_program_output!(capture_closure_two => (bool, Type::Bool) true);
+
 macro_rules! check_program_output {
     ($name:ident => ($expected_ty:ty, $type_abt:expr) $expected:expr) => {
         #[test]
