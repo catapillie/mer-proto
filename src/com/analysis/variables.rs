@@ -80,7 +80,7 @@ impl<'d> Analyser<'d> {
             return abt::Expr::Function(alias_id);
         }
 
-        let Some(info) = self.program.variables.get(&alias_id) else {
+        let Some(info) = self.program.variables.get_mut(&alias_id) else {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::NotVariable(name.to_string()))
                 .with_severity(Severity::Error)
@@ -100,6 +100,7 @@ impl<'d> Analyser<'d> {
 
         if captured {
             func_info.captured_variables.insert(id);
+            info.is_on_heap = true;
         }
 
         // if captured && !alread_captured {
