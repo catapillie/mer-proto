@@ -23,6 +23,7 @@ impl Codegen {
     fn count_locals_size(info: &FunctionInfo, abt: &Program) -> u8 {
         info.local_variables
             .iter()
+            .chain(info.captured_variables.iter())
             .map(|&id| Self::size_of_variable_id(id, abt))
             .sum()
     }
