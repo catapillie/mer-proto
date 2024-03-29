@@ -15,15 +15,15 @@ impl Codegen {
             .map(|id| abt.size_of(&abt.variables.get(id).unwrap().ty).unwrap() as u8)
             .sum();
         let local_count: u8 = info
-            .used_variables
-            .keys()
+            .local_variables
+            .iter()
             .map(|id| abt.size_of(&abt.variables.get(id).unwrap().ty).unwrap() as u8)
             .sum();
         let opcode = Opcode::function(info.name.value.clone(), param_count, local_count);
         binary::write_opcode(&mut self.cursor, &opcode)?;
         let mut loc = 0;
         self.current_locals.clear();
-        for (&id, _) in info.used_variables.iter() {
+        for &id in info.local_variables.iter() {
             let storage = Self::size_of_var_storage(id, abt) as u8;
             let param_size = abt.size_of(&abt.variables.get(&id).unwrap().ty).unwrap() as u8;
             self.current_locals.insert(

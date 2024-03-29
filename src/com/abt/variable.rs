@@ -8,8 +8,3 @@ pub struct VariableInfo {
     pub ty: Type,
     pub is_on_heap: bool,
 }
-
-pub struct VariableUsage {
-    pub captured: bool,
-    pub used: bool,
-}

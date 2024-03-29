@@ -1,7 +1,7 @@
 use super::{Analyser, Declaration};
 use crate::{
     com::{
-        abt::{self, VariableInfo, VariableUsage},
+        abt::{self, VariableInfo},
         ast::stmt::VarDef,
     },
     diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
@@ -25,13 +25,7 @@ impl<'d> Analyser<'d> {
 
         let func_id = self.scope.current_func_id;
         let func_info = self.program.functions.get_mut(&func_id).unwrap();
-        func_info.used_variables.insert(
-            declared,
-            VariableUsage {
-                captured: false,
-                used: false,
-            },
-        );
+        func_info.local_variables.insert(declared);
 
         Declaration { declared, shadowed }
     }
@@ -99,58 +93,47 @@ impl<'d> Analyser<'d> {
 
         let id = info.id;
         let depth = info.depth;
-        let declaration_span = info.name.span;
 
         let func_id = self.scope.current_func_id;
         let func_info = self.program.functions.get_mut(&func_id).unwrap();
         let captured = depth <= func_info.depth;
-        let mut alread_captured = false;
 
-        func_info
-            .used_variables
-            .entry(id)
-            .and_modify(|u| {
-                alread_captured = u.captured;
-                u.captured = captured;
-                u.used = true;
-            })
-            .or_insert(VariableUsage {
-                captured,
-                used: false,
-            });
-
-        if captured && !alread_captured {
-            let func_name = func_info.name.value.clone();
-            let func_span = func_info
-                .name
-                .span
-                .expect("declared functions have a name span");
-            let var_name = name.to_string();
-            let d = diagnostics::create_diagnostic()
-                .with_kind(DiagnosticKind::UnallowedVariableCapture {
-                    func_name,
-                    var_name,
-                })
-                .with_severity(Severity::Error)
-                .with_span(span)
-                .annotate_primary(
-                    Note::VariableCapturedBy(name.to_string(), func_info.name.value.to_string())
-                        .then()
-                        .dddot_front()
-                        .num(2),
-                    span,
-                )
-                .highlight(func_span)
-                .annotate_secondary(
-                    Note::VariableDeclaration(name.to_string())
-                        .dddot_back()
-                        .num(1),
-                    declaration_span,
-                    NoteSeverity::Annotation,
-                )
-                .done();
-            self.diagnostics.push(d);
+        if captured {
+            func_info.captured_variables.insert(id);
         }
+
+        // if captured && !alread_captured {
+        //     let func_name = func_info.name.value.clone();
+        //     let func_span = func_info
+        //         .name
+        //         .span
+        //         .expect("declared functions have a name span");
+        //     let var_name = name.to_string();
+        //     let d = diagnostics::create_diagnostic()
+        //         .with_kind(DiagnosticKind::UnallowedVariableCapture {
+        //             func_name,
+        //             var_name,
+        //         })
+        //         .with_severity(Severity::Error)
+        //         .with_span(span)
+        //         .annotate_primary(
+        //             Note::VariableCapturedBy(name.to_string(), func_info.name.value.to_string())
+        //                 .then()
+        //                 .dddot_front()
+        //                 .num(2),
+        //             span,
+        //         )
+        //         .highlight(func_span)
+        //         .annotate_secondary(
+        //             Note::VariableDeclaration(name.to_string())
+        //                 .dddot_back()
+        //                 .num(1),
+        //             declaration_span,
+        //             NoteSeverity::Annotation,
+        //         )
+        //         .done();
+        //     self.diagnostics.push(d);
+        // }
 
         abt::Expr::Variable(id)
     }

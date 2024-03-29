@@ -1,7 +1,7 @@
 use super::Analyser;
 use crate::{
     com::{
-        abt::{self, AliasInfo, VariableInfo, VariableUsage},
+        abt::{self, AliasInfo, VariableInfo},
         ast::stmt::AliasDef,
     },
     diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
@@ -83,10 +83,6 @@ impl<'d> Analyser<'d> {
         let arg_name = "_".to_string();
         let arg_ty = info.ty.clone();
         let arg_id = self.make_unique_id();
-        let arg_usage = VariableUsage {
-            captured: false,
-            used: true,
-        };
         self.program.variables.insert(
             arg_id,
             VariableInfo {
@@ -103,7 +99,7 @@ impl<'d> Analyser<'d> {
 
         // function body
         let body = abt::StmtKind::Return(Box::new(abt::Expr::Variable(arg_id)));
-        let used_variables = [(arg_id, arg_usage)].into_iter().collect();
+        let local_variables = [arg_id].into_iter().collect();
 
         let id = self.make_unique_id();
         self.program.aliases.get_mut(&alias_id).unwrap().constructor = Some(id);
@@ -122,7 +118,8 @@ impl<'d> Analyser<'d> {
                     value: out_ty,
                     span: Some(func_span),
                 },
-                used_variables,
+                local_variables,
+                captured_variables: Default::default(),
                 code: Some(Box::new(Spanned {
                     value: body,
                     span: Span::EOF,
