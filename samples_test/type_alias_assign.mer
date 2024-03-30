@@ -1,0 +1,11 @@
+type float = f64
+func id(x: f64) -> float
+    = x
+
+var raw = 1.0
+var alias = id(raw)
+
+raw = alias
+alias = raw
+
+return raw == alias

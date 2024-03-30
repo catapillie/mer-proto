@@ -1,0 +1,9 @@
+opaque type point = [3]f64
+func id(x: [3]f64) -> point
+    = point(x)
+
+var raw = [1.0, 2.0, 3.0]
+var alias = id(raw)
+var point(dealias) = alias
+
+return raw[0] == dealias[0] and raw[1] == dealias[1] and raw[2] == dealias[2]

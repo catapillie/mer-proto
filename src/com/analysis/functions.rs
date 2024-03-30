@@ -170,6 +170,8 @@ impl<'d> Analyser<'d> {
 
         if let abt::Expr::Function(id) = bound_callee {
             self.analyse_immediate_call(args, bound_args, span, id)
+        } else if let abt::Expr::OpaqueConstructor { ctor_id, alias_id } = bound_callee {
+            self.analyse_opaque_type_construction(args, bound_args, span, ctor_id, alias_id)
         } else if let abt::Type::Func(func_args, func_return_ty) =
             self.program.type_of(&bound_callee)
         {
@@ -283,6 +285,96 @@ impl<'d> Analyser<'d> {
             abt::Expr::Unknown
         } else {
             abt::Expr::Call(id, bound_args, ty.value.clone())
+        }
+    }
+
+    fn analyse_opaque_type_construction(
+        &mut self,
+        args: &[ast::Expr],
+        mut bound_args: Box<[abt::Expr]>,
+        span: Span,
+        ctor_id: u64,
+        alias_id: u64,
+    ) -> abt::Expr {
+        let func_info = self.program.functions.get(&ctor_id).unwrap();
+        let func_args = func_info.args.clone();
+        let func_ty = func_info.ty.clone();
+
+        let alias_info = self.program.aliases.get(&alias_id).unwrap();
+        let alias_name = alias_info.name.clone();
+        let alias_ty = alias_info.ty.clone();
+
+        let mut invalid = false;
+        for ((bound_arg, span), arg_ty) in bound_args
+            .iter_mut()
+            .zip(args.iter().map(|arg| arg.span))
+            .zip(func_args.iter().map(|(_, arg_ty)| arg_ty))
+        {
+            let ty_param = self.program.type_of(bound_arg);
+            if self.type_check_coerce(bound_arg, arg_ty) {
+                continue;
+            }
+
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::TypeMismatch {
+                    found: self.program.type_repr(&ty_param),
+                    expected: self.program.type_repr(arg_ty),
+                })
+                .with_severity(Severity::Error)
+                .with_span(span)
+                .annotate_secondary(
+                    Note::OpaqueAliasType(
+                        alias_name.value.clone(),
+                        self.program.type_repr(&alias_ty),
+                    )
+                    .dddot_back()
+                    .num(1),
+                    alias_name.span,
+                    NoteSeverity::Annotation,
+                )
+                .annotate_primary(
+                    Note::OfType(self.program.type_repr(&ty_param))
+                        .but()
+                        .dddot_front()
+                        .num(2),
+                    span,
+                )
+                .done();
+            self.diagnostics.push(d);
+            invalid = true;
+        }
+
+        if bound_args.len() != func_args.len() {
+            let d = diagnostics::create_diagnostic()
+                .with_kind(DiagnosticKind::InvalidArgCount {
+                    got: bound_args.len(),
+                    expected: func_args.len(),
+                })
+                .with_severity(Severity::Error)
+                .with_span(span)
+                .annotate_primary(
+                    Note::ProvidedArgs(bound_args.len())
+                        .but()
+                        .dddot_front()
+                        .num(2),
+                    span,
+                )
+                .annotate_secondary(
+                    Note::OpaqueTypeArgCount(alias_name.value.clone())
+                        .dddot_back()
+                        .num(1),
+                    alias_name.span,
+                    NoteSeverity::Annotation,
+                )
+                .done();
+            self.diagnostics.push(d);
+            invalid = true;
+        }
+
+        if invalid {
+            abt::Expr::Unknown
+        } else {
+            abt::Expr::Call(ctor_id, bound_args, func_ty.value.clone())
         }
     }
 

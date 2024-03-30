@@ -10,7 +10,10 @@ pub enum Expr {
     StringLiteral(String),
     Variable(u64),
     Function(u64),
-    OpaqueConstructor(u64),
+    OpaqueConstructor {
+        ctor_id: u64,
+        alias_id: u64,
+    },
     Tuple(Box<Expr>, Box<[Expr]>),
     TupleImmediateIndex(Box<Expr>, usize),
     Array(Box<[Expr]>),

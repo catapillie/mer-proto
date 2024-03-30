@@ -63,6 +63,8 @@ pub enum Note {
     MarkedAsOpaque(String),
     DoesNotHaveConstructor(String),
     PatternMustDescribe(TypeRepr),
+    OpaqueAliasType(String, TypeRepr),
+    OpaqueTypeArgCount(String),
 }
 
 #[rustfmt::skip]

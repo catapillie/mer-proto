@@ -18,8 +18,6 @@ impl Codegen {
                 => self.gen_block_statement(stmts, abt),
             S::Expr(expr)
                 => self.gen_expression_statement(expr, abt),
-            S::VarInit(var_id, expr)
-                => self.gen_variable_init(*var_id, expr, abt),
             S::Deconstruct(pat, expr)
                 => self.gen_deconstruction(pat, expr, abt),
             S::IfThen(guard, body)
@@ -51,31 +49,6 @@ impl Codegen {
             1 => binary::write_opcode(&mut self.cursor, &Opcode::pop)?,
             _ => binary::write_opcode(&mut self.cursor, &Opcode::pop_n(size))?,
         }
-        Ok(())
-    }
-
-    fn gen_variable_init(&mut self, var_id: u64, expr: &Expr, abt: &Program) -> io::Result<()> {
-        // = <value>
-        self.gen_expression(expr, abt)?;
-
-        let loc = self.current_locals.get(&var_id).unwrap();
-        let info = abt.variables.get(&var_id).unwrap();
-
-        // if variable is heap-allocated, allocate the value on the heap, keep the address
-        if info.is_on_heap {
-            let size = abt.size_of(&info.ty).unwrap() as u8;
-            match size {
-                1 => binary::write_opcode(&mut self.cursor, &Opcode::alloc)?,
-                _ => binary::write_opcode(&mut self.cursor, &Opcode::alloc_n(size))?,
-            }
-        }
-
-        // write value (only one value space is taken if the variable is heap-allocated)
-        match loc.size {
-            1 => binary::write_opcode(&mut self.cursor, &Opcode::st_loc(loc.offset))?,
-            _ => binary::write_opcode(&mut self.cursor, &Opcode::st_loc_n(loc.offset, loc.size))?,
-        }
-
         Ok(())
     }
 

@@ -213,6 +213,63 @@ check_program_output!(lvalue_many_data_deref_one => (bool, Type::Bool) true);
 check_program_output!(lvalue_many_data_deref_two => (bool, Type::Bool) true);
 check_program_output!(lvalue_many_data_deref_three => (bool, Type::Bool) true);
 
+check_program_output!(type_alias_assign => (bool, Type::Bool) true);
+check_program_output!(type_alias_binary => (bool, Type::Bool) true);
+check_program_output!(type_alias_unary => (bool, Type::Bool) true);
+check_program_output!(type_alias_deref => (bool, Type::Bool) true);
+check_program_output!(type_alias_array_index => (bool, Type::Bool) true);
+check_program_output!(type_alias_array_immediate_index => (bool, Type::Bool) true);
+check_program_output!(type_alias_tuple_immediate_index => (bool, Type::Bool) true);
+check_program_output!(type_alias_pointer_index => (bool, Type::Bool) true);
+check_program_output!(type_alias_field_access => (bool, Type::Bool) true);
+check_program_output!(type_alias_data_with => (bool, Type::Bool) true);
+check_program_output!(type_alias_immediate_call => (bool, Type::Bool) true);
+check_program_output!(type_alias_indirect_call => (bool, Type::Bool) true);
+check_program_output!(type_alias_case => (bool, Type::Bool) true);
+check_program_output!(type_alias_case_ternary => (bool, Type::Bool) true);
+check_program_output!(type_opaque_binary => (bool, Type::Bool) true);
+check_program_output!(type_opaque_unary => (bool, Type::Bool) true);
+check_program_output!(type_opaque_deref => (bool, Type::Bool) true);
+check_program_output!(type_opaque_array_index => (bool, Type::Bool) true);
+check_program_output!(type_opaque_array_immediate_index => (bool, Type::Bool) true);
+check_program_output!(type_opaque_tuple_immediate_index => (bool, Type::Bool) true);
+check_program_output!(type_opaque_pointer_index => (bool, Type::Bool) true);
+check_program_output!(type_opaque_field_access => (bool, Type::Bool) true);
+check_program_output!(type_opaque_data_with => (bool, Type::Bool) true);
+check_program_output!(type_opaque_immediate_call => (bool, Type::Bool) true);
+check_program_output!(type_opaque_indirect_call => (bool, Type::Bool) true);
+check_program_output!(type_opaque_case => (bool, Type::Bool) true);
+check_program_output!(type_opaque_case_ternary => (bool, Type::Bool) true);
+
+check_program_output!(deconstruct_array_discard => (bool, Type::Bool) true);
+check_program_output!(deconstruct_array_x => (bool, Type::Bool) true);
+check_program_output!(deconstruct_array_xy => (bool, Type::Bool) true);
+check_program_output!(deconstruct_array_xyz => (bool, Type::Bool) true);
+check_program_output!(deconstruct_array_xz => (bool, Type::Bool) true);
+check_program_output!(deconstruct_array_y => (bool, Type::Bool) true);
+check_program_output!(deconstruct_array_yz => (bool, Type::Bool) true);
+check_program_output!(deconstruct_array_z => (bool, Type::Bool) true);
+check_program_output!(deconstruct_binding_many => (bool, Type::Bool) true);
+check_program_output!(deconstruct_binding_one => (bool, Type::Bool) true);
+check_program_output!(deconstruct_discard_many => (bool, Type::Bool) true);
+check_program_output!(deconstruct_discard_one => (bool, Type::Bool) true);
+check_program_output!(deconstruct_opaque_array => (bool, Type::Bool) true);
+check_program_output!(deconstruct_opaque_discard => (bool, Type::Bool) true);
+check_program_output!(deconstruct_opaque_tuple => (bool, Type::Bool) true);
+check_program_output!(deconstruct_opaque => (bool, Type::Bool) true);
+check_program_output!(deconstruct_ref_array => (bool, Type::Bool) true);
+check_program_output!(deconstruct_ref_one => (bool, Type::Bool) true);
+check_program_output!(deconstruct_ref_tuple => (bool, Type::Bool) true);
+check_program_output!(deconstruct_tuple_discard => (bool, Type::Bool) true);
+check_program_output!(deconstruct_tuple_x => (bool, Type::Bool) true);
+check_program_output!(deconstruct_tuple_xy => (bool, Type::Bool) true);
+check_program_output!(deconstruct_tuple_xyz => (bool, Type::Bool) true);
+check_program_output!(deconstruct_tuple_xz => (bool, Type::Bool) true);
+check_program_output!(deconstruct_tuple_y => (bool, Type::Bool) true);
+check_program_output!(deconstruct_tuple_yz => (bool, Type::Bool) true);
+check_program_output!(deconstruct_tuple_z => (bool, Type::Bool) true);
+check_program_output!(deconstruct_unit => (bool, Type::Bool) true);
+
 macro_rules! check_program_output {
     ($name:ident => ($expected_ty:ty, $type_abt:expr) $expected:expr) => {
         #[test]

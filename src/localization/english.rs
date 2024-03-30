@@ -651,6 +651,15 @@ impl Lang for English {
                 => format!("this pattern must describe type {}",
                     ty.to_string().bold(),
                 ),
+            N::OpaqueAliasType(name, ty)
+                => format!("'{}' is an opaque type wrapping over type {}",
+                    name.bold(),
+                    ty.to_string().bold(),
+                ),
+            N::OpaqueTypeArgCount(name)
+                => format!("opaque type constructor '{}' takes in a single argument",
+                    name.bold(),
+                ),
         }
     }
 }

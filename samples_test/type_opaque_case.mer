@@ -1,0 +1,28 @@
+opaque type float = f64
+func id(x: f64) -> float
+    = float(x)
+
+var test = true
+var i = 0
+
+while i < 30 do 
+{
+    var r = case {
+        i % 15 == 0 then 0.0
+        i % 3 == 0 then 1.0
+        i % 5 == 0 then 2.0
+        otherwise 10.0
+    }
+
+    var a = case {
+        i % 15 == 0 then id(0.0)
+        i % 3 == 0 then id(1.0)
+        i % 5 == 0 then id(2.0)
+        otherwise id(10.0)
+    }
+    var float(d) = a
+    test = test and d == r
+    i = i + 1
+}
+
+return test

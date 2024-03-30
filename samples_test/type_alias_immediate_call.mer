@@ -1,0 +1,13 @@
+type float = f64
+func id_in(x: f64) -> float
+    = x
+func id_out(x: float) -> f64
+    = x
+
+var raw = 1.0
+var alias = id_in(raw)
+
+var f_in = id_in
+var f_out = id_out
+
+return f_out(alias) == f_in(raw)

@@ -37,7 +37,6 @@ impl<'d> Analyser<'d> {
             }
             S::Empty => false,
             S::Expr(expr) => Self::is_never(expr),
-            S::VarInit(_, expr) => Self::is_never(expr),
             S::Deconstruct(_, expr) => Self::is_never(expr),
             S::IfThen(guard, body) => {
                 self.analyse_control_flow(body); // analyse but discard
@@ -70,7 +69,10 @@ impl<'d> Analyser<'d> {
             E::StringLiteral(_) => false,
             E::Variable(_) => false,
             E::Function(_) => false,
-            E::OpaqueConstructor(_) => false,
+            E::OpaqueConstructor {
+                ctor_id: _,
+                alias_id: _,
+            } => false,
             E::Tuple(head, tail) => Self::is_never(head) || tail.iter().any(Self::is_never),
             E::TupleImmediateIndex(tuple, _) => Self::is_never(tuple),
             E::Array(exprs) => exprs.iter().any(Self::is_never),
