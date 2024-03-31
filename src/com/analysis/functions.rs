@@ -300,7 +300,7 @@ impl<'d> Analyser<'d> {
             abt::Expr::unknown()
         } else {
             abt::Expr {
-                kind: abt::ExprKind::Call(id, bound_args, ty.value.clone()),
+                kind: abt::ExprKind::Call(id, bound_args),
                 ty: ty.value.clone(),
             }
         }
@@ -393,7 +393,7 @@ impl<'d> Analyser<'d> {
             abt::Expr::unknown()
         } else {
             abt::Expr {
-                kind: abt::ExprKind::Call(ctor_id, bound_args, func_ty.value.clone()),
+                kind: abt::ExprKind::Call(ctor_id, bound_args),
                 ty: func_ty.value.clone(),
             }
         }
@@ -453,7 +453,6 @@ impl<'d> Analyser<'d> {
                 kind: abt::ExprKind::IndirectCall(
                     Box::new(bound_callee),
                     bound_args,
-                    func_return_ty.clone(),
                 ),
                 ty: func_return_ty,
             }

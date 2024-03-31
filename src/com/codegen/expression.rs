@@ -43,7 +43,7 @@ impl Codegen {
             E::Unknown => unreachable!(
                 "analysis stage should prevent unknown expressions from being compiled"
             ),
-            E::Debug(expr, ty) => self.gen_debug_expression(expr, ty, abt),
+            E::Debug(expr) => self.gen_debug_expression(expr, abt),
             E::Todo => {
                 binary::write_opcode(&mut self.cursor, &Opcode::todo)?;
                 Ok(Value::Done)
@@ -101,15 +101,15 @@ impl Codegen {
             E::PointerIndex(pointer, index) => {
                 self.gen_pointer_index_expression(pointer, index, abt)
             }
-            E::Call(id, params, _) => self.gen_call_expression(*id, params, abt),
-            E::IndirectCall(callee, args, _) => {
+            E::Call(id, params) => self.gen_call_expression(*id, params, abt),
+            E::IndirectCall(callee, args) => {
                 self.gen_indirect_call_expression(callee, args, abt)
             }
             E::Heap(expr) => self.gen_heap_expression(expr, abt),
-            E::Ref(lvalue, var_id, _) => self.gen_ref_expression(lvalue, *var_id, abt),
+            E::Ref(lvalue, var_id) => self.gen_ref_expression(lvalue, *var_id, abt),
             E::Deref(expr) => self.gen_deref_expression(expr, abt),
-            E::Case(paths, fallback, _) => self.gen_case_expression(paths, fallback, abt),
-            E::CaseTernary(guard, expr, fallback, _) => {
+            E::Case(paths, fallback) => self.gen_case_expression(paths, fallback, abt),
+            E::CaseTernary(guard, expr, fallback) => {
                 self.gen_case_ternary_expression(guard, expr, fallback, abt)
             }
             E::Data(_, fields) => self.gen_data_expression(fields, abt),
@@ -124,9 +124,9 @@ impl Codegen {
         }
     }
 
-    fn gen_debug_expression(&mut self, expr: &Expr, ty: &Type, abt: &Program) -> io::Result<Value> {
+    fn gen_debug_expression(&mut self, expr: &Expr, abt: &Program) -> io::Result<Value> {
         self.gen_expression(expr, abt)?;
-        let ty = match abt.dealias_type(ty) {
+        let ty = match abt.dealias_type(&expr.ty) {
             Type::Unit => NativeType::unit,
             Type::U8 => NativeType::u8,
             Type::U16 => NativeType::u16,

@@ -86,7 +86,7 @@ impl<'d> Analyser<'d> {
             | Ty::F64
             | Ty::Bool
             | Ty::Unit => abt::Expr {
-                kind: abt::ExprKind::Debug(Box::new(inner), ty.clone()),
+                kind: abt::ExprKind::Debug(Box::new(inner)),
                 ty,
             },
             Ty::Unknown => abt::Expr::unknown(),

@@ -77,7 +77,6 @@ impl<'d> Analyser<'d> {
                 Box::new(bound_guard),
                 Box::new(bound_expr),
                 Box::new(bound_fallback),
-                ty.clone(),
             ),
             ty,
         }
@@ -225,7 +224,7 @@ impl<'d> Analyser<'d> {
             .map(|(guard, expr)| (guard.unwrap(), expr))
             .collect();
         abt::Expr {
-            kind: abt::ExprKind::Case(bound_paths, Box::new(last_expr), ty.clone()),
+            kind: abt::ExprKind::Case(bound_paths, Box::new(last_expr)),
             ty: ty.clone(),
         }
     }

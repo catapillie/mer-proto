@@ -86,23 +86,23 @@ impl<'d> Analyser<'d> {
             } => Self::is_never(expr),
             E::Binary(_, left, right) => Self::is_never(left) || Self::is_never(right),
             E::Unary(_, expr) => Self::is_never(expr),
-            E::Call(_, args, _) => args.iter().any(Self::is_never),
-            E::IndirectCall(callee, args, _) => {
+            E::Call(_, args) => args.iter().any(Self::is_never),
+            E::IndirectCall(callee, args) => {
                 Self::is_never(callee) && args.iter().any(Self::is_never)
             }
-            E::Debug(expr, _) => Self::is_never(expr),
+            E::Debug(expr) => Self::is_never(expr),
             E::Heap(expr) => Self::is_never(expr),
-            E::Ref(l_value, _, _) => Self::is_never_lvalue(l_value),
+            E::Ref(l_value, _) => Self::is_never_lvalue(l_value),
             E::Deref(expr) => Self::is_never(expr),
             E::Todo => true,
             E::Unreachable => true,
-            E::Case(paths, default, _) => {
+            E::Case(paths, default) => {
                 paths
                     .iter()
                     .all(|(guard, expr)| Self::is_never(guard) || Self::is_never(expr))
                     || Self::is_never(default)
             }
-            E::CaseTernary(guard, _, _, _) => Self::is_never(guard),
+            E::CaseTernary(guard, _, _) => Self::is_never(guard),
             E::Data(_, fields) => fields.iter().any(Self::is_never),
             E::DataWith(_, expr, fields) => {
                 Self::is_never(expr) || fields.iter().any(|(_, expr)| Self::is_never(expr))

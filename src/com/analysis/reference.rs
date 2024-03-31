@@ -12,11 +12,11 @@ impl<'d> Analyser<'d> {
         let bound_expr = self.analyse_expression(expr);
 
         match self.to_lvalue(&bound_expr) {
-            Some((lvalue, var_id, ty)) => {
+            Some((lvalue, var_id, _)) => {
                 // mark variable as heap-allocated
                 self.program.variables.get_mut(&var_id).unwrap().is_on_heap = true;
                 abt::Expr {
-                    kind: abt::ExprKind::Ref(Box::new(lvalue), var_id, Box::new(ty)),
+                    kind: abt::ExprKind::Ref(Box::new(lvalue), var_id),
                     ty: abt::Type::Ref(Box::new(bound_expr.ty)),
                 }
             }
