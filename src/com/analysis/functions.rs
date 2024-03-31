@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use super::Analyser;
 use crate::{
     com::{
@@ -54,6 +56,8 @@ impl<'d> Analyser<'d> {
                 },
                 local_variables: Default::default(),
                 captured_variables: Default::default(),
+                called_functions: Default::default(),
+                defined_functions: Default::default(),
                 code: None,
                 was_analysed: false,
             },
@@ -118,6 +122,7 @@ impl<'d> Analyser<'d> {
                 .arg_ids
                 .push(decl.declared)
         }
+
         let bound_body = self.analyse_statement(&ast.body);
         if !self.analyse_control_flow(&bound_body) {
             let d = diagnostics::create_diagnostic()
@@ -129,6 +134,7 @@ impl<'d> Analyser<'d> {
             self.diagnostics.push(d);
         }
 
+        self.analyse_function_variable_usage();
         self.close_scope();
 
         let info = self.program.functions.get_mut(&id).unwrap();
@@ -148,6 +154,14 @@ impl<'d> Analyser<'d> {
                 self.diagnostics.push(d);
             }
         }
+
+        // this function is defined in the current scope's function
+        self.program
+            .functions
+            .get_mut(&self.scope.current_func_id)
+            .unwrap()
+            .defined_functions
+            .insert(id);
 
         self.program.functions.get_mut(&id).unwrap().was_analysed = true;
         abt::StmtKind::Empty
@@ -283,10 +297,17 @@ impl<'d> Analyser<'d> {
         }
 
         if invalid {
-            abt::Expr::Unknown
-        } else {
-            abt::Expr::Call(id, bound_args, ty.value.clone())
+            return abt::Expr::Unknown;
         }
+
+        let current_func = self
+            .program
+            .functions
+            .get_mut(&self.scope.current_func_id)
+            .unwrap();
+        current_func.called_functions.insert(id);
+
+        abt::Expr::Call(id, bound_args, ty.value.clone())
     }
 
     fn analyse_opaque_type_construction(
@@ -525,22 +546,31 @@ impl<'d> Analyser<'d> {
     }
 
     pub fn analyse_function_variable_usage(&mut self) {
-        // let id = self.scope.current_func_id;
-        // let info = self.program.functions.get(&id).unwrap();
-        // for (var_id, usage) in &info.used_variables {
-        //     if usage.used {
-        //         continue;
-        //     }
+        let id = self.scope.current_func_id;
+        let info = self.program.functions.get(&id).unwrap();
 
-        //     let var_info = self.program.variables.get(var_id).unwrap();
-        //     let d = diagnostics::create_diagnostic()
-        //         .with_kind(DiagnosticKind::UnusedVariable(var_info.name.value.clone()))
-        //         .with_span(var_info.name.span)
-        //         .with_severity(Severity::Warning)
-        //         .annotate_primary(Note::Here, var_info.name.span)
-        //         .done();
-        //     self.diagnostics.push(d);
-        // }
+        // collect extra captured for each function defined the in the current scope's function
+        let extra_captures_by_id = info
+            .defined_functions
+            .iter()
+            .map(|&defined_id| {
+                let defined_info = self.program.functions.get(&defined_id).unwrap();
+
+                let mut extra_captures = BTreeSet::<u64>::new();
+                for called_id in &defined_info.called_functions {
+                    let called_info = self.program.functions.get(called_id).unwrap();
+                    extra_captures.extend(called_info.captured_variables.iter());
+                }
+
+                (defined_id, extra_captures)
+            })
+            .collect::<Vec<_>>();
+
+        // update captured variables
+        for (defined_id, mut extra_captures) in extra_captures_by_id.into_iter() {
+            let defined_info = self.program.functions.get_mut(&defined_id).unwrap();
+            defined_info.captured_variables.append(&mut extra_captures);
+        }
     }
 
     pub fn count_all_variable_sizes(&self, func_id: u64) -> Size {

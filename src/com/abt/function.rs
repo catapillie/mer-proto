@@ -12,6 +12,8 @@ pub struct FunctionInfo {
     pub ty: OptSpanned<Type>,
     pub local_variables: BTreeSet<u64>,
     pub captured_variables: BTreeSet<u64>,
+    pub called_functions: BTreeSet<u64>,
+    pub defined_functions: BTreeSet<u64>,
     pub code: Option<Box<Stmt>>,
     pub was_analysed: bool,
 }
