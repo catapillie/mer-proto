@@ -111,39 +111,6 @@ impl<'d> Analyser<'d> {
             info.is_on_heap = true;
         }
 
-        // if captured && !alread_captured {
-        //     let func_name = func_info.name.value.clone();
-        //     let func_span = func_info
-        //         .name
-        //         .span
-        //         .expect("declared functions have a name span");
-        //     let var_name = name.to_string();
-        //     let d = diagnostics::create_diagnostic()
-        //         .with_kind(DiagnosticKind::UnallowedVariableCapture {
-        //             func_name,
-        //             var_name,
-        //         })
-        //         .with_severity(Severity::Error)
-        //         .with_span(span)
-        //         .annotate_primary(
-        //             Note::VariableCapturedBy(name.to_string(), func_info.name.value.to_string())
-        //                 .then()
-        //                 .dddot_front()
-        //                 .num(2),
-        //             span,
-        //         )
-        //         .highlight(func_span)
-        //         .annotate_secondary(
-        //             Note::VariableDeclaration(name.to_string())
-        //                 .dddot_back()
-        //                 .num(1),
-        //             declaration_span,
-        //             NoteSeverity::Annotation,
-        //         )
-        //         .done();
-        //     self.diagnostics.push(d);
-        // }
-
         abt::Expr::Variable(id)
     }
 }
