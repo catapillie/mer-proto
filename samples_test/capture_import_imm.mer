@@ -1,0 +1,24 @@
+var x = 0
+
+func increase() -> ()
+{
+    write(read() + 1)
+    return
+}
+
+func write(value: i64) -> ()
+{
+    x = value
+    return
+}
+
+func read() -> i64
+    = x
+
+var a = read()
+debug increase()
+var b = read()
+debug increase()
+var c = read()
+
+return a == 0 and b == 1 and c == 2
