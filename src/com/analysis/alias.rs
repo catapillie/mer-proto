@@ -122,7 +122,7 @@ impl<'d> Analyser<'d> {
                 },
                 local_variables,
                 captured_variables: Default::default(),
-                called_functions: Default::default(),
+                imported_functions: Default::default(),
                 defined_functions: Default::default(),
                 code: Some(Box::new(Spanned {
                     value: body,

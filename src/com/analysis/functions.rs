@@ -57,7 +57,7 @@ impl<'d> Analyser<'d> {
                 },
                 local_variables: Default::default(),
                 captured_variables: Default::default(),
-                called_functions: Default::default(),
+                imported_functions: Default::default(),
                 defined_functions: Default::default(),
                 code: None,
                 was_analysed: false,
@@ -552,7 +552,7 @@ impl<'d> Analyser<'d> {
                 let defined_info = self.program.functions.get(&defined_id).unwrap();
 
                 let mut extra_captures = BTreeSet::<u64>::new();
-                for called_id in &defined_info.called_functions {
+                for called_id in &defined_info.imported_functions {
                     let called_info = self.program.functions.get(called_id).unwrap();
                     extra_captures.extend(called_info.captured_variables.iter());
                 }

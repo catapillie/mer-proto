@@ -74,7 +74,10 @@ impl<'d> Analyser<'d> {
                 return abt::Expr::Unknown;
             }
             let ctor_id = self.get_opaque_constructor_func_id(id);
-            return abt::Expr::OpaqueConstructor { ctor_id, alias_id: id };
+            return abt::Expr::OpaqueConstructor {
+                ctor_id,
+                alias_id: id,
+            };
         }
 
         if self.program.functions.contains_key(&id) {
@@ -83,7 +86,7 @@ impl<'d> Analyser<'d> {
                 .functions
                 .get_mut(&self.scope.current_func_id)
                 .unwrap();
-            current_func.called_functions.insert(id);
+            current_func.imported_functions.insert(id);
             return abt::Expr::Function(id);
         }
 

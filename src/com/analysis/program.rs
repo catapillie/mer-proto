@@ -29,7 +29,7 @@ impl<'d> Analyser<'d> {
                 },
                 local_variables: Default::default(),
                 captured_variables: Default::default(),
-                called_functions: Default::default(),
+                imported_functions: Default::default(),
                 defined_functions: Default::default(),
                 code: None,
                 was_analysed: true,
