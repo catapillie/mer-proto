@@ -81,12 +81,15 @@ impl<'d> Analyser<'d> {
         }
 
         if self.program.functions.contains_key(&id) {
-            let current_func = self
+            let func_info_depth = self.program.functions.get(&id).unwrap().depth;
+            let current_func_info = self
                 .program
                 .functions
                 .get_mut(&self.scope.current_func_id)
                 .unwrap();
-            current_func.imported_functions.insert(id);
+            if current_func_info.depth >= func_info_depth {
+                current_func_info.imported_functions.insert(id);
+            }
             return abt::Expr::Function(id);
         }
 

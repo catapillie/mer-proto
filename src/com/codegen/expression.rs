@@ -353,7 +353,7 @@ impl Codegen {
 
         // keep track of size
         binary::write_opcode(&mut self.cursor, &Opcode::ld_u64(size))?;
-        
+
         Ok(Value::Done)
     }
 
