@@ -8,12 +8,12 @@ use super::abt::Program;
 use crate::runtime::opcode;
 
 mod assignment;
+mod deconstruction;
 mod expression;
 mod function;
 mod operation;
 mod reference;
 mod statement;
-mod deconstruction;
 
 struct Loc {
     offset: u8,

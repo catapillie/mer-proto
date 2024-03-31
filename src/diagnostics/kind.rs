@@ -131,7 +131,7 @@ pub enum DiagnosticKind {
     InvalidFieldAccess(String),
     DiscardingWithExpression(TypeRepr),
     EmptyWithExpression(TypeRepr),
-    
+
     AliasRedefinition(String),
     UnknownTypeConstructor(String),
 

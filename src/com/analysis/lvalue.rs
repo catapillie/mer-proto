@@ -3,12 +3,12 @@ use crate::com::abt::{self, LValue};
 
 impl<'d> Analyser<'d> {
     pub fn to_lvalue(&self, expr: &abt::Expr) -> Option<(LValue, u64, abt::Type)> {
-        match expr {
-            abt::Expr::Variable(var_id) => {
+        match &expr.kind {
+            abt::ExprKind::Variable(var_id) => {
                 let ty = self.program.variables.get(var_id).unwrap().ty.clone();
                 Some((LValue::Variable, *var_id, ty))
             }
-            abt::Expr::Deref(inner) => {
+            abt::ExprKind::Deref(inner) => {
                 let (assignee, var_id, ty) = self.to_lvalue(inner)?;
                 let ty = match ty {
                     abt::Type::Ref(inner) => *inner.to_owned(),
@@ -16,7 +16,7 @@ impl<'d> Analyser<'d> {
                 };
                 Some((LValue::Deref(Box::new(assignee)), var_id, ty))
             }
-            abt::Expr::TupleImmediateIndex(expr, index) => {
+            abt::ExprKind::TupleImmediateIndex(expr, index) => {
                 let (assignee, var_id, tuple_ty) = self.to_lvalue(expr)?;
                 let abt::Type::Tuple(head, tail) = tuple_ty.clone() else {
                     unreachable!()
@@ -32,7 +32,7 @@ impl<'d> Analyser<'d> {
                     ty,
                 ))
             }
-            abt::Expr::ArrayImmediateIndex(expr, index) => {
+            abt::ExprKind::ArrayImmediateIndex(expr, index) => {
                 let (assignee, var_id, tuple_ty) = self.to_lvalue(expr)?;
                 let abt::Type::Array(inner_ty, _) = tuple_ty.clone() else {
                     unreachable!()
@@ -43,7 +43,7 @@ impl<'d> Analyser<'d> {
                     *inner_ty,
                 ))
             }
-            abt::Expr::ArrayIndex(expr, index_expr) => {
+            abt::ExprKind::ArrayIndex(expr, index_expr) => {
                 let (assignee, var_id, tuple_ty) = self.to_lvalue(expr)?;
                 let abt::Type::Array(inner_ty, _) = tuple_ty.clone() else {
                     unreachable!()
@@ -54,7 +54,7 @@ impl<'d> Analyser<'d> {
                     *inner_ty,
                 ))
             }
-            abt::Expr::PointerIndex(pointer, index) => {
+            abt::ExprKind::PointerIndex(pointer, index) => {
                 let (assignee, var_id, pointer_ty) = self.to_lvalue(pointer)?;
                 let abt::Type::Pointer(inner_ty) = pointer_ty.clone() else {
                     unreachable!()
@@ -65,7 +65,7 @@ impl<'d> Analyser<'d> {
                     *inner_ty,
                 ))
             }
-            abt::Expr::FieldAccess {
+            abt::ExprKind::FieldAccess {
                 expr,
                 data_id,
                 field_id,

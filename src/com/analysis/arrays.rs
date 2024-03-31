@@ -15,7 +15,7 @@ impl<'d> Analyser<'d> {
                 .annotate_primary(Note::Here, span)
                 .done();
             self.diagnostics.push(d);
-            return abt::Expr::Unknown;
+            return abt::Expr::unknown();
         }
 
         if exprs.len() == 1 {
@@ -35,7 +35,7 @@ impl<'d> Analyser<'d> {
 
         let tys = bound_exprs
             .iter()
-            .map(|expr| self.program.type_of(expr))
+            .map(|expr| expr.ty.clone())
             .collect::<Vec<_>>();
         let first_ty = tys
             .iter()
@@ -51,10 +51,14 @@ impl<'d> Analyser<'d> {
                 .annotate_primary(Note::Here, span)
                 .done();
             self.diagnostics.push(d);
-            return abt::Expr::Unknown;
+            return abt::Expr::unknown();
         }
 
-        abt::Expr::Array(bound_exprs)
+        let len = bound_exprs.len();
+        abt::Expr {
+            kind: abt::ExprKind::Array(bound_exprs),
+            ty: abt::Type::Array(Box::new(first_ty.clone()), len),
+        }
     }
 
     pub fn analyse_array_immediate_index(
@@ -62,6 +66,7 @@ impl<'d> Analyser<'d> {
         expr: &ast::Expr,
         bound_expr: abt::Expr,
         index: u64,
+        array_ty: &abt::Type,
         size: usize,
         span: Span,
     ) -> abt::Expr {
@@ -76,33 +81,39 @@ impl<'d> Analyser<'d> {
                 .annotate_primary(Note::ArrayLength(size), expr.span)
                 .done();
             self.diagnostics.push(d);
-            return abt::Expr::Unknown;
+            return abt::Expr::unknown();
         }
 
-        abt::Expr::ArrayImmediateIndex(Box::new(bound_expr), index as usize)
+        abt::Expr {
+            kind: abt::ExprKind::ArrayImmediateIndex(Box::new(bound_expr), index as usize),
+            ty: array_ty.clone(),
+        }
     }
 
     pub fn analyse_alloc_expression(&mut self, ty: &ast::Type, size: &ast::Expr) -> abt::Expr {
         let bound_ty = self.analyse_type(ty);
         let bound_size = self.analyse_expression(size);
-        let size_ty = self.program.type_of(&bound_size);
-        if !self.type_check(&size_ty, &abt::Type::I64) {
+        let size_ty = &bound_size.ty;
+        if !self.type_check(size_ty, &abt::Type::I64) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::NonIntegerSize)
                 .with_severity(Severity::Error)
                 .with_span(size.span)
                 .annotate_primary(
                     Note::OfTypeButShouldBe(
-                        self.program.type_repr(&size_ty),
+                        self.program.type_repr(size_ty),
                         self.program.type_repr(&abt::Type::I64),
                     ),
                     size.span,
                 )
                 .done();
             self.diagnostics.push(d);
-            return abt::Expr::Unknown;
+            return abt::Expr::unknown();
         }
 
-        abt::Expr::Alloc(Box::new(bound_ty), Box::new(bound_size))
+        abt::Expr {
+            kind: abt::ExprKind::Alloc(Box::new(bound_ty.clone()), Box::new(bound_size)),
+            ty: abt::Type::Pointer(Box::new(bound_ty)),
+        }
     }
 }

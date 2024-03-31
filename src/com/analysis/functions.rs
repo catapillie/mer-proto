@@ -181,23 +181,21 @@ impl<'d> Analyser<'d> {
             .map(|arg| self.analyse_expression(arg))
             .collect::<Box<_>>();
 
-        if matches!(bound_callee, abt::Expr::Unknown) {
-            return abt::Expr::Unknown;
+        if matches!(bound_callee.kind, abt::ExprKind::Unknown) {
+            return abt::Expr::unknown();
         };
 
-        if let abt::Expr::Function(id) = bound_callee {
+        if let abt::ExprKind::Function(id) = bound_callee.kind {
             self.analyse_immediate_call(args, bound_args, span, id)
-        } else if let abt::Expr::OpaqueConstructor { ctor_id, alias_id } = bound_callee {
+        } else if let abt::ExprKind::OpaqueConstructor { ctor_id, alias_id } = bound_callee.kind {
             self.analyse_opaque_type_construction(args, bound_args, span, ctor_id, alias_id)
-        } else if let abt::Type::Func(func_args, func_return_ty) =
-            self.program.type_of(&bound_callee)
-        {
+        } else if let abt::Type::Func(func_args, func_return_ty) = &bound_callee.ty {
             self.analyse_indirect_call(
                 args,
                 bound_args,
-                &func_args,
-                *func_return_ty,
-                bound_callee,
+                func_args,
+                *func_return_ty.clone(),
+                bound_callee.clone(),
                 span,
             )
         } else {
@@ -206,12 +204,12 @@ impl<'d> Analyser<'d> {
                 .with_span(callee.span)
                 .with_severity(Severity::Error)
                 .annotate_primary(
-                    Note::NotFunction(self.program.type_repr(&self.program.type_of(&bound_callee))),
+                    Note::NotFunction(self.program.type_repr(&bound_callee.ty)),
                     callee.span,
                 )
                 .done();
             self.diagnostics.push(d);
-            abt::Expr::Unknown
+            abt::Expr::unknown()
         }
     }
 
@@ -236,7 +234,7 @@ impl<'d> Analyser<'d> {
             .zip(args.iter().map(|arg| arg.span))
             .zip(func_args.iter().map(|(_, arg_ty)| arg_ty))
         {
-            let ty_param = self.program.type_of(bound_arg);
+            let ty_param = bound_arg.ty.clone();
             if self.type_check_coerce(bound_arg, arg_ty) {
                 continue;
             }
@@ -299,9 +297,12 @@ impl<'d> Analyser<'d> {
         }
 
         if invalid {
-            abt::Expr::Unknown
+            abt::Expr::unknown()
         } else {
-            abt::Expr::Call(id, bound_args, ty.value.clone())
+            abt::Expr {
+                kind: abt::ExprKind::Call(id, bound_args, ty.value.clone()),
+                ty: ty.value.clone(),
+            }
         }
     }
 
@@ -327,7 +328,7 @@ impl<'d> Analyser<'d> {
             .zip(args.iter().map(|arg| arg.span))
             .zip(func_args.iter().map(|(_, arg_ty)| arg_ty))
         {
-            let ty_param = self.program.type_of(bound_arg);
+            let ty_param = bound_arg.ty.clone();
             if self.type_check_coerce(bound_arg, arg_ty) {
                 continue;
             }
@@ -389,9 +390,12 @@ impl<'d> Analyser<'d> {
         }
 
         if invalid {
-            abt::Expr::Unknown
+            abt::Expr::unknown()
         } else {
-            abt::Expr::Call(ctor_id, bound_args, func_ty.value.clone())
+            abt::Expr {
+                kind: abt::ExprKind::Call(ctor_id, bound_args, func_ty.value.clone()),
+                ty: func_ty.value.clone(),
+            }
         }
     }
 
@@ -410,7 +414,7 @@ impl<'d> Analyser<'d> {
             .zip(args.iter().map(|arg| arg.span))
             .zip(func_args.iter())
         {
-            let ty = self.program.type_of(bound_arg);
+            let ty = bound_arg.ty.clone();
             if self.type_check_coerce(bound_arg, arg_ty) {
                 continue;
             }
@@ -443,9 +447,16 @@ impl<'d> Analyser<'d> {
         }
 
         if invalid {
-            abt::Expr::Unknown
+            abt::Expr::unknown()
         } else {
-            abt::Expr::IndirectCall(Box::new(bound_callee), bound_args, func_return_ty)
+            abt::Expr {
+                kind: abt::ExprKind::IndirectCall(
+                    Box::new(bound_callee),
+                    bound_args,
+                    func_return_ty.clone(),
+                ),
+                ty: func_return_ty,
+            }
         }
     }
 
@@ -483,15 +494,18 @@ impl<'d> Analyser<'d> {
                 _ => d.annotate_primary(Note::ReturnsUnit, stmt_span).done(),
             };
             self.diagnostics.push(d);
-            return abt::StmtKind::Return(Box::new(abt::Expr::Unknown));
+            return abt::StmtKind::Return(Box::new(abt::Expr::unknown()));
         }
 
-        abt::StmtKind::Return(Box::new(abt::Expr::Unit))
+        abt::StmtKind::Return(Box::new(abt::Expr {
+            kind: abt::ExprKind::Unit,
+            ty: abt::Type::Unit,
+        }))
     }
 
     pub fn analyse_return_with_statement(&mut self, expr: &ast::Expr) -> abt::StmtKind {
         let mut bound_expr = self.analyse_expression(expr);
-        let ty_expr = self.program.type_of(&bound_expr);
+        let ty_expr = bound_expr.ty.clone();
         let (return_ty, func_name) = {
             let id = self.scope.current_func_id;
             let info = self.program.functions.get(&id).unwrap();
@@ -534,7 +548,7 @@ impl<'d> Analyser<'d> {
             };
 
             self.diagnostics.push(d);
-            return abt::StmtKind::Return(Box::new(abt::Expr::Unknown));
+            return abt::StmtKind::Return(Box::new(abt::Expr::unknown()));
         }
 
         abt::StmtKind::Return(Box::new(bound_expr))

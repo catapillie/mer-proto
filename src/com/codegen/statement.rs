@@ -43,7 +43,7 @@ impl Codegen {
     }
 
     fn gen_expression_statement(&mut self, expr: &Expr, abt: &Program) -> io::Result<()> {
-        let size = abt.size_of(&abt.type_of(expr)).unwrap() as u8;
+        let size = abt.size_of(&expr.ty).unwrap() as u8;
         self.gen_expression(expr, abt)?;
         match size {
             1 => binary::write_opcode(&mut self.cursor, &Opcode::pop)?,

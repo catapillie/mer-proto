@@ -18,3 +18,11 @@ pub struct FunctionInfo {
     pub code: Option<Box<Stmt>>,
     pub was_analysed: bool,
 }
+
+impl FunctionInfo {
+    pub fn function_type(&self) -> Type {
+        let arg_tys = self.args.iter().map(|(_, ty)| ty.clone()).collect();
+        let ty = self.ty.value.clone();
+        Type::Func(arg_tys, Box::new(ty))
+    }
+}

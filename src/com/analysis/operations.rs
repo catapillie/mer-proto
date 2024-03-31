@@ -23,11 +23,11 @@ impl<'d> Analyser<'d> {
         let bound_left = self.analyse_expression(left);
         let bound_right = self.analyse_expression(right);
 
-        let ty_left = self.program.type_of(&bound_left);
-        let ty_right = self.program.type_of(&bound_right);
+        let ty_left = &bound_left.ty;
+        let ty_right = &bound_right.ty;
 
         if !ty_left.is_known() || !ty_right.is_known() {
-            return abt::Expr::Unknown;
+            return abt::Expr::unknown();
         }
 
         if matches!(op, ast::BinOp::Concat) {
@@ -51,13 +51,23 @@ impl<'d> Analyser<'d> {
                         )
                         .done();
                     self.diagnostics.push(d);
-                    return abt::Expr::Unknown;
+                    return abt::Expr::unknown();
                 }
 
                 let out_ty = abt::Type::Array(arr_left.clone(), size_left + size_right);
-                let bound_op =
-                    abt::BinOpKind::Concat.wrap_extern(ty_left.clone(), ty_right.clone(), out_ty);
-                return abt::Expr::Binary(bound_op, Box::new(bound_left), Box::new(bound_right));
+                let bound_op = abt::BinOpKind::Concat.wrap_extern(
+                    ty_left.clone(),
+                    ty_right.clone(),
+                    out_ty.clone(),
+                );
+                return abt::Expr {
+                    kind: abt::ExprKind::Binary(
+                        bound_op,
+                        Box::new(bound_left),
+                        Box::new(bound_right),
+                    ),
+                    ty: out_ty,
+                };
             }
 
             if let (Tup(hd_left, tl_left), Tup(hd_right, tl_right)) = (&ty_left, &ty_right) {
@@ -66,15 +76,25 @@ impl<'d> Analyser<'d> {
                     .concat()
                     .into_boxed_slice();
                 let out_ty = abt::Type::Tuple(head, tail);
-                let bound_op =
-                    abt::BinOpKind::Concat.wrap_extern(ty_left.clone(), ty_right.clone(), out_ty);
-                return abt::Expr::Binary(bound_op, Box::new(bound_left), Box::new(bound_right));
+                let bound_op = abt::BinOpKind::Concat.wrap_extern(
+                    ty_left.clone(),
+                    ty_right.clone(),
+                    out_ty.clone(),
+                );
+                return abt::Expr {
+                    kind: abt::ExprKind::Binary(
+                        bound_op,
+                        Box::new(bound_left),
+                        Box::new(bound_right),
+                    ),
+                    ty: out_ty,
+                };
             }
         }
 
-        if self.type_check(&ty_left, &ty_right) && self.type_check(&ty_right, &ty_left) {
+        if self.type_check(ty_left, ty_right) && self.type_check(ty_right, ty_left) {
             use abt::Type as Ty;
-            let ty = self.program.dealias_type(&ty_left).clone();
+            let ty = self.program.dealias_type(ty_left).clone();
             let bound_op = match ty {
                 Ty::U8 => Self::integer_binary_operation(op, ty),
                 Ty::U16 => Self::integer_binary_operation(op, ty),
@@ -91,30 +111,34 @@ impl<'d> Analyser<'d> {
             };
 
             if let Some(op) = bound_op {
-                return abt::Expr::Binary(op, Box::new(bound_left), Box::new(bound_right));
+                let ty = op.out_ty.clone();
+                return abt::Expr {
+                    kind: abt::ExprKind::Binary(op, Box::new(bound_left), Box::new(bound_right)),
+                    ty,
+                };
             }
         }
 
         let d = diagnostics::create_diagnostic()
             .with_kind(DiagnosticKind::InvalidBinaryOperation {
                 op,
-                left: self.program.type_repr(&ty_left),
-                right: self.program.type_repr(&ty_right),
+                left: self.program.type_repr(ty_left),
+                right: self.program.type_repr(ty_right),
             })
             .with_severity(Severity::Error)
             .with_span(span)
             .annotate_primary(Note::Quiet, span)
             .done();
         self.diagnostics.push(d);
-        abt::Expr::Unknown
+        abt::Expr::unknown()
     }
 
     fn analyse_assignment(&mut self, left: &ast::Expr, right: &ast::Expr) -> abt::Expr {
         let bound_left = self.analyse_expression(left);
         let mut bound_right = self.analyse_expression(right);
 
-        if matches!(bound_left, abt::Expr::Unknown) {
-            return abt::Expr::Unknown;
+        if matches!(bound_left.kind, abt::ExprKind::Unknown) {
+            return abt::Expr::unknown();
         }
 
         let Some((assignee, var_id, expected_type)) = self.to_lvalue(&bound_left) else {
@@ -125,11 +149,11 @@ impl<'d> Analyser<'d> {
                 .annotate_primary(Note::CannotAssign, left.span)
                 .done();
             self.diagnostics.push(d);
-            return abt::Expr::Unknown;
+            return abt::Expr::unknown();
         };
 
+        let right_ty = bound_right.ty.clone();
         if !self.type_check_coerce(&mut bound_right, &expected_type) {
-            let right_ty = self.program.type_of(&bound_right);
             let info = self.program.variables.get(&var_id).unwrap();
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::TypeMismatch {
@@ -154,13 +178,16 @@ impl<'d> Analyser<'d> {
                 )
                 .done();
             self.diagnostics.push(d);
-            return abt::Expr::Unknown;
+            return abt::Expr::unknown();
         }
 
-        abt::Expr::Assignment {
-            assignee,
-            var_id,
-            expr: Box::new(bound_right),
+        abt::Expr {
+            kind: abt::ExprKind::Assignment {
+                assignee,
+                var_id,
+                expr: Box::new(bound_right),
+            },
+            ty: right_ty,
         }
     }
 
@@ -231,13 +258,13 @@ impl<'d> Analyser<'d> {
         span: Span,
     ) -> abt::Expr {
         let bound_operand = self.analyse_expression(operand);
-        let ty = self.program.type_of(&bound_operand);
+        let ty = &bound_operand.ty;
 
         if !ty.is_known() {
-            return abt::Expr::Unknown;
+            return abt::Expr::unknown();
         }
 
-        let bound_op = match self.program.dealias_type(&ty) {
+        let bound_op = match self.program.dealias_type(ty) {
             abt::Type::U8 | abt::Type::U16 | abt::Type::U32 | abt::Type::U64 => {
                 Self::number_unary_operation(false, op, ty.clone())
             }
@@ -252,20 +279,24 @@ impl<'d> Analyser<'d> {
         };
 
         if let Some(op) = bound_op {
-            return abt::Expr::Unary(op, Box::new(bound_operand));
+            let ty = op.ty.clone();
+            return abt::Expr {
+                kind: abt::ExprKind::Unary(op, Box::new(bound_operand)),
+                ty,
+            };
         }
 
         let d = diagnostics::create_diagnostic()
             .with_kind(DiagnosticKind::InvalidUnaryOperation {
                 op,
-                ty: self.program.type_repr(&ty),
+                ty: self.program.type_repr(ty),
             })
             .with_severity(Severity::Error)
             .with_span(span)
             .annotate_primary(Note::Quiet, span)
             .done();
         self.diagnostics.push(d);
-        abt::Expr::Unknown
+        abt::Expr::unknown()
     }
 
     fn number_unary_operation(signed: bool, op: ast::UnOp, ty: abt::Type) -> Option<abt::UnOp> {

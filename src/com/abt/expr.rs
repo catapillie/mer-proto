@@ -1,7 +1,22 @@
 use super::{BinOp, LValue, Type, UnOp};
 
 #[derive(Debug, Clone)]
-pub enum Expr {
+pub struct Expr {
+    pub kind: ExprKind,
+    pub ty: Type,
+}
+
+impl Expr {
+    pub fn unknown() -> Self {
+        Self {
+            kind: ExprKind::Unknown,
+            ty: Type::Unknown,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum ExprKind {
     Unknown,
     Unit,
     Integer(i64),

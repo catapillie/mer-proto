@@ -115,7 +115,7 @@ impl<'d> Analyser<'d> {
 
     fn analyse_print_statement(&mut self, expr: &ast::Expr) -> abt::StmtKind {
         let mut bound_expr = self.analyse_expression(expr);
-        let bound_ty = self.program.type_of(&bound_expr);
+        let bound_ty = bound_expr.ty.clone();
         let expected_ty = abt::Type::Pointer(Box::new(abt::Type::U8));
         if self.type_check_coerce(&mut bound_expr, &expected_ty) {
             return abt::StmtKind::Print(Box::new(bound_expr));

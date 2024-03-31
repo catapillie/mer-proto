@@ -17,37 +17,37 @@ impl<'d> Analyser<'d> {
         let bound_expr = self.analyse_expression(expr);
         let bound_fallback = self.analyse_expression(fallback);
 
-        let guard_ty = self.program.type_of(&bound_guard);
-        if !self.type_check(&guard_ty, &abt::Type::Bool) {
+        let guard_ty = &bound_guard.ty;
+        if !self.type_check(guard_ty, &abt::Type::Bool) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::GuardNotBoolean)
                 .with_span(guard.span)
                 .with_severity(Severity::Error)
                 .annotate_primary(
                     Note::OfTypeButShouldBe(
-                        self.program.type_repr(&guard_ty),
+                        self.program.type_repr(guard_ty),
                         self.program.type_repr(&abt::Type::Bool),
                     ),
                     guard.span,
                 )
                 .done();
             self.diagnostics.push(d);
-            return abt::Expr::Unknown;
+            return abt::Expr::unknown();
         }
 
-        let expr_ty = self.program.type_of(&bound_expr);
-        let fallback_ty = self.program.type_of(&bound_fallback);
+        let expr_ty = &bound_expr.ty;
+        let fallback_ty = &bound_fallback.ty;
 
         if !expr_ty.is_known() || !fallback_ty.is_known() {
-            return abt::Expr::Unknown;
+            return abt::Expr::unknown();
         }
 
-        let ty = if expr_ty == abt::Type::Never && fallback_ty == abt::Type::Never {
+        let ty = if expr_ty == &abt::Type::Never && fallback_ty == &abt::Type::Never {
             abt::Type::Never
-        } else if expr_ty == abt::Type::Never {
-            fallback_ty
-        } else if fallback_ty == abt::Type::Never || self.type_check(&expr_ty, &fallback_ty) {
-            expr_ty
+        } else if expr_ty == &abt::Type::Never {
+            fallback_ty.clone()
+        } else if fallback_ty == &abt::Type::Never || self.type_check(expr_ty, fallback_ty) {
+            expr_ty.clone()
         } else {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::CasePathsTypeMismatch)
@@ -55,29 +55,32 @@ impl<'d> Analyser<'d> {
                 .with_severity(Severity::Error)
                 .annotate_primary(Note::Quiet, span)
                 .annotate_secondary(
-                    Note::Type(self.program.type_repr(&expr_ty)),
+                    Note::Type(self.program.type_repr(expr_ty)),
                     expr.span,
                     NoteSeverity::Annotation,
                 )
                 .annotate_secondary(
-                    Note::Type(self.program.type_repr(&fallback_ty)),
+                    Note::Type(self.program.type_repr(fallback_ty)),
                     fallback.span,
                     NoteSeverity::Annotation,
                 )
                 .done();
             self.diagnostics.push(d);
-            return abt::Expr::Unknown;
+            return abt::Expr::unknown();
         };
 
         // TODO: warning for always-matching case
         // TODO: warning for never-matching case
 
-        abt::Expr::CaseTernary(
-            Box::new(bound_guard),
-            Box::new(bound_expr),
-            Box::new(bound_fallback),
+        abt::Expr {
+            kind: abt::ExprKind::CaseTernary(
+                Box::new(bound_guard),
+                Box::new(bound_expr),
+                Box::new(bound_fallback),
+                ty.clone(),
+            ),
             ty,
-        )
+        }
     }
 
     pub fn analyse_case_expression(
@@ -101,22 +104,22 @@ impl<'d> Analyser<'d> {
                 continue;
             };
 
-            let guard_ty = self.program.type_of(bound_guard);
-            if !self.type_check(&guard_ty, &abt::Type::Bool) {
+            let guard_ty = &bound_guard.ty;
+            if !self.type_check(guard_ty, &abt::Type::Bool) {
                 let d = diagnostics::create_diagnostic()
                     .with_kind(DiagnosticKind::GuardNotBoolean)
                     .with_span(guard.span)
                     .with_severity(Severity::Error)
                     .annotate_primary(
                         Note::OfTypeButShouldBe(
-                            self.program.type_repr(&guard_ty),
+                            self.program.type_repr(guard_ty),
                             self.program.type_repr(&abt::Type::Bool),
                         ),
                         guard.span,
                     )
                     .done();
                 self.diagnostics.push(d);
-                return abt::Expr::Unknown;
+                return abt::Expr::unknown();
             }
         }
 
@@ -130,7 +133,7 @@ impl<'d> Analyser<'d> {
                 .annotate_primary(Note::Quiet, span)
                 .done();
             self.diagnostics.push(d);
-            return abt::Expr::Unknown;
+            return abt::Expr::unknown();
         }
         if otherwise_count > 1 {
             let mut d = diagnostics::create_diagnostic()
@@ -146,7 +149,7 @@ impl<'d> Analyser<'d> {
                 d = d.annotate_secondary(Note::Here, span, NoteSeverity::Annotation);
             }
             self.diagnostics.push(d.done());
-            return abt::Expr::Unknown;
+            return abt::Expr::unknown();
         }
 
         // ensure last case is otherwise path
@@ -159,13 +162,13 @@ impl<'d> Analyser<'d> {
                 .annotate_primary(Note::Quiet, span)
                 .done();
             self.diagnostics.push(d);
-            return abt::Expr::Unknown;
+            return abt::Expr::unknown();
         }
 
         // ensure all paths give the same type
         let types = bound_paths
             .iter()
-            .map(|(_, expr)| self.program.type_of(expr))
+            .map(|(_, expr)| expr.ty.clone())
             .collect::<Vec<_>>();
         let ty = types
             .iter()
@@ -184,13 +187,13 @@ impl<'d> Analyser<'d> {
                 .annotate_primary(Note::Quiet, span);
             for ((_, bound_expr), (_, expr)) in bound_paths.iter().zip(paths.iter()) {
                 d = d.annotate_secondary(
-                    Note::Type(self.program.type_repr(&self.program.type_of(bound_expr))),
+                    Note::Type(self.program.type_repr(&bound_expr.ty)),
                     expr.span,
                     NoteSeverity::Annotation,
                 );
             }
             self.diagnostics.push(d.done());
-            return abt::Expr::Unknown;
+            return abt::Expr::unknown();
         }
 
         if bound_paths.len() == 1 {
@@ -221,6 +224,9 @@ impl<'d> Analyser<'d> {
             .into_iter()
             .map(|(guard, expr)| (guard.unwrap(), expr))
             .collect();
-        abt::Expr::Case(bound_paths, Box::new(last_expr), ty.clone())
+        abt::Expr {
+            kind: abt::ExprKind::Case(bound_paths, Box::new(last_expr), ty.clone()),
+            ty: ty.clone(),
+        }
     }
 }

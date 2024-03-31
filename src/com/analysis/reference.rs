@@ -15,22 +15,31 @@ impl<'d> Analyser<'d> {
             Some((lvalue, var_id, ty)) => {
                 // mark variable as heap-allocated
                 self.program.variables.get_mut(&var_id).unwrap().is_on_heap = true;
-                abt::Expr::Ref(Box::new(lvalue), var_id, Box::new(ty))
+                abt::Expr {
+                    kind: abt::ExprKind::Ref(Box::new(lvalue), var_id, Box::new(ty)),
+                    ty: abt::Type::Ref(Box::new(bound_expr.ty)),
+                }
             }
-            None => abt::Expr::Heap(Box::new(self.analyse_expression(expr))),
+            None => abt::Expr {
+                kind: abt::ExprKind::Heap(Box::new(self.analyse_expression(expr))),
+                ty: abt::Type::Ref(Box::new(bound_expr.ty)),
+            },
         }
     }
 
     pub fn analyse_dereference_expression(&mut self, expr: &ast::Expr) -> abt::Expr {
         let bound_expr = self.analyse_expression(expr);
-        let ty = self.program.type_of(&bound_expr);
+        let ty = bound_expr.ty.clone();
 
-        if !ty.is_known() || matches!(bound_expr, abt::Expr::Unknown) {
-            return abt::Expr::Unknown;
+        if !ty.is_known() || matches!(bound_expr.kind, abt::ExprKind::Unknown) {
+            return abt::Expr::unknown();
         }
 
         match self.program.dealias_type(&ty) {
-            abt::Type::Ref(_) => abt::Expr::Deref(Box::new(bound_expr)),
+            abt::Type::Ref(ty) => abt::Expr {
+                kind: abt::ExprKind::Deref(Box::new(bound_expr)),
+                ty: *ty.clone(),
+            },
             _ => {
                 let d = diagnostics::create_diagnostic()
                     .with_kind(DiagnosticKind::InvalidDereference(
@@ -41,7 +50,7 @@ impl<'d> Analyser<'d> {
                     .annotate_primary(Note::OfType(self.program.type_repr(&ty)), expr.span)
                     .done();
                 self.diagnostics.push(d);
-                abt::Expr::Unknown
+                abt::Expr::unknown()
             }
         }
     }
