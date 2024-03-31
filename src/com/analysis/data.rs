@@ -25,7 +25,7 @@ impl<'d> Analyser<'d> {
         }
 
         match self.program.dealias_type(&abt::Type::Alias(id)) {
-            abt::Type::Data(id) => Some(self.program.datas.get(&id)?),
+            abt::Type::Data(id) => Some(self.program.datas.get(id)?),
             _ => None,
         }
     }
