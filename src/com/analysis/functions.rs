@@ -299,17 +299,10 @@ impl<'d> Analyser<'d> {
         }
 
         if invalid {
-            return abt::Expr::Unknown;
+            abt::Expr::Unknown
+        } else {
+            abt::Expr::Call(id, bound_args, ty.value.clone())
         }
-
-        let current_func = self
-            .program
-            .functions
-            .get_mut(&self.scope.current_func_id)
-            .unwrap();
-        current_func.called_functions.insert(id);
-
-        abt::Expr::Call(id, bound_args, ty.value.clone())
     }
 
     fn analyse_opaque_type_construction(
