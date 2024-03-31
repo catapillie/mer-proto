@@ -171,7 +171,7 @@ impl Program {
             Ty::F64 => Size::Known(1),
             Ty::Bool => Size::Known(1),
             Ty::Ref(_) => Size::Known(1),
-            Ty::Func(_, _) => Size::Known(1),
+            Ty::Func(_, _) => Size::Known(2),
             Ty::Pointer(_) => Size::Known(2),
             Ty::Tuple(head, tail)
                 => self.size_of(head) + tail.iter().map(|ty| self.size_of(ty)).sum::<Size>(),

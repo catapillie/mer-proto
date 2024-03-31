@@ -4,6 +4,7 @@ use std::collections::HashMap;
 pub struct Scope {
     parent: Option<Box<Scope>>,
     pub depth: u16,
+    pub position: usize,
     pub bindings: HashMap<String, u64>,
     pub current_func_id: u64,
 }
@@ -13,6 +14,7 @@ impl Scope {
         Scope {
             parent: None,
             depth: 0,
+            position: 0,
             bindings: Default::default(),
             current_func_id: 0,
         }
@@ -26,6 +28,7 @@ impl Scope {
         Scope {
             parent: None,
             depth: self.depth + 1,
+            position: 0,
             bindings: Default::default(),
             current_func_id: self.current_func_id,
         }

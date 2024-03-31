@@ -1,10 +1,12 @@
+use std::collections::BTreeSet;
+
 use super::Analyser;
 use crate::{
     com::{
         abt::{self, FunctionInfo, Size},
         ast::{self, stmt::FuncDef},
     },
-    diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
+    diagnostics::{self, DiagnosticKind, DiagnosticList, Note, NoteSeverity, Severity},
     utils::{OptSpanned, Span, Spanned},
 };
 
@@ -46,13 +48,17 @@ impl<'d> Analyser<'d> {
                 id,
                 name: name.clone().into(),
                 depth: self.scope.depth,
+                position: 0,
                 args: Vec::new(),
                 arg_ids: Vec::new(),
                 ty: OptSpanned {
                     value: abt::Type::Unknown,
                     span: Some(ty.span),
                 },
-                used_variables: Default::default(),
+                local_variables: Default::default(),
+                captured_variables: Default::default(),
+                imported_functions: Default::default(),
+                defined_functions: Default::default(),
                 code: None,
                 was_analysed: false,
             },
@@ -117,6 +123,7 @@ impl<'d> Analyser<'d> {
                 .arg_ids
                 .push(decl.declared)
         }
+
         let bound_body = self.analyse_statement(&ast.body);
         if !self.analyse_control_flow(&bound_body) {
             let d = diagnostics::create_diagnostic()
@@ -128,10 +135,12 @@ impl<'d> Analyser<'d> {
             self.diagnostics.push(d);
         }
 
+        self.analyse_function_variable_usage();
         self.close_scope();
 
         let info = self.program.functions.get_mut(&id).unwrap();
         info.code = Some(Box::new(bound_body));
+        info.position = self.scope.position;
 
         if let Size::Known(var_count) = self.count_all_variable_sizes(id) {
             if var_count > 255 {
@@ -147,6 +156,14 @@ impl<'d> Analyser<'d> {
                 self.diagnostics.push(d);
             }
         }
+
+        // this function is defined in the current scope's function
+        self.program
+            .functions
+            .get_mut(&self.scope.current_func_id)
+            .unwrap()
+            .defined_functions
+            .insert(id);
 
         self.program.functions.get_mut(&id).unwrap().was_analysed = true;
         abt::StmtKind::Empty
@@ -526,31 +543,84 @@ impl<'d> Analyser<'d> {
     pub fn analyse_function_variable_usage(&mut self) {
         let id = self.scope.current_func_id;
         let info = self.program.functions.get(&id).unwrap();
-        for (var_id, usage) in &info.used_variables {
-            if usage.used {
-                continue;
-            }
 
-            let var_info = self.program.variables.get(var_id).unwrap();
-            let d = diagnostics::create_diagnostic()
-                .with_kind(DiagnosticKind::UnusedVariable(var_info.name.value.clone()))
-                .with_span(var_info.name.span)
-                .with_severity(Severity::Warning)
-                .annotate_primary(Note::Here, var_info.name.span)
-                .done();
-            self.diagnostics.push(d);
+        // collect extra captured for each function defined in the current scope's function
+        let extra_captures_by_id = info
+            .defined_functions
+            .iter()
+            .map(|&defined_id| {
+                let defined_info = self.program.functions.get(&defined_id).unwrap();
+
+                let mut extra_captures = BTreeSet::<u64>::new();
+                for called_id in &defined_info.imported_functions {
+                    let called_info = self.program.functions.get(called_id).unwrap();
+                    extra_captures.extend(called_info.captured_variables.iter());
+                }
+
+                (defined_id, extra_captures)
+            })
+            .collect::<Vec<_>>();
+
+        // update captured variables
+        for (defined_id, mut extra_captures) in extra_captures_by_id.into_iter() {
+            let defined_info = self.program.functions.get_mut(&defined_id).unwrap();
+            defined_info.captured_variables.append(&mut extra_captures);
         }
+
+        let mut diagnostics = DiagnosticList::new();
+
+        // raise errors due to early captures
+        let info = self.program.functions.get(&id).unwrap();
+        for defined_id in &info.defined_functions {
+            let defined_info = self.program.functions.get(defined_id).unwrap();
+
+            for captured_id in &defined_info.captured_variables {
+                let captured_info = self.program.variables.get(captured_id).unwrap();
+
+                if defined_info.position < captured_info.position {
+                    let func_span = defined_info.name.span.expect("defined function has a span");
+                    let func_name = defined_info.name.value.clone();
+                    let var_span = captured_info.name.span;
+                    let var_name = captured_info.name.value.clone();
+                    let d = diagnostics::create_diagnostic()
+                        .with_kind(DiagnosticKind::EarlyVariableCapture {
+                            func_name: func_name.clone(),
+                            var_name: var_name.clone(),
+                        })
+                        .with_severity(Severity::Error)
+                        .with_span(func_span)
+                        .annotate_primary(
+                            Note::VariableIndirectlyCaptured(var_name.clone(), func_name.clone())
+                                .dddot_back()
+                                .num(1),
+                            func_span,
+                        )
+                        .annotate_secondary(
+                            Note::VariableDeclaration(var_name)
+                                .but()
+                                .dddot_front()
+                                .num(2),
+                            var_span,
+                            NoteSeverity::Annotation,
+                        )
+                        .done();
+                    diagnostics.push(d);
+                }
+            }
+        }
+
+        self.diagnostics.extend(diagnostics);
     }
 
-    pub fn count_all_variable_sizes(&mut self, func_id: u64) -> Size {
-        self.program
-            .functions
-            .get(&func_id)
-            .unwrap()
-            .used_variables
-            .keys()
-            .map(|var_id| self.program.variables.get(var_id).unwrap())
-            .map(|var_info| self.program.size_of(&var_info.ty))
+    pub fn count_all_variable_sizes(&self, func_id: u64) -> Size {
+        let info = self.program.functions.get(&func_id).unwrap();
+        info.local_variables
+            .iter()
+            .chain(info.captured_variables.iter())
+            .map(|var_id| {
+                self.program
+                    .size_of(&self.program.variables.get(var_id).unwrap().ty)
+            })
             .sum::<Size>()
     }
 }

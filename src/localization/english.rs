@@ -261,8 +261,8 @@ impl Lang for English {
                 => "the top level program must return unit".to_string(),
             K::UnreachableCode
                 => "this code is unreachable".to_string(),
-            K::UnallowedVariableCapture { func_name, var_name }
-                => format!("function '{}' captures variable '{}', which is not (yet) allowed",
+            K::EarlyVariableCapture { func_name, var_name }
+                => format!("function '{}' indirectly captures variable '{}' before it is initialized",
                     func_name.bold(),
                     var_name.bold(),
                 ),
@@ -550,9 +550,9 @@ impl Lang for English {
                     1 => format!("{} was provided", "one".bold()),
                     _ => format!("{} were provided", count.to_string().bold()),
                 },
-            N::VariableCapturedBy(var_name, func_name)
+            N::VariableIndirectlyCaptured(var_name, func_name)
                 => format!(
-                    "'{}' gets captured by '{}' here",
+                    "'{}' is indirectly captured in '{}'",
                     var_name.bold(),
                     func_name.bold(),
                 ),

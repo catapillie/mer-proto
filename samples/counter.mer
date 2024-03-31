@@ -1,0 +1,27 @@
+func init_counter() -> -> i64
+{
+    var x = 0
+    func c() -> i64 
+    {
+        var v = x
+        x = v + 1
+        return v
+    }
+    return c
+}
+
+var count_a = init_counter()
+debug count_a()
+debug count_a()
+debug count_a()
+debug count_a()
+debug count_a()
+
+var count_b = init_counter()
+debug count_b()
+debug count_b()
+debug count_b()
+debug count_b()
+debug count_b()
+
+return  

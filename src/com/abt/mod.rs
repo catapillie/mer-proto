@@ -24,7 +24,7 @@ pub use types::Type;
 
 pub use data::DataInfo;
 pub use function::FunctionInfo;
-pub use variable::{VariableInfo, VariableUsage};
+pub use variable::VariableInfo;
 
 pub use bin_op::{BinOp, BinOpKind};
 pub use un_op::{UnOp, UnOpKind};

@@ -345,6 +345,11 @@ impl<'a> VM<'a> {
     }
 
     fn call_addr(&mut self) -> Result<(), Error> {
+        let n = self.pop()?.get_u64() as usize;
+        let addr = self.pop()?.get_usize();
+        let values = Self::read_heap_array(addr, n);
+        self.stack.extend_from_slice(values);
+
         let fp = self.pop()?.get_u32() as u64;
         let back = self.cursor.position();
         self.call_fn(fp, Some(back))?;

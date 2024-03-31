@@ -1,0 +1,17 @@
+var x = 0
+var y = 1
+func capture() -> ()
+{
+    var t = y
+    y = x
+    x = t
+    return
+}
+
+var c = capture
+
+var (a, b) = (x, y)
+c()
+var (c, d) = (x, y)
+
+return a == 0 and b == 1 and c == 1 and d == 0

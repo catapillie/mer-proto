@@ -84,11 +84,11 @@ impl Codegen {
                 expr,
             } => self.gen_assignment_expression(assignee, *var_id, expr, abt),
             E::Variable(var_id) => self.gen_variable_expression(*var_id, abt),
-            E::Function(func_id) => self.gen_function_expression(*func_id),
+            E::Function(func_id) => self.gen_function_expression(*func_id, abt),
             E::OpaqueConstructor {
                 ctor_id,
                 alias_id: _,
-            } => self.gen_function_expression(*ctor_id),
+            } => self.gen_function_expression(*ctor_id, abt),
             E::Tuple(head, tail) => self.gen_tuple_expression(head, tail, abt),
             E::TupleImmediateIndex(tuple, index) => {
                 self.gen_tuple_immediate_index_expression(tuple, index, abt)
@@ -332,9 +332,28 @@ impl Codegen {
         }
     }
 
-    fn gen_function_expression(&mut self, func_id: u64) -> io::Result<Value> {
+    fn gen_function_expression(&mut self, func_id: u64, abt: &Program) -> io::Result<Value> {
+        // gen closure
+        let info = abt.functions.get(&func_id).unwrap();
+        for id in info.captured_variables.iter() {
+            let loc = self.current_locals.get(id).unwrap();
+            binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(loc.offset))?;
+        }
+
+        // function address
         self.cursor.write_u8(opcode::ld_u32)?;
         self.add_fn_addr_placeholder(func_id)?;
+
+        // allocate on heap
+        let size = 1 + info.captured_variables.len() as u64;
+        match size {
+            1 => binary::write_opcode(&mut self.cursor, &Opcode::alloc)?,
+            _ => binary::write_opcode(&mut self.cursor, &Opcode::alloc_n(size as u8))?,
+        };
+
+        // keep track of size
+        binary::write_opcode(&mut self.cursor, &Opcode::ld_u64(size))?;
+
         Ok(Value::Done)
     }
 
@@ -344,11 +363,22 @@ impl Codegen {
         params: &[Expr],
         abt: &Program,
     ) -> io::Result<Value> {
+        // arguments first
         for param in params.iter() {
             self.gen_expression(param, abt)?;
         }
+
+        // then captured variables
+        let info = abt.functions.get(&id).unwrap();
+        for &captured_id in info.captured_variables.iter() {
+            let loc = self.current_locals.get(&captured_id).unwrap();
+            binary::write_opcode(&mut self.cursor, &Opcode::ld_loc(loc.offset))?;
+        }
+
+        // call opcode
         self.cursor.write_u8(opcode::call)?;
         self.add_fn_addr_placeholder(id)?;
+
         Ok(Value::Done)
     }
 

@@ -5,11 +5,7 @@ pub struct VariableInfo {
     pub id: u64,
     pub name: Spanned<String>,
     pub depth: u16,
+    pub position: usize,
     pub ty: Type,
     pub is_on_heap: bool,
-}
-
-pub struct VariableUsage {
-    pub captured: bool,
-    pub used: bool,
 }

@@ -78,7 +78,7 @@ pub enum DiagnosticKind {
 
     UnreachableCode,
 
-    UnallowedVariableCapture {
+    EarlyVariableCapture {
         func_name: String,
         var_name: String,
     },
