@@ -13,6 +13,56 @@ impl Expr {
             ty: Type::Unknown,
         }
     }
+
+    pub fn unit() -> Self {
+        Self {
+            kind: ExprKind::Unit,
+            ty: Type::Unit,
+        }
+    }
+
+    pub fn integer(i: i64) -> Self {
+        Self {
+            kind: ExprKind::Integer(i),
+            ty: Type::I64,
+        }
+    }
+
+    pub fn decimal(f: f64) -> Self {
+        Self {
+            kind: ExprKind::Decimal(f),
+            ty: Type::F64,
+        }
+    }
+
+    pub fn boolean(b: bool) -> Self {
+        Self {
+            kind: ExprKind::Boolean(b),
+            ty: Type::F64,
+        }
+    }
+
+    pub fn string_literal(s: String) -> Self {
+        let len = s.len();
+        Self {
+            kind: ExprKind::StringLiteral(s),
+            ty: Type::Array(Box::new(Type::U8), len),
+        }
+    }
+
+    pub fn todo() -> Self {
+        Self {
+            kind: ExprKind::Todo,
+            ty: Type::Never,
+        }
+    }
+
+    pub fn unreachable() -> Self {
+        Self {
+            kind: ExprKind::Unreachable,
+            ty: Type::Never,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
