@@ -7,6 +7,7 @@ pub struct FunctionInfo {
     pub id: u64,
     pub name: OptSpanned<String>,
     pub depth: u16,
+    pub position: usize,
     pub args: Vec<(String, Type)>,
     pub arg_ids: Vec<u64>,
     pub ty: OptSpanned<Type>,

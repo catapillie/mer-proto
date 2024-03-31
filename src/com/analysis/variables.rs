@@ -17,6 +17,7 @@ impl<'d> Analyser<'d> {
             id: declared,
             name,
             depth: self.scope.depth,
+            position: self.scope.position,
             ty,
             is_on_heap: false,
         };

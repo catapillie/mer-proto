@@ -20,6 +20,7 @@ impl<'d> Analyser<'d> {
                     span: None,
                 },
                 depth: 0,
+                position: 0,
                 args: vec![],
                 arg_ids: vec![],
                 ty: OptSpanned {

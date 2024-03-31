@@ -10,6 +10,7 @@ use crate::{
 impl<'d> Analyser<'d> {
     #[rustfmt::skip]
     pub fn analyse_statement(&mut self, stmt: &ast::Stmt) -> abt::Stmt {
+        self.scope.position += 1;
         match &stmt.value {
             ast::StmtKind::Empty
                 => abt::StmtKind::Empty,
@@ -84,12 +85,10 @@ impl<'d> Analyser<'d> {
                     None => continue,
                     Some(id) => funcs.push((id, ast)),
                 },
-                ast::StmtKind::DataDef(ast) => {
-                    match self.analyse_data_structure_header(ast) {
-                        None => continue,
-                        Some(id) => datas.push((id, ast)),
-                    }
-                }
+                ast::StmtKind::DataDef(ast) => match self.analyse_data_structure_header(ast) {
+                    None => continue,
+                    Some(id) => datas.push((id, ast)),
+                },
                 ast::StmtKind::AliasDef(ast) => match self.analyse_alias_header(ast) {
                     None => continue,
                     Some(id) => alias.push((id, ast)),

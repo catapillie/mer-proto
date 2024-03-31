@@ -92,6 +92,7 @@ impl<'d> Analyser<'d> {
                     span: func_span,
                 },
                 depth: 0,
+                position: 0,
                 ty: arg_ty.clone(),
                 is_on_heap: false,
             },
@@ -112,6 +113,7 @@ impl<'d> Analyser<'d> {
                     span: Some(func_span),
                 },
                 depth: 0,
+                position: 0,
                 args: vec![(arg_name.clone(), arg_ty.clone())],
                 arg_ids: vec![arg_id],
                 ty: OptSpanned {

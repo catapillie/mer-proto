@@ -6,7 +6,7 @@ use crate::{
         abt::{self, FunctionInfo, Size},
         ast::{self, stmt::FuncDef},
     },
-    diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
+    diagnostics::{self, DiagnosticKind, DiagnosticList, Note, NoteSeverity, Severity},
     utils::{OptSpanned, Span, Spanned},
 };
 
@@ -48,6 +48,7 @@ impl<'d> Analyser<'d> {
                 id,
                 name: name.clone().into(),
                 depth: self.scope.depth,
+                position: 0,
                 args: Vec::new(),
                 arg_ids: Vec::new(),
                 ty: OptSpanned {
@@ -139,6 +140,7 @@ impl<'d> Analyser<'d> {
 
         let info = self.program.functions.get_mut(&id).unwrap();
         info.code = Some(Box::new(bound_body));
+        info.position = self.scope.position;
 
         if let Size::Known(var_count) = self.count_all_variable_sizes(id) {
             if var_count > 255 {
@@ -549,7 +551,7 @@ impl<'d> Analyser<'d> {
         let id = self.scope.current_func_id;
         let info = self.program.functions.get(&id).unwrap();
 
-        // collect extra captured for each function defined the in the current scope's function
+        // collect extra captured for each function defined in the current scope's function
         let extra_captures_by_id = info
             .defined_functions
             .iter()
@@ -571,6 +573,50 @@ impl<'d> Analyser<'d> {
             let defined_info = self.program.functions.get_mut(&defined_id).unwrap();
             defined_info.captured_variables.append(&mut extra_captures);
         }
+
+        let mut diagnostics = DiagnosticList::new();
+
+        // raise errors due to early captures
+        let info = self.program.functions.get(&id).unwrap();
+        for defined_id in &info.defined_functions {
+            let defined_info = self.program.functions.get(defined_id).unwrap();
+
+            for captured_id in &defined_info.captured_variables {
+                let captured_info = self.program.variables.get(captured_id).unwrap();
+
+                if defined_info.position < captured_info.position {
+                    let func_span = defined_info.name.span.expect("defined function has a span");
+                    let func_name = defined_info.name.value.clone();
+                    let var_span = captured_info.name.span;
+                    let var_name = captured_info.name.value.clone();
+                    let d = diagnostics::create_diagnostic()
+                        .with_kind(DiagnosticKind::EarlyVariableCapture {
+                            func_name: func_name.clone(),
+                            var_name: var_name.clone(),
+                        })
+                        .with_severity(Severity::Error)
+                        .with_span(func_span)
+                        .annotate_primary(
+                            Note::VariableIndirectlyCaptured(var_name.clone(), func_name.clone())
+                                .dddot_back()
+                                .num(1),
+                            func_span,
+                        )
+                        .annotate_secondary(
+                            Note::VariableDeclaration(var_name)
+                                .but()
+                                .dddot_front()
+                                .num(2),
+                            var_span,
+                            NoteSeverity::Annotation,
+                        )
+                        .done();
+                    diagnostics.push(d);
+                }
+            }
+        }
+
+        self.diagnostics.extend(diagnostics);
     }
 
     pub fn count_all_variable_sizes(&self, func_id: u64) -> Size {
