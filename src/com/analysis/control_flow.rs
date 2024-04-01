@@ -60,7 +60,7 @@ impl<'d> Analyser<'d> {
 
     fn is_never(expr: &abt::Expr) -> bool {
         use abt::ExprKind as E;
-        match &expr.kind {
+        match &expr.value.kind {
             E::Unknown => false,
             E::Unit => false,
             E::Integer(_) => false,

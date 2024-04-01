@@ -1,12 +1,15 @@
 use super::{BinOp, LValue, Type, UnOp};
+use crate::utils::{Span, Spanned};
+
+pub type Expr = Spanned<TypedExpr>;
 
 #[derive(Debug, Clone)]
-pub struct Expr {
+pub struct TypedExpr {
     pub kind: ExprKind,
     pub ty: Type,
 }
 
-impl Expr {
+impl TypedExpr {
     pub fn unknown() -> Self {
         Self {
             kind: ExprKind::Unknown,
@@ -62,6 +65,10 @@ impl Expr {
             kind: ExprKind::Unreachable,
             ty: Type::Never,
         }
+    }
+
+    pub fn wrap(self, span: Span) -> Expr {
+        Expr { value: self, span }
     }
 }
 

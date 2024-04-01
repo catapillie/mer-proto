@@ -174,22 +174,24 @@ impl<'d> Analyser<'d> {
         callee: &ast::Expr,
         args: &[ast::Expr],
         span: Span,
-    ) -> abt::Expr {
+    ) -> abt::TypedExpr {
         let bound_callee = self.analyse_expression(callee);
         let bound_args = args
             .iter()
             .map(|arg| self.analyse_expression(arg))
             .collect::<Box<_>>();
 
-        if matches!(bound_callee.kind, abt::ExprKind::Unknown) {
-            return abt::Expr::unknown();
+        if matches!(bound_callee.value.kind, abt::ExprKind::Unknown) {
+            return abt::TypedExpr::unknown();
         };
 
-        if let abt::ExprKind::Function(id) = bound_callee.kind {
+        if let abt::ExprKind::Function(id) = bound_callee.value.kind {
             self.analyse_immediate_call(args, bound_args, span, id)
-        } else if let abt::ExprKind::OpaqueConstructor { ctor_id, alias_id } = bound_callee.kind {
+        } else if let abt::ExprKind::OpaqueConstructor { ctor_id, alias_id } =
+            bound_callee.value.kind
+        {
             self.analyse_opaque_type_construction(args, bound_args, span, ctor_id, alias_id)
-        } else if let abt::Type::Func(func_args, func_return_ty) = &bound_callee.ty {
+        } else if let abt::Type::Func(func_args, func_return_ty) = &bound_callee.value.ty {
             self.analyse_indirect_call(
                 args,
                 bound_args,
@@ -204,12 +206,12 @@ impl<'d> Analyser<'d> {
                 .with_span(callee.span)
                 .with_severity(Severity::Error)
                 .annotate_primary(
-                    Note::NotFunction(self.program.type_repr(&bound_callee.ty)),
+                    Note::NotFunction(self.program.type_repr(&bound_callee.value.ty)),
                     callee.span,
                 )
                 .done();
             self.diagnostics.push(d);
-            abt::Expr::unknown()
+            abt::TypedExpr::unknown()
         }
     }
 
@@ -219,7 +221,7 @@ impl<'d> Analyser<'d> {
         mut bound_args: Box<[abt::Expr]>,
         span: Span,
         id: u64,
-    ) -> abt::Expr {
+    ) -> abt::TypedExpr {
         let info = self.program.functions.get(&id).unwrap();
 
         let func_name = info.name.clone();
@@ -234,7 +236,7 @@ impl<'d> Analyser<'d> {
             .zip(args.iter().map(|arg| arg.span))
             .zip(func_args.iter().map(|(_, arg_ty)| arg_ty))
         {
-            let ty_param = bound_arg.ty.clone();
+            let ty_param = bound_arg.value.ty.clone();
             if self.type_check_coerce(bound_arg, arg_ty) {
                 continue;
             }
@@ -297,9 +299,9 @@ impl<'d> Analyser<'d> {
         }
 
         if invalid {
-            abt::Expr::unknown()
+            abt::TypedExpr::unknown()
         } else {
-            abt::Expr {
+            abt::TypedExpr {
                 kind: abt::ExprKind::Call(id, bound_args),
                 ty: ty.value.clone(),
             }
@@ -313,7 +315,7 @@ impl<'d> Analyser<'d> {
         span: Span,
         ctor_id: u64,
         alias_id: u64,
-    ) -> abt::Expr {
+    ) -> abt::TypedExpr {
         let func_info = self.program.functions.get(&ctor_id).unwrap();
         let func_args = func_info.args.clone();
         let func_ty = func_info.ty.clone();
@@ -328,7 +330,7 @@ impl<'d> Analyser<'d> {
             .zip(args.iter().map(|arg| arg.span))
             .zip(func_args.iter().map(|(_, arg_ty)| arg_ty))
         {
-            let ty_param = bound_arg.ty.clone();
+            let ty_param = bound_arg.value.ty.clone();
             if self.type_check_coerce(bound_arg, arg_ty) {
                 continue;
             }
@@ -390,9 +392,9 @@ impl<'d> Analyser<'d> {
         }
 
         if invalid {
-            abt::Expr::unknown()
+            abt::TypedExpr::unknown()
         } else {
-            abt::Expr {
+            abt::TypedExpr {
                 kind: abt::ExprKind::Call(ctor_id, bound_args),
                 ty: func_ty.value.clone(),
             }
@@ -407,14 +409,14 @@ impl<'d> Analyser<'d> {
         func_return_ty: abt::Type,
         bound_callee: abt::Expr,
         span: Span,
-    ) -> abt::Expr {
+    ) -> abt::TypedExpr {
         let mut invalid = false;
         for ((bound_arg, span), arg_ty) in bound_args
             .iter_mut()
             .zip(args.iter().map(|arg| arg.span))
             .zip(func_args.iter())
         {
-            let ty = bound_arg.ty.clone();
+            let ty = bound_arg.value.ty.clone();
             if self.type_check_coerce(bound_arg, arg_ty) {
                 continue;
             }
@@ -447,13 +449,10 @@ impl<'d> Analyser<'d> {
         }
 
         if invalid {
-            abt::Expr::unknown()
+            abt::TypedExpr::unknown()
         } else {
-            abt::Expr {
-                kind: abt::ExprKind::IndirectCall(
-                    Box::new(bound_callee),
-                    bound_args,
-                ),
+            abt::TypedExpr {
+                kind: abt::ExprKind::IndirectCall(Box::new(bound_callee), bound_args),
                 ty: func_return_ty,
             }
         }
@@ -493,18 +492,21 @@ impl<'d> Analyser<'d> {
                 _ => d.annotate_primary(Note::ReturnsUnit, stmt_span).done(),
             };
             self.diagnostics.push(d);
-            return abt::StmtKind::Return(Box::new(abt::Expr::unknown()));
+            return abt::StmtKind::Return(Box::new(abt::TypedExpr::unknown().wrap(Span::ZERO)));
         }
 
-        abt::StmtKind::Return(Box::new(abt::Expr {
-            kind: abt::ExprKind::Unit,
-            ty: abt::Type::Unit,
-        }))
+        abt::StmtKind::Return(Box::new(
+            abt::TypedExpr {
+                kind: abt::ExprKind::Unit,
+                ty: abt::Type::Unit,
+            }
+            .wrap(Span::ZERO),
+        ))
     }
 
     pub fn analyse_return_with_statement(&mut self, expr: &ast::Expr) -> abt::StmtKind {
         let mut bound_expr = self.analyse_expression(expr);
-        let ty_expr = bound_expr.ty.clone();
+        let ty_expr = bound_expr.value.ty.clone();
         let (return_ty, func_name) = {
             let id = self.scope.current_func_id;
             let info = self.program.functions.get(&id).unwrap();
@@ -547,7 +549,7 @@ impl<'d> Analyser<'d> {
             };
 
             self.diagnostics.push(d);
-            return abt::StmtKind::Return(Box::new(abt::Expr::unknown()));
+            return abt::StmtKind::Return(Box::new(abt::TypedExpr::unknown().wrap(Span::ZERO)));
         }
 
         abt::StmtKind::Return(Box::new(bound_expr))

@@ -106,16 +106,18 @@ impl<'d> Analyser<'d> {
     }
 
     pub fn type_check_coerce<'a>(&'a self, expr: &mut abt::Expr, mut ty: &'a abt::Type) -> bool {
-        let expr_ty = expr.ty.clone();
         ty = self.program.dealias_type(ty);
+        let expr_ty = expr.value.ty.clone();
+        let span = expr.span;
+
         if let (abt::Type::Ref(ref_inner), abt::Type::Pointer(pointer_ty)) = (&expr_ty, ty) {
             if let abt::Type::Array(inner_ty, _) = &**ref_inner {
                 if self.type_check(inner_ty, pointer_ty) {
-                    let prev_expr = std::mem::replace(expr, abt::Expr::unknown());
-                    *expr = abt::Expr {
-                        kind: abt::ExprKind::ToPointer(Box::new(prev_expr)),
+                    let prev_expr = std::mem::replace(&mut expr.value, abt::TypedExpr::unknown());
+                    *expr = abt::TypedExpr {
+                        kind: abt::ExprKind::ToPointer(Box::new(prev_expr.wrap(span))),
                         ty: abt::Type::Pointer(pointer_ty.clone()),
-                    };
+                    }.wrap(span);
                     return true;
                 }
             }

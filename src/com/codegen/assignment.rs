@@ -23,7 +23,7 @@ impl Codegen {
         abt: &Program,
     ) -> io::Result<Value> {
         // write right-hand side
-        let size = abt.size_of(&expr.ty).unwrap() as u8;
+        let size = abt.size_of(&expr.value.ty).unwrap() as u8;
         self.gen_expression(expr, abt)?;
         match size {
             1 => binary::write_opcode(&mut self.cursor, &Opcode::dup)?,

@@ -9,6 +9,7 @@ pub struct Span {
 }
 
 impl Span {
+    pub const ZERO: Span = Self::at(Pos::MIN);
     pub const EOF: Span = Self::at(Pos::MAX);
 
     pub const fn new(from: Pos, to: Pos) -> Self {

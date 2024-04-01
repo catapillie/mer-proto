@@ -10,21 +10,21 @@ impl<'d> Analyser<'d> {
         use ast::ExprKind as K;
         match &expr.value {
             K::Bad
-                => abt::Expr::unknown(),
+                => abt::TypedExpr::unknown(),
             K::Unit
-                => abt::Expr::unit(),
+                => abt::TypedExpr::unit(),
             K::Integer(i)
-                => abt::Expr::integer(*i),
+                => abt::TypedExpr::integer(*i),
             K::Decimal(f)
-                => abt::Expr::decimal(*f),
+                => abt::TypedExpr::decimal(*f),
             K::Identifier(id)
                 => self.analyse_variable_expression(id, expr.span),
             K::Boolean(b)
-                => abt::Expr::boolean(*b),
+                => abt::TypedExpr::boolean(*b),
             K::StringLiteral(s)
-                => abt::Expr::string_literal(s.clone()),
+                => abt::TypedExpr::string_literal(s.clone()),
             K::Parenthesized(inner)
-                => self.analyse_expression(inner),
+                => return self.analyse_expression(inner),
             K::Tuple(head, tail)
                 => self.analyse_tuple_expression(head, tail),
             K::Array(exprs)
@@ -46,9 +46,9 @@ impl<'d> Analyser<'d> {
             K::Deref(expr)
                 => self.analyse_dereference_expression(expr),
             K::Todo
-                => abt::Expr::todo(),
+                => abt::TypedExpr::todo(),
             K::Unreachable
-                => abt::Expr::unreachable(),
+                => abt::TypedExpr::unreachable(),
             K::TernaryCase(guard, expr, fallback, span)
                 => self.analyse_ternary_case_expression(guard, expr, fallback, *span),
             K::Case(paths, span)
@@ -61,13 +61,13 @@ impl<'d> Analyser<'d> {
                 => self.analyse_data_field_access(expr, name),
             K::Alloc(ty, size)
                 => self.analyse_alloc_expression(ty, size),
-        }
+        }.wrap(expr.span)
     }
 
     #[rustfmt::skip]
-    fn analyse_debug_expression(&mut self, expr: &ast::Expr) -> abt::Expr {
+    fn analyse_debug_expression(&mut self, expr: &ast::Expr) -> abt::TypedExpr {
         let inner = self.analyse_expression(expr);
-        let ty = inner.ty.clone();
+        let ty = inner.value.ty.clone();
 
         use abt::Type as Ty;
         match self.program.dealias_type(&ty) {
@@ -75,12 +75,12 @@ impl<'d> Analyser<'d> {
             Ty::I8 | Ty::I16 | Ty::I32 | Ty::I64 |
             Ty::F32 | Ty::F64 |
             Ty::Bool |
-            Ty::Unit => abt::Expr {
+            Ty::Unit => abt::TypedExpr {
                 kind: abt::ExprKind::Debug(Box::new(inner)),
                 ty,
             },
             Ty::Unknown
-                => abt::Expr::unknown(),
+                => abt::TypedExpr::unknown(),
             _ => {
                 let d = diagnostics::create_diagnostic()
                     .with_kind(DiagnosticKind::InvalidDebugExpression(
@@ -91,7 +91,7 @@ impl<'d> Analyser<'d> {
                     .annotate_primary(Note::OfType(self.program.type_repr(&ty)), expr.span)
                     .done();
                 self.diagnostics.push(d);
-                abt::Expr::unknown()
+                abt::TypedExpr::unknown()
             }
         }
     }

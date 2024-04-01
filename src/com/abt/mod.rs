@@ -15,7 +15,7 @@ pub mod variable;
 pub use program::Program;
 
 pub use alias::AliasInfo;
-pub use expr::{Expr, ExprKind};
+pub use expr::{Expr, ExprKind, TypedExpr};
 pub use lvalue::LValue;
 pub use pattern::{BoundPattern, Pattern, PatternKind};
 pub use size::Size;

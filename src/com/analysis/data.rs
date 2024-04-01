@@ -188,7 +188,7 @@ impl<'d> Analyser<'d> {
         &mut self,
         name: &Spanned<String>,
         fields: &[(Spanned<String>, ast::Expr)],
-    ) -> abt::Expr {
+    ) -> abt::TypedExpr {
         let mut bound_fields = fields
             .iter()
             .map(|(name, expr)| (name, self.analyse_expression(expr)))
@@ -202,7 +202,7 @@ impl<'d> Analyser<'d> {
                 .annotate_primary(Note::Unknown, name.span)
                 .done();
             self.diagnostics.push(d);
-            return abt::Expr::unknown();
+            return abt::TypedExpr::unknown();
         };
 
         // hashmap: name -> (span, type, id, set_span)
@@ -259,7 +259,7 @@ impl<'d> Analyser<'d> {
             }
 
             let expected_ty = req.1;
-            let expr_ty = bound_expr.ty.clone();
+            let expr_ty = bound_expr.value.ty.clone();
             if !self.type_check_coerce(bound_expr, &expected_ty.value) {
                 let d = diagnostics::create_diagnostic()
                     .with_kind(DiagnosticKind::TypeMismatch {
@@ -316,7 +316,7 @@ impl<'d> Analyser<'d> {
 
         if !diagnostics.is_empty() {
             self.diagnostics.extend(diagnostics);
-            return abt::Expr::unknown();
+            return abt::TypedExpr::unknown();
         }
 
         let bound_data_struct = bound_fields
@@ -325,7 +325,7 @@ impl<'d> Analyser<'d> {
             .map(|(_, e)| e)
             .collect();
 
-        abt::Expr {
+        abt::TypedExpr {
             kind: abt::ExprKind::Data(info.id, bound_data_struct),
             ty: abt::Type::Data(info.id),
         }
@@ -336,16 +336,16 @@ impl<'d> Analyser<'d> {
         expr: &ast::Expr,
         fields: &[(Spanned<String>, ast::Expr)],
         span: Span,
-    ) -> abt::Expr {
+    ) -> abt::TypedExpr {
         let mut bound_expr = self.analyse_expression(expr);
-        let bound_ty = bound_expr.ty.clone();
+        let bound_ty = bound_expr.value.ty.clone();
         let mut bound_fields = fields
             .iter()
             .map(|(s, expr)| (s, self.analyse_expression(expr)))
             .collect::<Vec<_>>();
 
         if !bound_ty.is_known() {
-            return abt::Expr::unknown();
+            return abt::TypedExpr::unknown();
         }
 
         let Some(id) = self.try_coerce_data_structure(&mut bound_expr) else {
@@ -359,7 +359,7 @@ impl<'d> Analyser<'d> {
                 )
                 .done();
             self.diagnostics.push(d);
-            return abt::Expr::unknown();
+            return abt::TypedExpr::unknown();
         };
 
         let info = self.program.datas.get(&id).unwrap();
@@ -413,7 +413,7 @@ impl<'d> Analyser<'d> {
             }
 
             let expected_ty = field_ty;
-            let expr_ty = bound_field.ty.clone();
+            let expr_ty = bound_field.value.ty.clone();
             if !self.type_check_coerce(bound_field, &expected_ty.value) {
                 let d = diagnostics::create_diagnostic()
                     .with_kind(DiagnosticKind::TypeMismatch {
@@ -487,14 +487,14 @@ impl<'d> Analyser<'d> {
             .sorted_by_cached_key(|&(id, _)| id)
             .collect::<Box<_>>();
 
-        abt::Expr {
+        abt::TypedExpr {
             kind: abt::ExprKind::DataWith(id, Box::new(bound_expr), bound_with_fields),
             ty: abt::Type::Data(id),
         }
     }
 
     fn try_coerce_data_structure(&self, expr: &mut abt::Expr) -> Option<u64> {
-        let mut ty = &expr.ty;
+        let mut ty = &expr.value.ty;
         ty = self.program.dealias_type(ty);
 
         let mut deref_count = 0;
@@ -509,15 +509,18 @@ impl<'d> Analyser<'d> {
             }
         };
 
+        let span = expr.span;
         for _ in 0..deref_count {
-            let inner = std::mem::replace(expr, abt::Expr::unknown());
+            let inner = std::mem::replace(&mut expr.value, abt::TypedExpr::unknown());
             let abt::Type::Ref(ty) = inner.ty.clone() else {
                 unreachable!()
             };
-            *expr = abt::Expr {
-                kind: abt::ExprKind::Deref(Box::new(inner)),
+
+            *expr = abt::TypedExpr {
+                kind: abt::ExprKind::Deref(Box::new(inner.wrap(span))),
                 ty: *ty,
-            };
+            }
+            .wrap(span);
         }
 
         Some(id)
@@ -527,12 +530,12 @@ impl<'d> Analyser<'d> {
         &mut self,
         expr: &ast::Expr,
         name: &Spanned<String>,
-    ) -> abt::Expr {
+    ) -> abt::TypedExpr {
         let mut bound_expr = self.analyse_expression(expr);
 
-        let expr_ty = bound_expr.ty.clone();
+        let expr_ty = bound_expr.value.ty.clone();
         if !expr_ty.is_known() {
-            return abt::Expr::unknown();
+            return abt::TypedExpr::unknown();
         }
 
         let Some(data_id) = self.try_coerce_data_structure(&mut bound_expr) else {
@@ -546,7 +549,7 @@ impl<'d> Analyser<'d> {
                 )
                 .done();
             self.diagnostics.push(d);
-            return abt::Expr::unknown();
+            return abt::TypedExpr::unknown();
         };
 
         let info = self.program.datas.get(&data_id).unwrap();
@@ -566,10 +569,10 @@ impl<'d> Analyser<'d> {
                 .annotate_primary(Note::Unknown, name.span)
                 .done();
             self.diagnostics.push(d);
-            return abt::Expr::unknown();
+            return abt::TypedExpr::unknown();
         };
 
-        abt::Expr {
+        abt::TypedExpr {
             kind: abt::ExprKind::FieldAccess {
                 expr: Box::new(bound_expr),
                 data_id,

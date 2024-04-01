@@ -99,10 +99,13 @@ impl<'d> Analyser<'d> {
         );
 
         // function body
-        let body = abt::StmtKind::Return(Box::new(abt::Expr {
-            kind: abt::ExprKind::Variable(arg_id),
-            ty: arg_ty.clone(),
-        }));
+        let body = abt::StmtKind::Return(Box::new(
+            abt::TypedExpr {
+                kind: abt::ExprKind::Variable(arg_id),
+                ty: arg_ty.clone(),
+            }
+            .wrap(Span::ZERO),
+        ));
         let local_variables = [arg_id].into_iter().collect();
 
         let id = self.make_unique_id();

@@ -7,7 +7,7 @@ use crate::{
 
 impl<'d> Analyser<'d> {
     fn try_coerce_indexable(&self, expr: &mut abt::Expr) -> Option<abt::Type> {
-        let mut ty = &expr.ty;
+        let mut ty = &expr.value.ty;
         ty = self.program.dealias_type(ty);
 
         let mut deref_count = 0;
@@ -23,22 +23,24 @@ impl<'d> Analyser<'d> {
             }
         };
 
+        let span = expr.span;
         for _ in 0..deref_count {
-            let inner = std::mem::replace(expr, abt::Expr::unknown());
+            let inner = std::mem::replace(&mut expr.value, abt::TypedExpr::unknown());
             let abt::Type::Ref(ty) = inner.ty.clone() else {
                 unreachable!()
             };
-            *expr = abt::Expr {
-                kind: abt::ExprKind::Deref(Box::new(inner)),
+            *expr = abt::TypedExpr {
+                kind: abt::ExprKind::Deref(Box::new(inner.wrap(span))),
                 ty: *ty,
-            };
+            }
+            .wrap(span);
         }
 
         Some(final_ty)
     }
 
     fn try_coerce_immediate_indexable(&self, expr: &mut abt::Expr) -> Option<abt::Type> {
-        let mut ty = &expr.ty;
+        let mut ty = &expr.value.ty;
         ty = self.program.dealias_type(ty);
 
         let mut deref_count = 0;
@@ -54,15 +56,17 @@ impl<'d> Analyser<'d> {
             }
         };
 
+        let span = expr.span;
         for _ in 0..deref_count {
-            let inner = std::mem::replace(expr, abt::Expr::unknown());
+            let inner = std::mem::replace(&mut expr.value, abt::TypedExpr::unknown());
             let abt::Type::Ref(ty) = inner.ty.clone() else {
                 unreachable!()
             };
-            *expr = abt::Expr {
-                kind: abt::ExprKind::Deref(Box::new(inner)),
+            *expr = abt::TypedExpr {
+                kind: abt::ExprKind::Deref(Box::new(inner.wrap(span))),
                 ty: *ty,
-            };
+            }
+            .wrap(span);
         }
 
         Some(final_ty.clone())
@@ -73,12 +77,12 @@ impl<'d> Analyser<'d> {
         expr: &ast::Expr,
         index_expr: &ast::Expr,
         span: Span,
-    ) -> abt::Expr {
+    ) -> abt::TypedExpr {
         let mut bound_expr = self.analyse_expression(expr);
         let bound_index = self.analyse_expression(index_expr);
 
-        let expr_ty = bound_expr.ty.clone();
-        let index_ty = &bound_index.ty;
+        let expr_ty = bound_expr.value.ty.clone();
+        let index_ty = &bound_index.value.ty;
 
         if !self.type_check(index_ty, &abt::Type::I64) {
             let d = diagnostics::create_diagnostic()
@@ -94,16 +98,16 @@ impl<'d> Analyser<'d> {
                 )
                 .done();
             self.diagnostics.push(d);
-            return abt::Expr::unknown();
+            return abt::TypedExpr::unknown();
         }
 
         if !expr_ty.is_known() {
-            return abt::Expr::unknown();
+            return abt::TypedExpr::unknown();
         }
 
         match self.try_coerce_indexable(&mut bound_expr) {
             Some(abt::Type::Array(ty, size)) => {
-                if let abt::ExprKind::Integer(index) = bound_index.kind {
+                if let abt::ExprKind::Integer(index) = bound_index.value.kind {
                     let d = if index as usize >= size {
                         diagnostics::create_diagnostic()
                             .with_kind(DiagnosticKind::OutOfRangeConstantIndex {
@@ -133,12 +137,12 @@ impl<'d> Analyser<'d> {
                     self.diagnostics.push(d);
                 }
 
-                abt::Expr {
+                abt::TypedExpr {
                     kind: abt::ExprKind::ArrayIndex(Box::new(bound_expr), Box::new(bound_index)),
                     ty: *ty.clone(),
                 }
             }
-            Some(abt::Type::Pointer(ty)) => abt::Expr {
+            Some(abt::Type::Pointer(ty)) => abt::TypedExpr {
                 kind: abt::ExprKind::PointerIndex(Box::new(bound_expr), Box::new(bound_index)),
                 ty: *ty.clone(),
             },
@@ -150,7 +154,7 @@ impl<'d> Analyser<'d> {
                     .annotate_primary(Note::OfType(self.program.type_repr(&expr_ty)), expr.span)
                     .done();
                 self.diagnostics.push(d);
-                abt::Expr::unknown()
+                abt::TypedExpr::unknown()
             }
         }
     }
@@ -160,11 +164,11 @@ impl<'d> Analyser<'d> {
         expr: &ast::Expr,
         index: u64,
         span: Span,
-    ) -> abt::Expr {
+    ) -> abt::TypedExpr {
         let mut bound_expr = self.analyse_expression(expr);
-        let ty = bound_expr.ty.clone();
+        let ty = bound_expr.value.ty.clone();
         if !ty.is_known() {
-            return abt::Expr::unknown();
+            return abt::TypedExpr::unknown();
         }
 
         match self.try_coerce_immediate_indexable(&mut bound_expr) {
@@ -182,7 +186,7 @@ impl<'d> Analyser<'d> {
                     .annotate_primary(Note::OfType(self.program.type_repr(&ty)), expr.span)
                     .done();
                 self.diagnostics.push(d);
-                abt::Expr::unknown()
+                abt::TypedExpr::unknown()
             }
         }
     }

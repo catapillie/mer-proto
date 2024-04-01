@@ -12,12 +12,12 @@ impl<'d> Analyser<'d> {
         expr: &ast::Expr,
         fallback: &ast::Expr,
         span: Span,
-    ) -> abt::Expr {
+    ) -> abt::TypedExpr {
         let bound_guard = self.analyse_expression(guard);
         let bound_expr = self.analyse_expression(expr);
         let bound_fallback = self.analyse_expression(fallback);
 
-        let guard_ty = &bound_guard.ty;
+        let guard_ty = &bound_guard.value.ty;
         if !self.type_check(guard_ty, &abt::Type::Bool) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::GuardNotBoolean)
@@ -32,14 +32,14 @@ impl<'d> Analyser<'d> {
                 )
                 .done();
             self.diagnostics.push(d);
-            return abt::Expr::unknown();
+            return abt::TypedExpr::unknown();
         }
 
-        let expr_ty = &bound_expr.ty;
-        let fallback_ty = &bound_fallback.ty;
+        let expr_ty = &bound_expr.value.ty;
+        let fallback_ty = &bound_fallback.value.ty;
 
         if !expr_ty.is_known() || !fallback_ty.is_known() {
-            return abt::Expr::unknown();
+            return abt::TypedExpr::unknown();
         }
 
         let ty = if expr_ty == &abt::Type::Never && fallback_ty == &abt::Type::Never {
@@ -66,13 +66,13 @@ impl<'d> Analyser<'d> {
                 )
                 .done();
             self.diagnostics.push(d);
-            return abt::Expr::unknown();
+            return abt::TypedExpr::unknown();
         };
 
         // TODO: warning for always-matching case
         // TODO: warning for never-matching case
 
-        abt::Expr {
+        abt::TypedExpr {
             kind: abt::ExprKind::CaseTernary(
                 Box::new(bound_guard),
                 Box::new(bound_expr),
@@ -86,7 +86,7 @@ impl<'d> Analyser<'d> {
         &mut self,
         paths: &[(Option<ast::Expr>, ast::Expr)],
         span: Span,
-    ) -> abt::Expr {
+    ) -> abt::TypedExpr {
         let mut bound_paths = paths
             .iter()
             .map(|(guard, expr)| {
@@ -103,7 +103,7 @@ impl<'d> Analyser<'d> {
                 continue;
             };
 
-            let guard_ty = &bound_guard.ty;
+            let guard_ty = &bound_guard.value.ty;
             if !self.type_check(guard_ty, &abt::Type::Bool) {
                 let d = diagnostics::create_diagnostic()
                     .with_kind(DiagnosticKind::GuardNotBoolean)
@@ -118,7 +118,7 @@ impl<'d> Analyser<'d> {
                     )
                     .done();
                 self.diagnostics.push(d);
-                return abt::Expr::unknown();
+                return abt::TypedExpr::unknown();
             }
         }
 
@@ -132,7 +132,7 @@ impl<'d> Analyser<'d> {
                 .annotate_primary(Note::Quiet, span)
                 .done();
             self.diagnostics.push(d);
-            return abt::Expr::unknown();
+            return abt::TypedExpr::unknown();
         }
         if otherwise_count > 1 {
             let mut d = diagnostics::create_diagnostic()
@@ -148,7 +148,7 @@ impl<'d> Analyser<'d> {
                 d = d.annotate_secondary(Note::Here, span, NoteSeverity::Annotation);
             }
             self.diagnostics.push(d.done());
-            return abt::Expr::unknown();
+            return abt::TypedExpr::unknown();
         }
 
         // ensure last case is otherwise path
@@ -161,13 +161,13 @@ impl<'d> Analyser<'d> {
                 .annotate_primary(Note::Quiet, span)
                 .done();
             self.diagnostics.push(d);
-            return abt::Expr::unknown();
+            return abt::TypedExpr::unknown();
         }
 
         // ensure all paths give the same type
         let types = bound_paths
             .iter()
-            .map(|(_, expr)| expr.ty.clone())
+            .map(|(_, expr)| expr.value.ty.clone())
             .collect::<Vec<_>>();
         let ty = types
             .iter()
@@ -186,13 +186,13 @@ impl<'d> Analyser<'d> {
                 .annotate_primary(Note::Quiet, span);
             for ((_, bound_expr), (_, expr)) in bound_paths.iter().zip(paths.iter()) {
                 d = d.annotate_secondary(
-                    Note::Type(self.program.type_repr(&bound_expr.ty)),
+                    Note::Type(self.program.type_repr(&bound_expr.value.ty)),
                     expr.span,
                     NoteSeverity::Annotation,
                 );
             }
             self.diagnostics.push(d.done());
-            return abt::Expr::unknown();
+            return abt::TypedExpr::unknown();
         }
 
         if bound_paths.len() == 1 {
@@ -223,7 +223,7 @@ impl<'d> Analyser<'d> {
             .into_iter()
             .map(|(guard, expr)| (guard.unwrap(), expr))
             .collect();
-        abt::Expr {
+        abt::TypedExpr {
             kind: abt::ExprKind::Case(bound_paths, Box::new(last_expr)),
             ty: ty.clone(),
         }

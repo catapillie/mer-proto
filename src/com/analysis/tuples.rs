@@ -6,17 +6,17 @@ use crate::{
 };
 
 impl<'d> Analyser<'d> {
-    pub fn analyse_tuple_expression(&mut self, head: &ast::Expr, tail: &[ast::Expr]) -> abt::Expr {
+    pub fn analyse_tuple_expression(&mut self, head: &ast::Expr, tail: &[ast::Expr]) -> abt::TypedExpr {
         let bound_head = Box::new(self.analyse_expression(head));
         let bound_tail = tail
             .iter()
             .map(|e| self.analyse_expression(e))
             .collect::<Box<_>>();
 
-        let head_ty = bound_head.ty.clone();
-        let tail_ty = bound_tail.iter().map(|e| e.ty.clone()).collect();
+        let head_ty = bound_head.value.ty.clone();
+        let tail_ty = bound_tail.iter().map(|e| e.value.ty.clone()).collect();
 
-        abt::Expr {
+        abt::TypedExpr {
             kind: abt::ExprKind::Tuple(bound_head, bound_tail),
             ty: abt::Type::Tuple(Box::new(head_ty), tail_ty),
         }
@@ -30,9 +30,9 @@ impl<'d> Analyser<'d> {
         tail: &[abt::Type],
         index: u64,
         span: Span,
-    ) -> abt::Expr {
+    ) -> abt::TypedExpr {
         if index == 0 {
-            return abt::Expr {
+            return abt::TypedExpr {
                 kind: abt::ExprKind::TupleImmediateIndex(Box::new(bound_expr), 0),
                 ty: head.clone(),
             };
@@ -50,10 +50,10 @@ impl<'d> Analyser<'d> {
                 .annotate_primary(Note::TupleValueCount(len), expr.span)
                 .done();
             self.diagnostics.push(d);
-            return abt::Expr::unknown();
+            return abt::TypedExpr::unknown();
         };
 
-        abt::Expr {
+        abt::TypedExpr {
             kind: abt::ExprKind::TupleImmediateIndex(Box::new(bound_expr), index as usize),
             ty,
         }

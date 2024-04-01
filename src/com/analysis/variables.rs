@@ -33,13 +33,13 @@ impl<'d> Analyser<'d> {
 
     pub fn analyse_variable_definition(&mut self, ast: &VarDef) -> abt::StmtKind {
         let bound_expr = self.analyse_expression(&ast.expr);
-        let bound_ty = &bound_expr.ty;
+        let bound_ty = &bound_expr.value.ty;
         let pat = self.analyse_pattern(&ast.pattern);
         let bound_pat = self.declare_pattern_bindings(&pat, bound_ty);
         abt::StmtKind::Deconstruct(Box::new(bound_pat), Box::new(bound_expr))
     }
 
-    pub fn analyse_variable_expression(&mut self, name: &str, span: Span) -> abt::Expr {
+    pub fn analyse_variable_expression(&mut self, name: &str, span: Span) -> abt::TypedExpr {
         let Some(id) = self.scope.search_id(name) else {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::UnknownVariable(name.to_string()))
@@ -48,7 +48,7 @@ impl<'d> Analyser<'d> {
                 .annotate_primary(Note::Unknown, span)
                 .done();
             self.diagnostics.push(d);
-            return abt::Expr::unknown();
+            return abt::TypedExpr::unknown();
         };
 
         if let Some(info) = self.program.aliases.get(&id) {
@@ -71,10 +71,10 @@ impl<'d> Analyser<'d> {
                     )
                     .done();
                 self.diagnostics.push(d);
-                return abt::Expr::unknown();
+                return abt::TypedExpr::unknown();
             }
             let ctor_id = self.get_opaque_constructor_func_id(id);
-            return abt::Expr {
+            return abt::TypedExpr {
                 kind: abt::ExprKind::OpaqueConstructor {
                     ctor_id,
                     alias_id: id,
@@ -95,7 +95,7 @@ impl<'d> Analyser<'d> {
             }
 
             let ty = self.program.functions.get(&id).unwrap().function_type();
-            return abt::Expr {
+            return abt::TypedExpr {
                 kind: abt::ExprKind::Function(id),
                 ty,
             };
@@ -109,7 +109,7 @@ impl<'d> Analyser<'d> {
                 .annotate_primary(Note::Unknown, span)
                 .done();
             self.diagnostics.push(d);
-            return abt::Expr::unknown();
+            return abt::TypedExpr::unknown();
         };
 
         let depth = info.depth;
@@ -122,7 +122,7 @@ impl<'d> Analyser<'d> {
             info.is_on_heap = true;
         }
 
-        abt::Expr {
+        abt::TypedExpr {
             kind: abt::ExprKind::Variable(id),
             ty: info.ty.clone(),
         }

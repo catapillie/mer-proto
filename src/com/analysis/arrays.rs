@@ -6,7 +6,7 @@ use crate::{
 };
 
 impl<'d> Analyser<'d> {
-    pub fn analyse_array_expression(&mut self, exprs: &[ast::Expr], span: Span) -> abt::Expr {
+    pub fn analyse_array_expression(&mut self, exprs: &[ast::Expr], span: Span) -> abt::TypedExpr {
         if exprs.is_empty() {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::EmptyArray)
@@ -15,7 +15,7 @@ impl<'d> Analyser<'d> {
                 .annotate_primary(Note::Here, span)
                 .done();
             self.diagnostics.push(d);
-            return abt::Expr::unknown();
+            return abt::TypedExpr::unknown();
         }
 
         if exprs.len() == 1 {
@@ -35,7 +35,7 @@ impl<'d> Analyser<'d> {
 
         let tys = bound_exprs
             .iter()
-            .map(|expr| expr.ty.clone())
+            .map(|expr| expr.value.ty.clone())
             .collect::<Vec<_>>();
         let first_ty = tys
             .iter()
@@ -51,11 +51,11 @@ impl<'d> Analyser<'d> {
                 .annotate_primary(Note::Here, span)
                 .done();
             self.diagnostics.push(d);
-            return abt::Expr::unknown();
+            return abt::TypedExpr::unknown();
         }
 
         let len = bound_exprs.len();
-        abt::Expr {
+        abt::TypedExpr {
             kind: abt::ExprKind::Array(bound_exprs),
             ty: abt::Type::Array(Box::new(first_ty.clone()), len),
         }
@@ -69,7 +69,7 @@ impl<'d> Analyser<'d> {
         array_ty: &abt::Type,
         size: usize,
         span: Span,
-    ) -> abt::Expr {
+    ) -> abt::TypedExpr {
         if index as usize >= size {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::OutOfRangeArrayIndex {
@@ -81,19 +81,19 @@ impl<'d> Analyser<'d> {
                 .annotate_primary(Note::ArrayLength(size), expr.span)
                 .done();
             self.diagnostics.push(d);
-            return abt::Expr::unknown();
+            return abt::TypedExpr::unknown();
         }
 
-        abt::Expr {
+        abt::TypedExpr {
             kind: abt::ExprKind::ArrayImmediateIndex(Box::new(bound_expr), index as usize),
             ty: array_ty.clone(),
         }
     }
 
-    pub fn analyse_alloc_expression(&mut self, ty: &ast::Type, size: &ast::Expr) -> abt::Expr {
+    pub fn analyse_alloc_expression(&mut self, ty: &ast::Type, size: &ast::Expr) -> abt::TypedExpr {
         let bound_ty = self.analyse_type(ty);
         let bound_size = self.analyse_expression(size);
-        let size_ty = &bound_size.ty;
+        let size_ty = &bound_size.value.ty;
         if !self.type_check(size_ty, &abt::Type::I64) {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::NonIntegerSize)
@@ -108,10 +108,10 @@ impl<'d> Analyser<'d> {
                 )
                 .done();
             self.diagnostics.push(d);
-            return abt::Expr::unknown();
+            return abt::TypedExpr::unknown();
         }
 
-        abt::Expr {
+        abt::TypedExpr {
             kind: abt::ExprKind::Alloc(Box::new(bound_ty.clone()), Box::new(bound_size)),
             ty: abt::Type::Pointer(Box::new(bound_ty)),
         }

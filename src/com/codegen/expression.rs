@@ -18,7 +18,7 @@ pub enum Value {
 
 impl Codegen {
     pub fn gen_expression(&mut self, expr: &Expr, abt: &Program) -> io::Result<()> {
-        let ty = &expr.ty;
+        let ty = &expr.value.ty;
         let size = abt.size_of(ty).unwrap();
         match self.gen_value(expr, abt)? {
             Value::Done => Ok(()),
@@ -39,7 +39,7 @@ impl Codegen {
 
     pub fn gen_value(&mut self, expr: &Expr, abt: &Program) -> io::Result<Value> {
         use ExprKind as E;
-        match &expr.kind {
+        match &expr.value.kind {
             E::Unknown => unreachable!(
                 "analysis stage should prevent unknown expressions from being compiled"
             ),
@@ -102,9 +102,7 @@ impl Codegen {
                 self.gen_pointer_index_expression(pointer, index, abt)
             }
             E::Call(id, params) => self.gen_call_expression(*id, params, abt),
-            E::IndirectCall(callee, args) => {
-                self.gen_indirect_call_expression(callee, args, abt)
-            }
+            E::IndirectCall(callee, args) => self.gen_indirect_call_expression(callee, args, abt),
             E::Heap(expr) => self.gen_heap_expression(expr, abt),
             E::Ref(lvalue, var_id) => self.gen_ref_expression(lvalue, *var_id, abt),
             E::Deref(expr) => self.gen_deref_expression(expr, abt),
@@ -126,7 +124,7 @@ impl Codegen {
 
     fn gen_debug_expression(&mut self, expr: &Expr, abt: &Program) -> io::Result<Value> {
         self.gen_expression(expr, abt)?;
-        let ty = match abt.dealias_type(&expr.ty) {
+        let ty = match abt.dealias_type(&expr.value.ty) {
             Type::Unit => NativeType::unit,
             Type::U8 => NativeType::u8,
             Type::U16 => NativeType::u16,
@@ -164,7 +162,7 @@ impl Codegen {
         index: &usize,
         abt: &Program,
     ) -> io::Result<Value> {
-        let tuple_ty = &tuple.ty;
+        let tuple_ty = &tuple.value.ty;
         let total_size = abt.size_of(tuple_ty).unwrap() as u8;
         let Type::Tuple(head, tail) = abt.dealias_type(tuple_ty) else {
             unreachable!()
@@ -216,7 +214,7 @@ impl Codegen {
         index: &usize,
         abt: &Program,
     ) -> io::Result<Value> {
-        let array_ty = &array.ty;
+        let array_ty = &array.value.ty;
         let total_size = abt.size_of(array_ty).unwrap() as u8;
         let Type::Array(inner_ty, _) = abt.dealias_type(array_ty) else {
             unreachable!()
@@ -253,7 +251,7 @@ impl Codegen {
         index: &Expr,
         abt: &Program,
     ) -> io::Result<Value> {
-        let array_ty = &array.ty;
+        let array_ty = &array.value.ty;
         let total_size = abt.size_of(array_ty).unwrap() as u8;
         let Type::Array(inner_ty, _) = abt.dealias_type(array_ty) else {
             unreachable!()
@@ -299,7 +297,7 @@ impl Codegen {
         index: &Expr,
         abt: &Program,
     ) -> io::Result<Value> {
-        let pointer_ty = &pointer.ty;
+        let pointer_ty = &pointer.value.ty;
         let Type::Pointer(inner_ty) = abt.dealias_type(pointer_ty) else {
             unreachable!()
         };
@@ -384,7 +382,7 @@ impl Codegen {
 
     fn gen_heap_expression(&mut self, expr: &Expr, abt: &Program) -> io::Result<Value> {
         self.gen_expression(expr, abt)?;
-        let size = abt.size_of(&expr.ty).unwrap() as u8;
+        let size = abt.size_of(&expr.value.ty).unwrap() as u8;
         match size {
             1 => binary::write_opcode(&mut self.cursor, &Opcode::alloc)?,
             _ => binary::write_opcode(&mut self.cursor, &Opcode::alloc_n(size))?,
@@ -411,7 +409,7 @@ impl Codegen {
         fields: &[(usize, Expr)],
         abt: &Program,
     ) -> io::Result<Value> {
-        let data_ty = &expr.ty;
+        let data_ty = &expr.value.ty;
         let total_size = abt.size_of(data_ty).unwrap();
         let data_info = abt.datas.get(&data_id).unwrap();
 
@@ -448,7 +446,7 @@ impl Codegen {
         abt: &Program,
     ) -> io::Result<Value> {
         let info = abt.datas.get(&data_id).unwrap();
-        let data_size = abt.size_of(&expr.ty).unwrap();
+        let data_size = abt.size_of(&expr.value.ty).unwrap();
         let field_size = abt.size_of(&info.fields[field_id].1.value).unwrap();
         let field_offset = info
             .fields
@@ -589,7 +587,7 @@ impl Codegen {
     }
 
     pub fn gen_to_pointer_expression(&mut self, expr: &Expr, abt: &Program) -> io::Result<Value> {
-        let Type::Ref(inner) = &expr.ty else {
+        let Type::Ref(inner) = &expr.value.ty else {
             unreachable!()
         };
         let Type::Array(_, size) = **inner else {
