@@ -1,0 +1,3 @@
+var variable = [1.2, 2.3, 3.4]
+var [x, y, _] = variable
+return x == 1.2 and y  == 2.3

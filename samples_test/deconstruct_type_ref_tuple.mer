@@ -1,0 +1,3 @@
+var variable = &(true, 1.5, 16)
+var &(a, b, c) = variable
+return a == true and b == 1.5 and c == 16

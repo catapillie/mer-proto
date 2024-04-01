@@ -1,0 +1,3 @@
+var variable = [1.2, 2.3, 3.4]
+var [_, _, _] = variable
+return true

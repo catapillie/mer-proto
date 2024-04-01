@@ -1,0 +1,3 @@
+var variable = "abc"
+var x = variable
+return x.0 == "a".0 and x.1 == "b".0 and x.2 == "c".0

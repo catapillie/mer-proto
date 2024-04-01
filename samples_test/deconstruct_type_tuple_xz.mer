@@ -1,0 +1,3 @@
+var variable = (true, 1.5, 16)
+var (x, _, z) = variable
+return x == true and z == 16

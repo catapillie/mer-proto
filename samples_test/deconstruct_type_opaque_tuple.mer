@@ -1,0 +1,4 @@
+opaque type tup = (bool, f64, i64)
+var variable = tup((true, 1.5, 16))
+var tup((x, y, z)) = variable
+return x == true and y == 1.5 and z == 16

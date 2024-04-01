@@ -1,0 +1,3 @@
+var variable = "acb"
+var _ = variable
+return true

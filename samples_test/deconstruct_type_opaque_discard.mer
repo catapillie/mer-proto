@@ -1,0 +1,4 @@
+opaque type float = f64
+var variable = float(1.4)
+var float(_) = variable
+return true
