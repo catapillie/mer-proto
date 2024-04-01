@@ -4,7 +4,7 @@ use crate::{
         abt::{self, BoundPattern},
         ast,
     },
-    diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
+    diagnostics::{self, builder::DiagnosticBuilder, DiagnosticKind, Note, NoteSeverity, Severity},
     utils::{Span, Spanned},
 };
 
@@ -171,6 +171,25 @@ impl<'d> Analyser<'d> {
         use abt::BoundPattern as B;
         use abt::PatternKind as Pat;
         use abt::Type as Ty;
+
+        let extra = full_ty.map(|(full_ty, span)| {
+            let highlight = match full_ty {
+                Ty::Alias(id) => Some(self.program.aliases.get(id).unwrap().name.span),
+                _ => None,
+            };
+            (self.program.type_repr(full_ty), span, highlight)
+        });
+        let add_extra_ann =
+            |d: DiagnosticBuilder<DiagnosticKind, Severity, Option<Span>>| match extra {
+                Some((full_ty_repr, span, Some(highlight))) => d
+                    .highlight(highlight)
+                    .annotate_secondary(Note::Type(full_ty_repr), span, NoteSeverity::Annotation),
+                Some((full_ty_repr, span, None)) => {
+                    d.annotate_secondary(Note::Type(full_ty_repr), span, NoteSeverity::Annotation)
+                }
+                None => d,
+            };
+
         match (&pattern.value, self.program.dealias_type(ty).clone()) {
             (Pat::Discard, _) => B::Discard {
                 len: self.program.size_of(ty),
@@ -206,17 +225,7 @@ impl<'d> Analyser<'d> {
                         .with_severity(Severity::Error)
                         .with_span(pattern.span)
                         .annotate_primary(Note::PatternMustDescribe(ty_repr), pattern.span);
-
-                    let d = match full_ty {
-                        Some((full_ty, span)) => d.annotate_secondary(
-                            Note::Type(self.program.type_repr(full_ty)),
-                            span,
-                            NoteSeverity::Annotation,
-                        ),
-                        None => d,
-                    }
-                    .done();
-
+                    let d = add_extra_ann(d).done();
                     self.diagnostics.push(d);
                 }
 
@@ -236,17 +245,7 @@ impl<'d> Analyser<'d> {
                         .with_severity(Severity::Error)
                         .with_span(pattern.span)
                         .annotate_primary(Note::PatternMustDescribe(ty_repr), pattern.span);
-
-                    let d = match full_ty {
-                        Some((full_ty, span)) => d.annotate_secondary(
-                            Note::Type(self.program.type_repr(full_ty)),
-                            span,
-                            NoteSeverity::Annotation,
-                        ),
-                        None => d,
-                    }
-                    .done();
-
+                    let d = add_extra_ann(d).done();
                     self.diagnostics.push(d);
                 }
 
@@ -274,17 +273,7 @@ impl<'d> Analyser<'d> {
                         .with_severity(Severity::Error)
                         .with_span(pattern.span)
                         .annotate_primary(Note::PatternMustDescribe(type_repr), pattern.span);
-
-                    let d = match full_ty {
-                        Some((full_ty, span)) => d.annotate_secondary(
-                            Note::Type(self.program.type_repr(full_ty)),
-                            span,
-                            NoteSeverity::Annotation,
-                        ),
-                        None => d,
-                    }
-                    .done();
-
+                    let d = add_extra_ann(d).done();
                     self.diagnostics.push(d);
                     return B::Bad;
                 }
@@ -340,17 +329,7 @@ impl<'d> Analyser<'d> {
                     .with_severity(Severity::Error)
                     .with_span(pattern.span)
                     .annotate_primary(Note::PatternMustDescribe(ty_repr), pattern.span);
-
-                let d = match full_ty {
-                    Some((full_ty, span)) => d.annotate_secondary(
-                        Note::Type(self.program.type_repr(full_ty)),
-                        span,
-                        NoteSeverity::Annotation,
-                    ),
-                    None => d,
-                }
-                .done();
-
+                let d = add_extra_ann(d).done();
                 self.diagnostics.push(d);
                 B::Bad
             }
