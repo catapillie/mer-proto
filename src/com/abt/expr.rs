@@ -38,7 +38,7 @@ impl Expr {
     pub fn boolean(b: bool) -> Self {
         Self {
             kind: ExprKind::Boolean(b),
-            ty: Type::F64,
+            ty: Type::Bool,
         }
     }
 
