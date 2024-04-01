@@ -33,9 +33,8 @@ impl<'d> Analyser<'d> {
 
     pub fn analyse_variable_definition(&mut self, ast: &VarDef) -> abt::StmtKind {
         let bound_expr = self.analyse_expression(&ast.expr);
-        let bound_ty = &bound_expr.value.ty;
         let pat = self.analyse_pattern(&ast.pattern);
-        let bound_pat = self.declare_pattern_bindings(&pat, bound_ty);
+        let bound_pat = self.declare_pattern_bindings_by_expr(&pat, &bound_expr);
         abt::StmtKind::Deconstruct(Box::new(bound_pat), Box::new(bound_expr))
     }
 

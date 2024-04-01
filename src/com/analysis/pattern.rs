@@ -5,7 +5,7 @@ use crate::{
         ast,
     },
     diagnostics::{self, DiagnosticKind, Note, NoteSeverity, Severity},
-    utils::Spanned,
+    utils::{Span, Spanned},
 };
 
 impl<'d> Analyser<'d> {
@@ -74,11 +74,99 @@ impl<'d> Analyser<'d> {
             }
         }
     }
+    pub fn declare_pattern_bindings_by_expr(
+        &mut self,
+        pattern: &abt::Pattern,
+        expr: &abt::Expr,
+    ) -> BoundPattern {
+        use abt::BoundPattern as B;
+        use abt::ExprKind as K;
+        use abt::PatternKind as Pat;
+        use abt::Type as Ty;
+        let ty = &expr.value.ty;
+        match (&pattern.value, &expr.value.kind) {
+            (Pat::Discard, _) => B::Discard {
+                len: self.program.size_of(ty),
+            },
+            (Pat::Binding(name), _) => {
+                let decl = self.declare_variable_here(
+                    Spanned {
+                        span: pattern.span,
+                        value: name.clone(),
+                    },
+                    ty.clone(),
+                );
+                B::Loc { id: decl.declared }
+            }
+            (Pat::Unit, K::Unit) => B::Discard {
+                len: self.program.size_of(&Ty::Unit),
+            },
+            (Pat::Tuple(pat_hd, pat_tl), K::Tuple(hd, tl)) => {
+                let mut bound_patterns = Vec::new();
+                bound_patterns.push(self.declare_pattern_bindings_by_expr(pat_hd, hd));
+                for (pat, expr) in pat_tl.iter().zip(tl.iter()) {
+                    bound_patterns.push(self.declare_pattern_bindings_by_expr(pat, expr));
+                }
 
-    pub fn declare_pattern_bindings(
+                if pat_tl.len() != tl.len() {
+                    let pat_repr = self.program.pat_repr(&pattern.value);
+                    let ty_repr = self.program.type_repr(ty);
+                    let d = diagnostics::create_diagnostic()
+                        .with_kind(DiagnosticKind::TuplePatternMismatch(pat_repr, 1 + tl.len()))
+                        .with_severity(Severity::Error)
+                        .with_span(pattern.span)
+                        .annotate_primary(Note::PatternMustDescribe(ty_repr), pattern.span)
+                        .annotate_secondary(
+                            Note::TupleValueCount(tl.len() + 1),
+                            expr.span,
+                            NoteSeverity::Annotation,
+                        )
+                        .done();
+                    self.diagnostics.push(d);
+                }
+
+                B::Seq(bound_patterns.into())
+            }
+            (Pat::Array(pats), K::Array(exprs)) => {
+                let bound_patterns = pats
+                    .iter()
+                    .zip(exprs.iter())
+                    .map(|(p, e)| self.declare_pattern_bindings_by_expr(p, e))
+                    .collect();
+
+                let size = exprs.len();
+                if pats.len() != size {
+                    let pat_repr = self.program.pat_repr(&pattern.value);
+                    let ty_repr = self.program.type_repr(ty);
+                    let d = diagnostics::create_diagnostic()
+                        .with_kind(DiagnosticKind::ArrayPatternMismatch(pat_repr, size))
+                        .with_severity(Severity::Error)
+                        .with_span(pattern.span)
+                        .annotate_primary(Note::PatternMustDescribe(ty_repr), pattern.span)
+                        .annotate_secondary(
+                            Note::ArrayLength(size),
+                            expr.span,
+                            NoteSeverity::Annotation,
+                        )
+                        .done();
+                    self.diagnostics.push(d);
+                }
+
+                B::Seq(bound_patterns)
+            }
+            (Pat::Ref(pat), K::Heap(inner)) => B::Ref {
+                pat: Box::new(self.declare_pattern_bindings_by_expr(pat, inner)),
+                len: self.program.size_of(&inner.value.ty),
+            },
+            _ => self.declare_pattern_bindings_by_type(pattern, ty, Some((ty, expr.span))),
+        }
+    }
+
+    pub fn declare_pattern_bindings_by_type(
         &mut self,
         pattern: &abt::Pattern,
         ty: &abt::Type,
+        full_ty: Option<(&abt::Type, Span)>,
     ) -> BoundPattern {
         use abt::BoundPattern as B;
         use abt::PatternKind as Pat;
@@ -102,9 +190,9 @@ impl<'d> Analyser<'d> {
             },
             (Pat::Tuple(pat_hd, pat_tl), Ty::Tuple(ty_hd, ty_tl)) => {
                 let mut bound_patterns = Vec::new();
-                bound_patterns.push(self.declare_pattern_bindings(pat_hd, &ty_hd));
+                bound_patterns.push(self.declare_pattern_bindings_by_type(pat_hd, &ty_hd, full_ty));
                 for (pat, ty) in pat_tl.iter().zip(ty_tl.iter()) {
-                    bound_patterns.push(self.declare_pattern_bindings(pat, ty));
+                    bound_patterns.push(self.declare_pattern_bindings_by_type(pat, ty, full_ty));
                 }
 
                 if pat_tl.len() != ty_tl.len() {
@@ -117,8 +205,18 @@ impl<'d> Analyser<'d> {
                         ))
                         .with_severity(Severity::Error)
                         .with_span(pattern.span)
-                        .annotate_primary(Note::PatternMustDescribe(ty_repr), pattern.span)
-                        .done();
+                        .annotate_primary(Note::PatternMustDescribe(ty_repr), pattern.span);
+
+                    let d = match full_ty {
+                        Some((full_ty, span)) => d.annotate_secondary(
+                            Note::Type(self.program.type_repr(full_ty)),
+                            span,
+                            NoteSeverity::Annotation,
+                        ),
+                        None => d,
+                    }
+                    .done();
+
                     self.diagnostics.push(d);
                 }
 
@@ -127,7 +225,7 @@ impl<'d> Analyser<'d> {
             (Pat::Array(pats), Ty::Array(inner, size)) => {
                 let bound_patterns = pats
                     .iter()
-                    .map(|p| self.declare_pattern_bindings(p, &inner))
+                    .map(|p| self.declare_pattern_bindings_by_type(p, &inner, full_ty))
                     .collect();
 
                 if pats.len() != size {
@@ -137,15 +235,25 @@ impl<'d> Analyser<'d> {
                         .with_kind(DiagnosticKind::ArrayPatternMismatch(pat_repr, size))
                         .with_severity(Severity::Error)
                         .with_span(pattern.span)
-                        .annotate_primary(Note::PatternMustDescribe(ty_repr), pattern.span)
-                        .done();
+                        .annotate_primary(Note::PatternMustDescribe(ty_repr), pattern.span);
+
+                    let d = match full_ty {
+                        Some((full_ty, span)) => d.annotate_secondary(
+                            Note::Type(self.program.type_repr(full_ty)),
+                            span,
+                            NoteSeverity::Annotation,
+                        ),
+                        None => d,
+                    }
+                    .done();
+
                     self.diagnostics.push(d);
                 }
 
                 B::Seq(bound_patterns)
             }
             (Pat::Ref(pat), Ty::Ref(inner)) => B::Ref {
-                pat: Box::new(self.declare_pattern_bindings(pat, &inner)),
+                pat: Box::new(self.declare_pattern_bindings_by_type(pat, &inner, full_ty)),
                 len: self.program.size_of(&inner),
             },
             (Pat::OpaqueTypeConstructor(ctor_id, pats), Ty::Alias(alias_id)) => {
@@ -165,8 +273,18 @@ impl<'d> Analyser<'d> {
                         ))
                         .with_severity(Severity::Error)
                         .with_span(pattern.span)
-                        .annotate_primary(Note::PatternMustDescribe(type_repr), pattern.span)
-                        .done();
+                        .annotate_primary(Note::PatternMustDescribe(type_repr), pattern.span);
+
+                    let d = match full_ty {
+                        Some((full_ty, span)) => d.annotate_secondary(
+                            Note::Type(self.program.type_repr(full_ty)),
+                            span,
+                            NoteSeverity::Annotation,
+                        ),
+                        None => d,
+                    }
+                    .done();
+
                     self.diagnostics.push(d);
                     return B::Bad;
                 }
@@ -207,7 +325,7 @@ impl<'d> Analyser<'d> {
                     false
                 };
 
-                let b = self.declare_pattern_bindings(head, &alias_inner);
+                let b = self.declare_pattern_bindings_by_type(head, &alias_inner, full_ty);
                 if is_error {
                     B::Bad
                 } else {
@@ -221,8 +339,18 @@ impl<'d> Analyser<'d> {
                     .with_kind(DiagnosticKind::PatternMismatch(pat_repr, ty_repr.clone()))
                     .with_severity(Severity::Error)
                     .with_span(pattern.span)
-                    .annotate_primary(Note::PatternMustDescribe(ty_repr), pattern.span)
-                    .done();
+                    .annotate_primary(Note::PatternMustDescribe(ty_repr), pattern.span);
+
+                let d = match full_ty {
+                    Some((full_ty, span)) => d.annotate_secondary(
+                        Note::Type(self.program.type_repr(full_ty)),
+                        span,
+                        NoteSeverity::Annotation,
+                    ),
+                    None => d,
+                }
+                .done();
+
                 self.diagnostics.push(d);
                 B::Bad
             }
