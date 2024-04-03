@@ -163,8 +163,8 @@ impl<'d> Analyser<'d> {
                 .with_severity(Severity::Error)
                 .with_span(right.span)
                 .annotate_primary(
-                    Note::MustBeOfType(self.program.type_repr(&expected_type))
-                        .so()
+                    Note::OfType(self.program.type_repr(&right_ty))
+                        .but()
                         .dddot_front()
                         .num(2),
                     right.span,
