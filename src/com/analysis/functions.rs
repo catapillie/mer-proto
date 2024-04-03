@@ -237,7 +237,7 @@ impl<'d> Analyser<'d> {
             .zip(func_args.iter().map(|(_, arg_ty)| arg_ty))
         {
             let ty_param = bound_arg.value.ty.clone();
-            if self.type_check_coerce(bound_arg, arg_ty) {
+            if self.type_check_coerce(bound_arg, arg_ty).is_ok() {
                 continue;
             }
 
@@ -331,7 +331,7 @@ impl<'d> Analyser<'d> {
             .zip(func_args.iter().map(|(_, arg_ty)| arg_ty))
         {
             let ty_param = bound_arg.value.ty.clone();
-            if self.type_check_coerce(bound_arg, arg_ty) {
+            if self.type_check_coerce(bound_arg, arg_ty).is_ok() {
                 continue;
             }
 
@@ -417,7 +417,7 @@ impl<'d> Analyser<'d> {
             .zip(func_args.iter())
         {
             let ty = bound_arg.value.ty.clone();
-            if self.type_check_coerce(bound_arg, arg_ty) {
+            if self.type_check_coerce(bound_arg, arg_ty).is_ok() {
                 continue;
             }
 
@@ -466,7 +466,7 @@ impl<'d> Analyser<'d> {
             (&info.ty, &info.name)
         };
 
-        if !self.type_check(&ty, &return_ty.value) {
+        if self.type_check(&ty, &return_ty.value).is_err() {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::CannotReturnUnit {
                     expected: self.program.type_repr(&return_ty.value),
@@ -513,7 +513,10 @@ impl<'d> Analyser<'d> {
             (&info.ty, &info.name)
         };
 
-        if !self.type_check_coerce(&mut bound_expr, &return_ty.value) {
+        if self
+            .type_check_coerce(&mut bound_expr, &return_ty.value)
+            .is_err()
+        {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::TypeMismatch {
                     found: self.program.type_repr(&ty_expr),

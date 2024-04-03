@@ -84,7 +84,7 @@ impl<'d> Analyser<'d> {
         let expr_ty = bound_expr.value.ty.clone();
         let index_ty = &bound_index.value.ty;
 
-        if !self.type_check(index_ty, &abt::Type::I64) {
+        if self.type_check(index_ty, &abt::Type::I64).is_err() {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::ArrayIndexMustBeInteger)
                 .with_span(index_expr.span)

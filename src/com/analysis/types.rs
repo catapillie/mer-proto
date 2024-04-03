@@ -1,6 +1,6 @@
 use super::Analyser;
 use crate::{
-    com::{abt, ast},
+    com::{abt, analysis::tc::Tc, ast},
     diagnostics::{self, DiagnosticKind, Note, Severity},
 };
 
@@ -61,64 +61,124 @@ impl<'d> Analyser<'d> {
         }
     }
 
-    #[rustfmt::skip]
-    pub fn type_check<'a>(&'a self, left: &'a abt::Type, right: &'a abt::Type) -> bool {
+    pub fn type_check<'a>(&'a self, left: &'a abt::Type, right: &'a abt::Type) -> Tc {
         use abt::Type::*;
-        match (self.program.dealias_type(left), self.program.dealias_type(right)) {
-            (_, Unknown) => true,
-            (Unknown, _) => true,
-            (Never, _) => true,
-            (Unit, Unit) => true,
-            (U8, U8) => true,
-            (U16, U16) => true,
-            (U32, U32) => true,
-            (U64, U64) => true,
-            (I8, I8) => true,
-            (I16, I16) => true,
-            (I32, I32) => true,
-            (I64, I64) => true,
-            (F32, F32) => true,
-            (F64, F64) => true,
-            (Bool, Bool) => true,
-            (Data(id_left), Data(id_right))
-                => id_left == id_right,
-            (Alias(id_left), Alias(id_right))
-                => id_left == id_right,
-            (Tuple(head_left, tail_left), Tuple(head_right, tail_right))
-                => self.type_check(head_left, head_right)
-                && tail_left.len() == tail_right.len()
-                && tail_left.iter().zip(tail_right.iter())
-                    .all(|(left, right)| self.type_check(left, right)),
-            (Array(ty_left, size_left), Array(ty_right, size_right))
-                => self.type_check(ty_left, ty_right)
-                && size_left == size_right,
-            (Pointer(ty_left), Pointer(ty_right))
-                => self.type_check(ty_left, ty_right),
-            (Ref(ty_left), Ref(ty_right))
-                => self.type_check(ty_left, ty_right),
-            (Func(args_left, ty_left), Func(args_right, ty_right))
-                => self.type_check(ty_left, ty_right)
-                && args_left.len() == args_right.len()
-                && args_left.iter().zip(args_right.iter())
-                    .all(|(left, right)| self.type_check(right, left)),
-            _ => false,
+        match (
+            self.program.dealias_type(left),
+            self.program.dealias_type(right),
+        ) {
+            (_, Unknown) => Tc::Ok,
+            (Unknown, _) => Tc::Ok,
+            (Never, _) => Tc::Ok,
+            (Unit, Unit) => Tc::Ok,
+            (U8, U8) => Tc::Ok,
+            (U16, U16) => Tc::Ok,
+            (U32, U32) => Tc::Ok,
+            (U64, U64) => Tc::Ok,
+            (I8, I8) => Tc::Ok,
+            (I16, I16) => Tc::Ok,
+            (I32, I32) => Tc::Ok,
+            (I64, I64) => Tc::Ok,
+            (F32, F32) => Tc::Ok,
+            (F64, F64) => Tc::Ok,
+            (Bool, Bool) => Tc::Ok,
+            (Data(id_left), Data(id_right)) => match id_left == id_right {
+                true => Tc::Ok,
+                false => Tc::Mismatch {
+                    left: left.clone(),
+                    right: left.clone(),
+                },
+            },
+            (Alias(id_left), Alias(id_right)) => match id_left == id_right {
+                true => Tc::Ok,
+                false => Tc::Mismatch {
+                    left: left.clone(),
+                    right: left.clone(),
+                },
+            },
+            (Tuple(head_left, tail_left), Tuple(head_right, tail_right)) => {
+                let size_check = match tail_left.len() == tail_right.len() {
+                    true => Tc::Ok,
+                    false => Tc::TupleSizeMismatch {
+                        left: tail_left.len() + 1,
+                        right: tail_right.len() + 1,
+                    },
+                };
+
+                let head_check = self.type_check(head_left, head_right);
+                let tail_check = tail_left
+                    .iter()
+                    .zip(tail_right.iter())
+                    .map(|(left, right)| self.type_check(left, right))
+                    .collect::<Vec<_>>();
+                let tc = [size_check, head_check]
+                    .into_iter()
+                    .chain(tail_check)
+                    .collect();
+                println!("{tc:#?}");
+                Tc::Seq(tc)
+            }
+            (Array(ty_left, size_left), Array(ty_right, size_right)) => {
+                let size_check = match size_left == size_right {
+                    true => Tc::Ok,
+                    false => Tc::ArraySizeMismatch {
+                        left: *size_left,
+                        right: *size_right,
+                    },
+                };
+                let ty_check = self.type_check(ty_left, ty_right);
+                Tc::Seq(Box::new([size_check, ty_check]))
+            }
+            (Pointer(ty_left), Pointer(ty_right)) => self.type_check(ty_left, ty_right),
+            (Ref(ty_left), Ref(ty_right)) => self.type_check(ty_left, ty_right),
+            (Func(args_left, ty_left), Func(args_right, ty_right)) => {
+                let arg_count_check = match args_left.len() == args_right.len() {
+                    true => Tc::Ok,
+                    false => Tc::ArgCountMismatch {
+                        left: args_left.len(),
+                        right: args_right.len(),
+                    },
+                };
+
+                let ty_check = self.type_check(ty_left, ty_right);
+                let args_check = args_left
+                    .iter()
+                    .zip(args_right.iter())
+                    .map(|(left, right)| self.type_check(right, left))
+                    .collect::<Vec<_>>();
+                let tc = [arg_count_check, ty_check]
+                    .into_iter()
+                    .chain(args_check)
+                    .collect();
+
+                Tc::Seq(tc)
+            }
+            _ => Tc::Mismatch {
+                left: left.clone(),
+                right: left.clone(),
+            },
         }
     }
 
-    pub fn type_check_coerce<'a>(&'a self, expr: &mut abt::Expr, mut ty: &'a abt::Type) -> bool {
+    pub fn type_check_coerce<'a>(&'a self, expr: &mut abt::Expr, mut ty: &'a abt::Type) -> Tc {
         ty = self.program.dealias_type(ty);
         let expr_ty = expr.value.ty.clone();
         let span = expr.span;
 
         if let (abt::Type::Ref(ref_inner), abt::Type::Pointer(pointer_ty)) = (&expr_ty, ty) {
             if let abt::Type::Array(inner_ty, _) = &**ref_inner {
-                if self.type_check(inner_ty, pointer_ty) {
-                    let prev_expr = std::mem::replace(&mut expr.value, abt::TypedExpr::unknown());
-                    *expr = abt::TypedExpr {
-                        kind: abt::ExprKind::ToPointer(Box::new(prev_expr.wrap(span))),
-                        ty: abt::Type::Pointer(pointer_ty.clone()),
-                    }.wrap(span);
-                    return true;
+                match self.type_check(inner_ty, pointer_ty) {
+                    Tc::Ok => {
+                        let prev_expr =
+                            std::mem::replace(&mut expr.value, abt::TypedExpr::unknown());
+                        *expr = abt::TypedExpr {
+                            kind: abt::ExprKind::ToPointer(Box::new(prev_expr.wrap(span))),
+                            ty: abt::Type::Pointer(pointer_ty.clone()),
+                        }
+                        .wrap(span);
+                        return Tc::Ok;
+                    }
+                    tc => return tc,
                 }
             }
         }

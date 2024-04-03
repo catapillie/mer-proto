@@ -92,7 +92,8 @@ impl<'d> Analyser<'d> {
             }
         }
 
-        if self.type_check(ty_left, ty_right) && self.type_check(ty_right, ty_left) {
+        if self.type_check(ty_left, ty_right).is_ok() && self.type_check(ty_right, ty_left).is_ok()
+        {
             use abt::Type as Ty;
             let ty = self.program.dealias_type(ty_left).clone();
             let bound_op = match ty {
@@ -153,7 +154,10 @@ impl<'d> Analyser<'d> {
         };
 
         let right_ty = bound_right.value.ty.clone();
-        if !self.type_check_coerce(&mut bound_right, &expected_type) {
+        if self
+            .type_check_coerce(&mut bound_right, &expected_type)
+            .is_err()
+        {
             let info = self.program.variables.get(&var_id).unwrap();
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::TypeMismatch {

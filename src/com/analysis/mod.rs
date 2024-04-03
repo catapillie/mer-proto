@@ -14,6 +14,7 @@ mod lvalue;
 mod pattern;
 mod program;
 mod statement;
+mod tc;
 mod types;
 
 mod functions;

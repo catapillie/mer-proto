@@ -260,7 +260,7 @@ impl<'d> Analyser<'d> {
 
             let expected_ty = req.1;
             let expr_ty = bound_expr.value.ty.clone();
-            if !self.type_check_coerce(bound_expr, &expected_ty.value) {
+            if self.type_check_coerce(bound_expr, &expected_ty.value).is_err() {
                 let d = diagnostics::create_diagnostic()
                     .with_kind(DiagnosticKind::TypeMismatch {
                         found: self.program.type_repr(&expr_ty),
@@ -414,7 +414,7 @@ impl<'d> Analyser<'d> {
 
             let expected_ty = field_ty;
             let expr_ty = bound_field.value.ty.clone();
-            if !self.type_check_coerce(bound_field, &expected_ty.value) {
+            if self.type_check_coerce(bound_field, &expected_ty.value).is_err() {
                 let d = diagnostics::create_diagnostic()
                     .with_kind(DiagnosticKind::TypeMismatch {
                         found: self.program.type_repr(&expr_ty),

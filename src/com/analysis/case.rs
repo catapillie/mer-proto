@@ -18,7 +18,7 @@ impl<'d> Analyser<'d> {
         let bound_fallback = self.analyse_expression(fallback);
 
         let guard_ty = &bound_guard.value.ty;
-        if !self.type_check(guard_ty, &abt::Type::Bool) {
+        if self.type_check(guard_ty, &abt::Type::Bool).is_err() {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::GuardNotBoolean)
                 .with_span(guard.span)
@@ -46,7 +46,8 @@ impl<'d> Analyser<'d> {
             abt::Type::Never
         } else if expr_ty == &abt::Type::Never {
             fallback_ty.clone()
-        } else if fallback_ty == &abt::Type::Never || self.type_check(expr_ty, fallback_ty) {
+        } else if fallback_ty == &abt::Type::Never || self.type_check(expr_ty, fallback_ty).is_ok()
+        {
             expr_ty.clone()
         } else {
             let d = diagnostics::create_diagnostic()
@@ -104,7 +105,7 @@ impl<'d> Analyser<'d> {
             };
 
             let guard_ty = &bound_guard.value.ty;
-            if !self.type_check(guard_ty, &abt::Type::Bool) {
+            if self.type_check(guard_ty, &abt::Type::Bool).is_err() {
                 let d = diagnostics::create_diagnostic()
                     .with_kind(DiagnosticKind::GuardNotBoolean)
                     .with_span(guard.span)
@@ -177,7 +178,7 @@ impl<'d> Analyser<'d> {
                     .first()
                     .expect("empty case expressions are not handled properly"),
             );
-        let all_types_match = types.iter().all(|t| self.type_check(t, ty));
+        let all_types_match = types.iter().all(|t| self.type_check(t, ty).is_ok());
         if !all_types_match {
             let mut d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::CasePathsTypeMismatch)

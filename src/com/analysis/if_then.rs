@@ -27,7 +27,7 @@ impl<'d> Analyser<'d> {
         }
 
         let guard_ty = &bound_guard.value.ty;
-        if !self.type_check(guard_ty, &abt::Type::Bool) {
+        if self.type_check(guard_ty, &abt::Type::Bool).is_err() {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::GuardNotBoolean)
                 .with_severity(Severity::Error)
@@ -83,7 +83,7 @@ impl<'d> Analyser<'d> {
         }
 
         let guard_ty = &bound_guard.value.ty;
-        if !self.type_check(guard_ty, &abt::Type::Bool) {
+        if self.type_check(guard_ty, &abt::Type::Bool).is_err() {
             let d = diagnostics::create_diagnostic()
                 .with_kind(DiagnosticKind::GuardNotBoolean)
                 .with_severity(Severity::Error)
