@@ -115,7 +115,6 @@ impl<'d> Analyser<'d> {
                     .into_iter()
                     .chain(tail_check)
                     .collect();
-                println!("{tc:#?}");
                 Tc::Seq(tc)
             }
             (Array(ty_left, size_left), Array(ty_right, size_right)) => {
